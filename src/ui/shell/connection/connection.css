@@ -1,0 +1,169 @@
+/*
+ * Connection drawer styles (T1.10; spec plan/05 §5.2). Hand-rolled, theme-token
+ * driven so the drawer restyles instantly on theme switch (like the shell).
+ */
+
+/* Top-bar connection chip rendered as a button (drawer trigger). */
+.mvp-chip--button {
+  appearance: none;
+  font: inherit;
+  cursor: pointer;
+}
+
+.mvp-chip--button:hover {
+  border-color: var(--mvp-accent);
+}
+
+/* Backdrop + sliding right-hand drawer. */
+.mvp-conn-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  justify-content: flex-end;
+  z-index: 50;
+}
+
+.mvp-conn-drawer {
+  width: min(420px, 100%);
+  height: 100%;
+  overflow-y: auto;
+  background: var(--mvp-surface);
+  border-left: 1px solid var(--mvp-border);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  color: var(--mvp-text);
+}
+
+.mvp-conn-drawer__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.mvp-conn-drawer__title {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.mvp-conn-drawer__close {
+  appearance: none;
+  border: 1px solid var(--mvp-border);
+  background: var(--mvp-surface-2);
+  color: var(--mvp-text);
+  border-radius: var(--mvp-radius);
+  width: 32px;
+  height: 32px;
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.mvp-conn-drawer__state {
+  margin: 0;
+  color: var(--mvp-text-dim);
+}
+
+.mvp-conn__transports {
+  border: 1px solid var(--mvp-border);
+  border-radius: var(--mvp-radius);
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.mvp-conn__transport {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mvp-conn__transport--disabled {
+  color: var(--mvp-text-dim);
+}
+
+.mvp-conn__transport-hint {
+  margin-left: auto;
+  font-size: 0.8rem;
+  color: var(--mvp-warn);
+}
+
+.mvp-conn__form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mvp-conn__field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mvp-conn__field label {
+  font-size: 0.85rem;
+  color: var(--mvp-text-dim);
+}
+
+.mvp-conn__field input,
+.mvp-conn__field select {
+  font: inherit;
+  padding: 6px 8px;
+  background: var(--mvp-surface-2);
+  border: 1px solid var(--mvp-border);
+  border-radius: var(--mvp-radius);
+  color: var(--mvp-text);
+}
+
+.mvp-conn__error {
+  margin: 0;
+  color: var(--mvp-error);
+  font-weight: 600;
+}
+
+.mvp-conn__actions {
+  display: flex;
+  gap: 8px;
+}
+
+.mvp-conn__vehicles,
+.mvp-conn__diag {
+  border-top: 1px solid var(--mvp-border);
+  padding-top: 12px;
+}
+
+.mvp-conn__vehicles h3,
+.mvp-conn__diag h3 {
+  margin: 0 0 8px;
+  font-size: 0.95rem;
+}
+
+.mvp-conn__empty {
+  margin: 0;
+  color: var(--mvp-text-dim);
+}
+
+.mvp-conn__diag-grid {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px 16px;
+  font-family: var(--mvp-font-mono);
+}
+
+.mvp-conn__diag-grid > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.mvp-conn__diag-grid dt {
+  color: var(--mvp-text-dim);
+}
+
+.mvp-conn__diag-grid dd {
+  margin: 0;
+}

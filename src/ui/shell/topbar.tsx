@@ -9,6 +9,7 @@ import { For, type Component } from 'solid-js';
 import type { ConnState, ScreenId } from '../../contracts';
 import { t } from '../../core/i18n';
 import { useShell } from './context';
+import { useConnection } from './connection';
 import { SCREEN_ORDER } from './screens';
 
 /** Map a {@link ConnState} to a catalog key for its chip label. */
@@ -19,6 +20,7 @@ function connKey(state: ConnState): string {
 /** The persistent application top bar. */
 export const TopBar: Component<{ onOpenPalette: () => void }> = (props) => {
   const { store } = useShell();
+  const connection = useConnection();
   const activeScreen = store.select((s) => s.layout.activeScreen);
   const conn = store.select((s) => s.connection);
 
@@ -48,10 +50,17 @@ export const TopBar: Component<{ onOpenPalette: () => void }> = (props) => {
       </nav>
 
       <div class="mvp-status" role="group" aria-label={t('a11y.statusChips')}>
-        <span class="mvp-chip" classList={{ 'mvp-chip--ok': conn().kind === 'open' }}>
+        <button
+          type="button"
+          class="mvp-chip mvp-chip--button"
+          classList={{ 'mvp-chip--ok': conn().kind === 'open' }}
+          aria-haspopup="dialog"
+          title={t('cmd.connection')}
+          onClick={() => connection?.openDrawer()}
+        >
           <span class="mvp-chip__dot" aria-hidden="true" />
           {t(connKey(conn()))}
-        </span>
+        </button>
         <span class="mvp-chip mvp-chip--muted">{t('status.disarmed')}</span>
         <span class="mvp-chip mvp-chip--muted">
           {t('status.mode')}: {t('status.unknown')}

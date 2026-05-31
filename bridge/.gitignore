@@ -1,0 +1,4 @@
+# This bridge carries its own dependencies, installed locally and never tracked.
+node_modules/
+.npm-cache/
+package-lock.json

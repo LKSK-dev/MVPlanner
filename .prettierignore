@@ -16,3 +16,6 @@ test/vectors/vectors-v1.json
 test/vectors/vectors-v2.json
 test/vectors/vectors-signed.json
 test/vectors/manifest.json
+
+# Companion bridge is a separate Node artifact with its own tooling
+bridge

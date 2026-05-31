@@ -1,0 +1,24 @@
+{
+  "name": "mvplanner-bridge",
+  "version": "0.1.0",
+  "description": "Optional companion bridge: WebSocket <-> TCP/UDP MAVLink endpoint for MVPlanner. Not bundled into the app.",
+  "type": "module",
+  "private": true,
+  "bin": {
+    "mvplanner-bridge": "./bridge.mjs"
+  },
+  "main": "./bridge.mjs",
+  "exports": {
+    ".": "./bridge.mjs"
+  },
+  "scripts": {
+    "start": "node bridge.mjs",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}
