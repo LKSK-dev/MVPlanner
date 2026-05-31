@@ -113,7 +113,15 @@ export class PostMessageRpc implements Rpc {
         };
         signal.addEventListener('abort', onAbort, { once: true });
       }
-      this.post({ t: 'req', id, method, stream: false, req });
+      // The final post can throw synchronously (e.g. DataCloneError for a
+      // non-cloneable req, or a closed port). Clean up the pending entry and
+      // the {once:true} abort listener before surfacing the error.
+      try {
+        this.post({ t: 'req', id, method, stream: false, req });
+      } catch (err) {
+        finish();
+        reject(err);
+      }
     });
   }
 
@@ -160,7 +168,15 @@ export class PostMessageRpc implements Rpc {
         };
         signal.addEventListener('abort', onAbort, { once: true });
       }
-      this.post({ t: 'req', id, method, stream: true, req });
+      // The final post can throw synchronously (e.g. DataCloneError for a
+      // non-cloneable req, or a closed port). Clean up the pending entry and
+      // the {once:true} abort listener before surfacing the error.
+      try {
+        this.post({ t: 'req', id, method, stream: true, req });
+      } catch (err) {
+        finish();
+        reject(err);
+      }
     });
   }
 

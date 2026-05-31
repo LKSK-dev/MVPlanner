@@ -147,6 +147,12 @@ export function createAppStore(initial?: Partial<AppState>, persist?: KvStore): 
         patch((draft) => {
           if (savedSettings) draft.settings = { ...draft.settings, ...savedSettings };
           if (savedLayout) draft.layout = { ...draft.layout, ...savedLayout };
+          // 'persisted wins': any early synchronous patch issued before this
+          // rehydrate completes is overwritten here by the persisted values.
+          // Advance the persist baseline to the rehydrated snapshot so reading
+          // persisted state back does not trigger a redundant KV write-back on
+          // launch (the seeded baseline was the pre-rehydrate initial state).
+          lastPersistKey = persistKey(draft);
         });
       })().catch(reportPersistError);
     }

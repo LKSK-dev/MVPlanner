@@ -35,7 +35,10 @@ export const BLOB_NS_INDEX = 'by-ns';
  * than a `Blob` so the record round-trips through `structuredClone`/IndexedDB
  * identically in real browsers and in test runtimes (some `Blob` polyfills do
  * not survive structured clone). `BlobStore.getRange` slices these bytes and
- * returns only the requested window, so the whole buffer is never retained.
+ * returns only the requested window; it currently loads the full stored record
+ * per call before slicing (acceptable for the M0 foundation). True
+ * windowed/chunked reads for large logs land later via the chunked tlog/
+ * DataFlash paths (T2.10 / T6.2).
  */
 export interface BlobRecord {
   /** Namespace (logical bucket). */

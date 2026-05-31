@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
+import { createEffect, createRoot } from 'solid-js';
 import {
   DEFAULT_LOCALE,
   formatDate,
@@ -9,10 +10,14 @@ import {
   getLocale,
   hasLocale,
   listLocales,
+  locale,
   registerLocale,
   setLocale,
   t,
 } from '../../src/core/i18n';
+
+/** Macrotask turn so Solid's effect scheduler flushes. */
+const settle = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
 
 // The locale signal + registry are module singletons; keep tests independent.
 afterEach(() => {
@@ -71,6 +76,25 @@ describe('i18n locale registry', () => {
 
   it('rejects an empty locale code', () => {
     expect(() => registerLocale('', {})).toThrow();
+  });
+});
+
+describe('i18n reactivity', () => {
+  it('re-runs a Solid effect reading locale() after setLocale()', async () => {
+    registerLocale('fr', { 'nav.flight': 'Vol' });
+    await createRoot(async (dispose) => {
+      const seen: string[] = [];
+      createEffect(() => {
+        seen.push(locale());
+      });
+      await settle();
+      expect(seen).toEqual(['en']);
+
+      setLocale('fr');
+      await settle();
+      expect(seen).toEqual(['en', 'fr']);
+      dispose();
+    });
   });
 });
 

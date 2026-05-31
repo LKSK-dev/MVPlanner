@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createEventBus } from '../../src/core/bus/event-bus';
 import { createRpc, type PostMessageRpc } from '../../src/core/bus/rpc';
 
@@ -52,6 +52,26 @@ describe('EventBus', () => {
     bus.emit<string>('t', 'y');
     expect(seen).toEqual(['one:x', 'two:x', 'two:y']);
   });
+
+  it('isolates a throwing subscriber so other subscribers still receive the emit', () => {
+    const bus = createEventBus();
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const seen: string[] = [];
+    bus.on<string>('t', () => {
+      throw new Error('subscriber boom');
+    });
+    bus.on<string>('t', (v) => seen.push(`ok:${v}`));
+    bus.emit<string>('t', 'x');
+    // The second subscriber still ran despite the first throwing.
+    expect(seen).toEqual(['ok:x']);
+    // The error was reported out-of-band, not rethrown.
+    expect(consoleError).toHaveBeenCalledWith(
+      '[EventBus] listener threw for topic',
+      't',
+      expect.any(Error),
+    );
+    consoleError.mockRestore();
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -93,6 +113,26 @@ describe('Rpc (over MessageChannel)', () => {
 
   it('rejects when no handler is registered for the method', async () => {
     await expect(client.call('missing', 1)).rejects.toThrow(/No handler for "missing"/);
+  });
+
+  it('rejects a stream when no stream handler is registered for the method', async () => {
+    await expect(client.stream('missing-stream', 1, () => {})).rejects.toThrow(
+      /No stream handler for/,
+    );
+  });
+
+  it('rejects an in-flight call with "Rpc disposed" on dispose()', async () => {
+    server.handle<void, void>('hang', () => new Promise<void>(() => {}));
+    const p = client.call('hang', undefined);
+    client.dispose();
+    await expect(p).rejects.toThrow(/Rpc disposed/);
+  });
+
+  it('rejects an in-flight stream with "Rpc disposed" on dispose()', async () => {
+    server.handleStream<void, number>('drip', () => new Promise<void>(() => {}));
+    const p = client.stream<void, number>('drip', undefined, () => {});
+    client.dispose();
+    await expect(p).rejects.toThrow(/Rpc disposed/);
   });
 
   it('cancels an in-flight call via AbortSignal and aborts the handler', async () => {

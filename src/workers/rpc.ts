@@ -3,14 +3,13 @@
  * The transport-agnostic core lives in `src/core/bus`; these wrappers just name
  * the two common call sites so worker hosts read clearly.
  */
-import { createRpc, type MessageEndpoint } from '../core/bus';
-import type { Rpc } from '../contracts';
+import { createRpc, type MessageEndpoint, type PostMessageRpc } from '../core/bus';
 
 /**
  * Main-thread side: bind an {@link Rpc} to a spawned `Worker` (or any
  * `{ postMessage, onmessage }` endpoint such as a `MessagePort`).
  */
-export function connectWorker(endpoint: MessageEndpoint): Rpc {
+export function connectWorker(endpoint: MessageEndpoint): PostMessageRpc {
   return createRpc(endpoint);
 }
 
@@ -18,6 +17,6 @@ export function connectWorker(endpoint: MessageEndpoint): Rpc {
  * Worker side: bind an {@link Rpc} to the worker's own global scope. Pass
  * `self` (typed as a {@link MessageEndpoint}) from inside the worker module.
  */
-export function serveWorker(scope: MessageEndpoint): Rpc {
+export function serveWorker(scope: MessageEndpoint): PostMessageRpc {
   return createRpc(scope);
 }

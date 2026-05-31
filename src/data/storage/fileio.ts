@@ -153,17 +153,15 @@ function saveViaAnchor(env: ResolvedFileIoEnv, data: Blob, suggestedName: string
     throw new Error('FileIo.saveAs: no File System Access API and no DOM download fallback');
   }
   const url = createObjectURL(data);
-  try {
-    const anchor = doc.createElement('a');
-    anchor.href = url;
-    anchor.download = suggestedName;
-    anchor.rel = 'noopener';
-    anchor.click();
-  } finally {
-    // The download fetch starts synchronously during click(), so the URL can be
-    // revoked immediately to avoid leaking it.
-    revokeObjectURL?.(url);
-  }
+  const anchor = doc.createElement('a');
+  anchor.href = url;
+  anchor.download = suggestedName;
+  anchor.rel = 'noopener';
+  anchor.click();
+  // Defer revoking to a later macrotask: some browsers (Firefox/Safari) read the
+  // blob URL asynchronously after click(), so a synchronous revoke can truncate
+  // large downloads.
+  setTimeout(() => revokeObjectURL?.(url), 0);
 }
 
 /**

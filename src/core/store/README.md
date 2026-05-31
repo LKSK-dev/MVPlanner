@@ -74,10 +74,9 @@ through an injected in-memory `KvStore` (no IndexedDB).
 
 > **Harness note.** The reactive **fan-out** assertions (`select` notifying an
 > effect; firing only for relevant changes) require a reactive Solid build. The
-> dev/prod pipeline uses `vite-plugin-solid` (`vite.config.ts`), but the current
-> unit harness (`vitest.config.ts`, intentionally pure-logic until the component
-> test setup lands with T0.7/T0.8) resolves Solid's **SSR build**, where
-> `createEffect`/`createMemo` are no-ops. Those two tests therefore detect
-> reactivity at runtime and **skip** (never fail) under the SSR harness; they run
-> and pass once a reactive test config is in place (verified locally against a
-> `browser`/`development`-conditioned Vitest run: 11/11 green).
+> unit harness now provides one: `vitest.config.ts` runs `vite-plugin-solid`
+> with `resolve.conditions: ['development', 'browser']`, so `solid-js` resolves
+> its **reactive** build (not the SSR no-op build) and `createEffect`/
+> `createMemo` work. The reactive tests therefore **run** (they are no longer
+> skipped). A non-gated `REACTIVE` probe asserts the harness is reactive so a
+> future config regression fails loudly instead of silently skipping them.

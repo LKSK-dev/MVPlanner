@@ -36,12 +36,20 @@ export class TypedEventBus implements EventBus {
   /**
    * Synchronously deliver `payload` to every current subscriber of `topic`.
    * Iterates a snapshot so a listener may unsubscribe (or subscribe) during
-   * delivery without affecting the in-flight emit.
+   * delivery without affecting the in-flight emit. Each listener is invoked in
+   * isolation: a throwing subscriber is reported out-of-band and does not abort
+   * fan-out to the remaining subscribers.
    */
   emit<T>(topic: string, payload: T): void {
     const set = this.topics.get(topic);
     if (!set || set.size === 0) return;
-    for (const listener of [...set]) listener(payload);
+    for (const listener of [...set]) {
+      try {
+        listener(payload);
+      } catch (err) {
+        console.error('[EventBus] listener threw for topic', topic, err);
+      }
+    }
   }
 }
 

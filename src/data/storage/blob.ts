@@ -1,8 +1,11 @@
 /**
  * Namespaced blob store ({@link BlobStore}) backed by the `blobs` object store
  * (T0.9; contract `src/contracts/storage.ts`). Each record keeps the blob bytes
- * plus size/type/metadata; `getRange` returns just the requested byte window so
- * the whole blob is never retained in a persistent structure.
+ * plus size/type/metadata. `getRange` returns just the requested byte window,
+ * but note that it currently loads the full stored record per call before
+ * slicing — acceptable for the M0 foundation. True windowed/chunked reads for
+ * large logs are handled later by the chunked tlog/DataFlash paths (T2.10 /
+ * T6.2); this store keeps the simple whole-record ArrayBuffer approach.
  */
 import type { BlobMeta, BlobStore } from '../../contracts';
 import { BLOB_NS_INDEX, BLOB_STORE, type BlobRecord, type StorageDatabase } from './schema';
@@ -64,7 +67,9 @@ export function createBlobStore(getDb: () => Promise<StorageDatabase>): BlobStor
     /**
      * Read a byte window `[start, end)` (end-exclusive, clamped to the blob
      * size) and return it as a fresh `Uint8Array`. Out-of-range or inverted
-     * bounds yield an empty array rather than throwing.
+     * bounds yield an empty array rather than throwing. Note: this loads the
+     * full stored record per call before slicing (acceptable for M0); chunked
+     * windowed reads land with T2.10 / T6.2.
      */
     async getRange(ns: string, key: string, start: number, end: number): Promise<Uint8Array> {
       const record = await requireRecord(await getDb(), ns, key, 'getRange');

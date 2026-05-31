@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   THEME_IDS,
   applyTheme,
@@ -12,8 +12,19 @@ import {
 
 const root = document.documentElement;
 
+/**
+ * Stub `window.matchMedia` so exactly the queries in `matching` report
+ * `matches:true`; every other query reports `matches:false`.
+ */
+function stubMatchMedia(...matching: string[]): void {
+  vi.spyOn(window, 'matchMedia').mockImplementation(
+    (q: string) => ({ matches: matching.includes(q), media: q }) as MediaQueryList,
+  );
+}
+
 afterEach(() => {
   clearTheme();
+  vi.restoreAllMocks();
 });
 
 describe('theme ids', () => {
@@ -42,13 +53,36 @@ describe('applyTheme / getActiveTheme', () => {
 });
 
 describe('prefers-* readers', () => {
-  it('return booleans for the OS accessibility preferences', () => {
-    expect(typeof prefersReducedMotion()).toBe('boolean');
-    expect(typeof prefersHighContrast()).toBe('boolean');
-    expect(typeof prefersDarkScheme()).toBe('boolean');
+  it('reflect the matched media query for each OS preference', () => {
+    stubMatchMedia('(prefers-reduced-motion: reduce)');
+    expect(prefersReducedMotion()).toBe(true);
+    expect(prefersHighContrast()).toBe(false);
+    expect(prefersDarkScheme()).toBe(false);
+
+    stubMatchMedia('(prefers-contrast: more)');
+    expect(prefersHighContrast()).toBe(true);
+    expect(prefersReducedMotion()).toBe(false);
+
+    stubMatchMedia('(prefers-color-scheme: dark)');
+    expect(prefersDarkScheme()).toBe(true);
+    expect(prefersHighContrast()).toBe(false);
   });
 
   it('resolves a valid built-in theme for system/auto mode', () => {
     expect([...THEME_IDS]).toContain(systemTheme());
+  });
+
+  it('systemTheme() branches: high-contrast wins, then light, else dark', () => {
+    // Increased contrast wins regardless of color scheme.
+    stubMatchMedia('(prefers-contrast: more)', '(prefers-color-scheme: light)');
+    expect(systemTheme()).toBe('high-contrast');
+
+    // No high contrast + explicit light preference → light.
+    stubMatchMedia('(prefers-color-scheme: light)');
+    expect(systemTheme()).toBe('light');
+
+    // Nothing matches → dark default.
+    stubMatchMedia();
+    expect(systemTheme()).toBe('dark');
   });
 });

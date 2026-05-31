@@ -6,16 +6,13 @@ import { createAppStore } from '../../src/core/store';
 // ---------------------------------------------------------------------------
 // Harness capability probe
 // ---------------------------------------------------------------------------
-// Solid ships separate runtime builds. The dev/build pipeline uses
-// `vite-plugin-solid` (see vite.config.ts) and is fully reactive. The unit-test
-// harness (vitest.config.ts, intentionally pure-logic until the component-test
-// setup lands with T0.7/T0.8) currently resolves Solid's SSR build, where
-// `createEffect`/`createMemo` are non-reactive no-ops. We therefore detect
-// reactivity at runtime: the store's non-reactive contract (get/patch/coalesce/
-// persistence) is asserted unconditionally, while the reactive fan-out
-// guarantees run only when the harness actually supports reactivity (so they
-// pass here once a reactive test config is in place, and are skipped — never
-// failed — under the SSR build).
+// Solid ships separate runtime builds. The unit harness resolves the REACTIVE
+// build: vitest.config.ts runs vite-plugin-solid with
+// resolve.conditions ['development', 'browser'], so createEffect/createMemo
+// actually fire here. We still probe reactivity at runtime and assert it below
+// (a non-gated guard test) so a future vitest-config regression that silently
+// reverts to Solid's SSR no-op build fails loudly instead of skipping the
+// reactive fan-out tests.
 const REACTIVE: boolean = createRoot((dispose) => {
   const [n, setN] = createSignal(1);
   const m = createMemo(() => n());
@@ -71,6 +68,14 @@ const DEFAULT_STATE: AppState = {
 // ---------------------------------------------------------------------------
 // Default state shape + merge
 // ---------------------------------------------------------------------------
+
+describe('harness reactivity guard', () => {
+  it('resolves Solid\u2019s reactive build (not the SSR no-op build)', () => {
+    // Non-gated: if the vitest config regresses to the SSR build this fails
+    // loudly rather than silently skipping the reactive fan-out tests below.
+    expect(REACTIVE).toBe(true);
+  });
+});
 
 describe('createAppStore — defaults & merge', () => {
   it('exposes the documented default app state', () => {

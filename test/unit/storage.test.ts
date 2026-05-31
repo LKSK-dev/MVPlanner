@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   createFileIo,
   createStorage,
+  migrate,
   openStorageDb,
   requestPersistentStorage,
   BLOB_NS_INDEX,
@@ -10,6 +11,7 @@ import {
   DB_VERSION,
   KV_STORE,
   type AppStorage,
+  type StorageDatabase,
 } from '../../src/data/storage';
 
 let uid = 0;
@@ -130,6 +132,16 @@ describe('schema + migrations', () => {
     }
   });
 
+  it('throws for a schema step with no registered migration', () => {
+    // migrate() is the forward-only entry point run inside the upgrade
+    // transaction. Stepping to a version past DB_VERSION has no matching `case`,
+    // so the default branch throws rather than silently leaving the schema
+    // incomplete (which would abort the IndexedDB upgrade).
+    expect(() => migrate({} as unknown as StorageDatabase, DB_VERSION, DB_VERSION + 1)).toThrow(
+      /no migration registered/,
+    );
+  });
+
   it('keeps the migrated schema + data when re-opening the same database', async () => {
     const name = dbName();
 
@@ -176,6 +188,52 @@ describe('requestPersistentStorage', () => {
 });
 
 describe('FileIo', () => {
+  it('falls back to an <input type=file> for openForRead and resolves the chosen file', async () => {
+    const file = new File([new Uint8Array([1, 2, 3])], 'picked.bin', {
+      type: 'application/octet-stream',
+    });
+    let input: HTMLInputElement | undefined;
+    const realCreate = document.createElement.bind(document);
+    vi.spyOn(document, 'createElement').mockImplementation((tag: string) => {
+      const el = realCreate(tag as 'input');
+      if (tag === 'input') {
+        input = el as HTMLInputElement;
+        (el as HTMLInputElement).click = () => {};
+      }
+      return el;
+    });
+
+    // No showOpenFilePicker injected and none on the ambient global, so
+    // openForRead takes the DOM <input> fallback.
+    const files = createFileIo({});
+    const promise = files.openForRead(['.bin']);
+    // Simulate the user selecting a file.
+    Object.defineProperty(input!, 'files', { value: [file], configurable: true });
+    input!.dispatchEvent(new Event('change'));
+
+    const result = await promise;
+    expect(result?.name).toBe('picked.bin');
+    expect(result?.blob).toBe(file);
+  });
+
+  it('resolves undefined when the <input> fallback is cancelled', async () => {
+    let input: HTMLInputElement | undefined;
+    const realCreate = document.createElement.bind(document);
+    vi.spyOn(document, 'createElement').mockImplementation((tag: string) => {
+      const el = realCreate(tag as 'input');
+      if (tag === 'input') {
+        input = el as HTMLInputElement;
+        (el as HTMLInputElement).click = () => {};
+      }
+      return el;
+    });
+
+    const files = createFileIo({});
+    const promise = files.openForRead();
+    input!.dispatchEvent(new Event('cancel'));
+    expect(await promise).toBeUndefined();
+  });
+
   it('opens via the File System Access API when available', async () => {
     const file = new File([new Uint8Array([1, 2, 3])], 'mission.plan', {
       type: 'application/json',
@@ -266,6 +324,10 @@ describe('FileIo', () => {
 
     expect(createObjectURL).toHaveBeenCalledOnce();
     expect(clickSpy).toHaveBeenCalledOnce();
+    // The object URL is revoked on a later macrotask (not synchronously after
+    // click()) so large downloads aren't truncated on Firefox/Safari.
+    expect(revokeObjectURL).not.toHaveBeenCalled();
+    await new Promise((resolve) => setTimeout(resolve, 0));
     expect(revokeObjectURL).toHaveBeenCalledWith('blob:fake-url');
     expect(anchor?.download).toBe('download.bin');
     expect(anchor?.getAttribute('href')).toBe('blob:fake-url');
