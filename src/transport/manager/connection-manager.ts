@@ -22,6 +22,10 @@
  * grow behind it later without changing consumers.
  */
 import type { ConnState, LinkStats, VehicleState } from '../../contracts';
+import {
+  createStreamRateService,
+  type StreamRateService,
+} from '../../mavlink/microservices/streams';
 
 /**
  * The minimal telemetry shape the manager consumes from the host. The real
@@ -103,6 +107,12 @@ export class ConnectionManager {
   private selectedSysid: number | undefined;
   /** The transport factory id of the active/last connect attempt. */
   private activeFactoryId: string | undefined;
+  /**
+   * Stream-rate requester for the current open session (T1.11). Created on the
+   * transition to `open` and dropped on `closed`, so {@link requestDefaultSet}
+   * runs exactly once per open session.
+   */
+  private streams: StreamRateService | undefined;
   private disposed = false;
 
   constructor(options: ConnectionManagerOptions) {
@@ -219,11 +229,22 @@ export class ConnectionManager {
 
   private onHostState(s: ConnState): void {
     this.currentState = s;
-    if (s.kind === 'closed') {
+    if (s.kind === 'open') {
+      // On the transition to open, ask the vehicle for the default live-ops
+      // message set once (T1.11; spec plan/03 §3.3). Guarded so repeated `open`
+      // events without an intervening `closed` do not re-request.
+      if (this.streams === undefined) {
+        this.streams = createStreamRateService({
+          send: (name, fields) => this.host.sendMessage(name, fields),
+        });
+        void this.streams.requestDefaultSet();
+      }
+    } else if (s.kind === 'closed') {
       // A closed link has no vehicles; clear so the UI does not show stale rows.
       this.currentVehicles = [];
       this.snapshotActiveSysid = undefined;
       this.selectedSysid = undefined;
+      this.streams = undefined;
       this.emitTelemetry();
     }
     for (const cb of this.stateListeners) cb(s);

@@ -13,10 +13,21 @@
  * @see ./README.md for the contract, owned files, and how to test.
  */
 export { MavlinkSession } from './session';
-export type { MavlinkSessionOptions, TelemetrySnapshot, RateEntry } from './session';
+export type {
+  MavlinkSessionOptions,
+  TelemetrySnapshot,
+  RateEntry,
+  InspectorSnapshot,
+  InspectorRow,
+} from './session';
 
 export { MavlinkHost } from './host';
-export type { MavlinkHostOptions, StateListener, TelemetryListener } from './host';
+export type {
+  MavlinkHostOptions,
+  StateListener,
+  TelemetryListener,
+  InspectorListener,
+} from './host';
 
 export {
   RPC_CONFIGURE,
@@ -24,6 +35,7 @@ export {
   RPC_SEND_MESSAGE,
   RPC_RESET,
   RPC_TELEMETRY,
+  RPC_INSPECTOR,
   RPC_OUTGOING,
 } from './protocol';
 export type {
@@ -31,5 +43,6 @@ export type {
   IngestBytesRequest,
   SendMessageRequest,
   TelemetryRequest,
+  InspectorRequest,
   OutgoingRequest,
 } from './protocol';

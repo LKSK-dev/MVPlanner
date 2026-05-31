@@ -23,19 +23,23 @@ import { BUILTIN_TRANSPORT_FACTORIES } from '../../transport';
 import {
   RPC_CONFIGURE,
   RPC_INGEST_BYTES,
+  RPC_INSPECTOR,
   RPC_OUTGOING,
   RPC_RESET,
   RPC_SEND_MESSAGE,
   RPC_TELEMETRY,
   type ConfigureRequest,
+  type InspectorRequest,
   type SendMessageRequest,
 } from './protocol';
-import type { TelemetrySnapshot } from './session';
+import type { InspectorSnapshot, TelemetrySnapshot } from './session';
 
 /** Callback for coalesced telemetry snapshots (link stats already overlaid). */
 export type TelemetryListener = (snapshot: TelemetrySnapshot) => void;
 /** Callback for connection-state transitions. */
 export type StateListener = (state: ConnState) => void;
+/** Callback for ON-DEMAND full inspector snapshots (task T1.12). */
+export type InspectorListener = (snapshot: InspectorSnapshot) => void;
 
 /** Construction options for {@link MavlinkHost}. */
 export interface MavlinkHostOptions {
@@ -177,6 +181,33 @@ export class MavlinkHost {
     return () => {
       this.telemetryListeners.delete(cb);
     };
+  }
+
+  /**
+   * Subscribe to the ON-DEMAND inspector stream (task T1.12; spec plan/04 §4.9).
+   *
+   * Opens a dedicated worker `inspector` RPC stream that emits the FULL
+   * per-`(sysid, compid, msgId)` table (latest fields + raw frame bytes + rate /
+   * last-seen + signing/CRC) at `opts.hz` (worker default ~6 Hz). The stream
+   * runs and the worker builds the heavy snapshot ONLY while subscribed; the
+   * returned disposer aborts it. Multiple subscribers each get their own stream.
+   *
+   * Independent of {@link connect}: the worker is alive from construction, so a
+   * pre-connection subscription simply receives empty tables until traffic
+   * arrives. Throws if the host has been {@link dispose}d.
+   */
+  subscribeInspector(cb: InspectorListener, opts: { hz?: number } = {}): () => void {
+    if (this.disposed) throw new Error('MavlinkHost disposed');
+    const abort = new AbortController();
+    const req: InspectorRequest = opts.hz !== undefined ? { hz: opts.hz } : {};
+    void this.rpc
+      .stream<InspectorRequest, InspectorSnapshot>(RPC_INSPECTOR, req, (snap) => cb(snap), {
+        signal: abort.signal,
+      })
+      .catch(() => {
+        /* aborted on unsubscribe / dispose — expected */
+      });
+    return () => abort.abort();
   }
 
   /**

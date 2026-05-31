@@ -17,6 +17,13 @@ export const RPC_SEND_MESSAGE = 'sendMessage';
 export const RPC_RESET = 'reset';
 /** stream: coalesced {@link import('./session').TelemetrySnapshot} at a cadence. */
 export const RPC_TELEMETRY = 'telemetry';
+/**
+ * stream: ON-DEMAND full {@link import('./session').InspectorSnapshot} at a
+ * modest cadence (~5–8 Hz), built from the registry ONLY while subscribed
+ * (task T1.12; spec plan/04 §4.9). Heavier than {@link RPC_TELEMETRY}, so it is
+ * deliberately separate and not part of the always-on telemetry path.
+ */
+export const RPC_INSPECTOR = 'inspector';
 /** stream: outgoing frame bytes the host writes to `transport.writable`. */
 export const RPC_OUTGOING = 'outgoing';
 
@@ -39,6 +46,11 @@ export interface SendMessageRequest {
 
 /** {@link RPC_TELEMETRY} request — desired snapshot cadence in Hz (optional). */
 export interface TelemetryRequest {
+  hz?: number;
+}
+
+/** {@link RPC_INSPECTOR} request — desired inspector cadence in Hz (optional). */
+export interface InspectorRequest {
   hz?: number;
 }
 

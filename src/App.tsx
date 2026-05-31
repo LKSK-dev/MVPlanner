@@ -8,8 +8,11 @@ import { Shell, createUiRegistry, type ShellContextValue } from './ui/shell';
 import { ConnectionProvider } from './ui/shell/connection';
 import { MavlinkHost } from './mavlink/host';
 import type { MavlinkHostLike } from './transport/manager';
+import { registerInspector } from './ui/widgets/inspector/register';
+import type { InspectorSource } from './ui/widgets/inspector/types';
 import './ui/shell/shell.css';
 import './ui/shell/connection/connection.css';
+import './ui/widgets/inspector/inspector.css';
 
 /** Optional injection points (used by tests; real singletons by default). */
 export interface AppProps {
@@ -41,6 +44,14 @@ export const App: Component<AppProps> = (props) => {
   const registry = createUiRegistry();
   const capabilities = props.capabilities ?? detectRealCapabilities();
   const host: MavlinkHostLike = props.host ?? new MavlinkHost();
+
+  // T1.12 integration: register the MAVLink inspector panel + ⌘K command bound to
+  // the singleton host's on-demand inspector stream. Guarded so a test mock host
+  // (MavlinkHostLike without subscribeInspector) simply omits the inspector.
+  const inspectorSource = host as Partial<InspectorSource>;
+  if (typeof inspectorSource.subscribeInspector === 'function') {
+    registerInspector(registry, inspectorSource as InspectorSource, t);
+  }
 
   const ctx: ShellContextValue = {
     store,

@@ -20,6 +20,7 @@
 import type {
   DecodedMessage,
   DialectTable,
+  FieldValue,
   LinkStats,
   MessageInput,
   SigningConfig,
@@ -79,6 +80,57 @@ export interface TelemetrySnapshot {
   /** The most-recently-heard vehicle's `sysid`, if any vehicle is known. */
   activeSysid?: number;
   /** Monotonic revision; bumps whenever ingested traffic changes state. */
+  rev: number;
+}
+
+/**
+ * A full inspector row for one `(sysid, compid, msgId)` stream — the heavy
+ * projection the MAVLink inspector (task T1.12; spec plan/04 §4.9) needs but
+ * the always-on {@link TelemetrySnapshot} deliberately omits to stay light.
+ *
+ * It carries everything to render the message/field tree, observed rate,
+ * last-seen, the latest decoded field values (enum decoding is the UI's job via
+ * dialect metadata), the latest raw frame bytes (for the hex view) and the
+ * frame's signing / CRC status. Built ON DEMAND from the {@link MessageRegistry}
+ * and only while the inspector stream is subscribed.
+ */
+export interface InspectorRow {
+  sysid: number;
+  compid: number;
+  msgId: number;
+  name: string;
+  /** Observed rate in Hz over the registry's sliding window. */
+  rateHz: number;
+  /** Last-seen timestamp in the session clock domain (ms). */
+  lastSeenMs: number;
+  /** Total messages ingested for this stream. */
+  count: number;
+  /** Latest decoded field values (verbatim MAVLink field names). */
+  fields: Record<string, FieldValue>;
+  /** Raw bytes of the latest frame (for the hex view). */
+  raw: Uint8Array;
+  /** Whether the latest frame's CRC validated. */
+  crcOk: boolean;
+  /** Whether the latest frame was signed (MAVLink v2). */
+  signed: boolean;
+  /** Signing link id of the latest frame, when signed. */
+  linkId?: number;
+  /** Sequence number of the latest frame. */
+  seq: number;
+  /** Receive time (us) of the latest frame. */
+  rxTimeUs: number;
+}
+
+/**
+ * The full inspector table: one {@link InspectorRow} per observed
+ * `(sysid, compid, msgId)` stream, sorted by `(sysid, compid, msgId)`. Produced
+ * on demand by {@link MavlinkSession.takeInspectorSnapshot} and structurally
+ * cloned to the UI thread by the worker's `inspector` stream.
+ */
+export interface InspectorSnapshot {
+  /** Every observed stream, sorted by `(sysid, compid, msgId)`. */
+  rows: InspectorRow[];
+  /** Monotonic revision; mirrors {@link TelemetrySnapshot.rev} for coalescing. */
   rev: number;
 }
 
@@ -200,6 +252,41 @@ export class MavlinkSession {
       ...(activeSysid !== undefined ? { activeSysid } : {}),
       rev: this.rev,
     };
+  }
+
+  /**
+   * Build the FULL inspector table from the {@link MessageRegistry} (task T1.12;
+   * spec plan/04 §4.9). Unlike {@link takeSnapshot}'s light `rates` projection,
+   * each row carries the latest decoded fields, the latest raw frame bytes (for
+   * the hex view) and the frame's signing / CRC status. The registry snapshot
+   * clones its records, so the returned rows are private copies the caller may
+   * retain or transfer.
+   *
+   * This is intentionally heavier than the always-on telemetry path; the worker
+   * only calls it while the on-demand `inspector` stream is subscribed.
+   */
+  takeInspectorSnapshot(): InspectorSnapshot {
+    const records = this.registry.snapshot();
+    const rows: InspectorRow[] = records.map((r) => {
+      const m = r.latest;
+      return {
+        sysid: r.sysid,
+        compid: r.compid,
+        msgId: r.msgId,
+        name: r.name,
+        rateHz: r.rateHz,
+        lastSeenMs: r.lastSeenMs,
+        count: r.count,
+        fields: m.fields,
+        raw: m.raw,
+        crcOk: m.crcOk,
+        signed: m.signed,
+        seq: m.seq,
+        rxTimeUs: m.rxTimeUs,
+        ...(m.linkId !== undefined ? { linkId: m.linkId } : {}),
+      };
+    });
+    return { rows, rev: this.rev };
   }
 
   /** Encode a GCS HEARTBEAT (GCS / INVALID / ACTIVE) on the next tx sequence. */

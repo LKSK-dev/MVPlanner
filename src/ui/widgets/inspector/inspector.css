@@ -1,0 +1,285 @@
+/**
+ * MAVLink inspector styles (task T1.12; spec plan/05 §5.5/§5.6). Token-driven so
+ * it tracks every theme; no hard-coded colors. Imported by the app where the
+ * inspector is registered.
+ */
+
+.mvp-inspector {
+  display: flex;
+  flex-direction: column;
+  block-size: 100%;
+  min-block-size: 0;
+  color: var(--mvp-text);
+  font-size: 0.85rem;
+}
+
+.mvp-inspector__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--mvp-gap);
+  padding: var(--mvp-gap);
+  border-block-end: 1px solid var(--mvp-border);
+}
+
+.mvp-inspector__system,
+.mvp-inspector__searchbox {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.mvp-inspector__searchbox {
+  flex: 1 1 12rem;
+}
+
+.mvp-inspector__label {
+  font-size: 0.7rem;
+  color: var(--mvp-text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.mvp-inspector__select,
+.mvp-inspector__search {
+  background: var(--mvp-surface-2);
+  color: var(--mvp-text);
+  border: 1px solid var(--mvp-border);
+  border-radius: var(--mvp-radius);
+  padding: 0.3rem 0.5rem;
+  font: inherit;
+}
+
+.mvp-inspector__body {
+  display: flex;
+  flex: 1 1 auto;
+  min-block-size: 0;
+  overflow: hidden;
+}
+
+.mvp-inspector__tree {
+  flex: 1 1 60%;
+  margin: 0;
+  padding: 0.25rem;
+  list-style: none;
+  overflow: auto;
+}
+
+.mvp-inspector__msg {
+  list-style: none;
+}
+
+.mvp-inspector__msg-row {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  border-radius: var(--mvp-radius);
+}
+
+.mvp-inspector__msg-row.is-selected {
+  background: var(--mvp-surface-2);
+}
+
+.mvp-inspector__caret {
+  flex: 0 0 auto;
+  inline-size: 1.4rem;
+  background: transparent;
+  border: none;
+  color: var(--mvp-text-dim);
+  cursor: pointer;
+}
+
+.mvp-inspector__name {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: baseline;
+  gap: 0.5rem;
+  background: transparent;
+  border: none;
+  color: inherit;
+  font: inherit;
+  text-align: start;
+  cursor: pointer;
+  padding: 0.2rem 0.25rem;
+}
+
+.mvp-inspector__msg-name {
+  font-family: var(--mvp-font-mono);
+  font-weight: 600;
+}
+
+.mvp-inspector__msg-id {
+  color: var(--mvp-text-dim);
+  font-family: var(--mvp-font-mono);
+  font-size: 0.75rem;
+}
+
+.mvp-inspector__msg-rate,
+.mvp-inspector__msg-age {
+  margin-inline-start: auto;
+  color: var(--mvp-text-dim);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.mvp-inspector__msg-age {
+  margin-inline-start: 0.75rem;
+}
+
+.mvp-inspector__fields {
+  margin: 0;
+  padding: 0 0 0.25rem 1.8rem;
+  list-style: none;
+}
+
+.mvp-inspector__field {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.1rem 0;
+  font-family: var(--mvp-font-mono);
+  font-size: 0.78rem;
+}
+
+.mvp-inspector__field-name {
+  flex: 0 0 40%;
+  color: var(--mvp-text-dim);
+  overflow-wrap: anywhere;
+}
+
+.mvp-inspector__field-value {
+  flex: 1 1 auto;
+  overflow-wrap: anywhere;
+}
+
+.mvp-inspector__field-enum {
+  color: var(--mvp-accent);
+}
+
+.mvp-inspector__field--empty {
+  color: var(--mvp-text-dim);
+  font-style: italic;
+}
+
+.mvp-inspector__detail {
+  flex: 1 1 40%;
+  min-inline-size: 0;
+  padding: var(--mvp-gap);
+  border-inline-start: 1px solid var(--mvp-border);
+  overflow: auto;
+}
+
+.mvp-inspector__detail--empty {
+  color: var(--mvp-text-dim);
+}
+
+.mvp-inspector__detail-head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-block-end: 0.5rem;
+}
+
+.mvp-inspector__status {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.35rem 0.75rem;
+  margin: 0 0 0.75rem;
+}
+
+.mvp-inspector__status div {
+  display: flex;
+  flex-direction: column;
+}
+
+.mvp-inspector__status dt {
+  font-size: 0.68rem;
+  color: var(--mvp-text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.mvp-inspector__status dd {
+  margin: 0;
+  font-family: var(--mvp-font-mono);
+}
+
+.mvp-inspector__crc {
+  color: var(--mvp-ok);
+}
+
+.mvp-inspector__crc.is-bad {
+  color: var(--mvp-error);
+}
+
+.mvp-inspector__hex-title {
+  margin: 0 0 0.25rem;
+  font-size: 0.72rem;
+  color: var(--mvp-text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.mvp-inspector__hex {
+  margin: 0;
+  padding: 0.5rem;
+  background: var(--mvp-surface-2);
+  border: 1px solid var(--mvp-border);
+  border-radius: var(--mvp-radius);
+  font-family: var(--mvp-font-mono);
+  font-size: 0.74rem;
+  line-height: 1.4;
+  white-space: pre;
+  overflow: auto;
+}
+
+.mvp-inspector__empty {
+  flex: 1 1 auto;
+  padding: var(--mvp-gap);
+  color: var(--mvp-text-dim);
+}
+
+/* --- Detachable pop-out window (spec §4.10 inspector pop-out) ------------- */
+.mvp-inspector-window {
+  position: fixed;
+  inset-block-start: 4rem;
+  inset-inline-end: 1.5rem;
+  inline-size: min(46rem, calc(100vw - 3rem));
+  block-size: min(36rem, calc(100vh - 6rem));
+  display: flex;
+  flex-direction: column;
+  background: var(--mvp-surface);
+  border: 1px solid var(--mvp-border);
+  border-radius: var(--mvp-radius);
+  box-shadow: 0 0.5rem 2rem rgb(0 0 0 / 40%);
+  z-index: 50;
+}
+
+.mvp-inspector-window__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.4rem 0.75rem;
+  border-block-end: 1px solid var(--mvp-border);
+}
+
+.mvp-inspector-window__title {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.mvp-inspector-window__close {
+  background: transparent;
+  border: none;
+  color: var(--mvp-text-dim);
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.mvp-inspector-window__body {
+  flex: 1 1 auto;
+  min-block-size: 0;
+  display: flex;
+}
+
+.mvp-inspector-window__body .mvp-inspector {
+  flex: 1 1 auto;
+}

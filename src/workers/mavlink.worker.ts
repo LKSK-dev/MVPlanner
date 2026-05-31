@@ -13,16 +13,22 @@
  */
 import type { MessageEndpoint } from '../core/bus';
 import type { SigningConfig } from '../contracts';
-import { MavlinkSession, type TelemetrySnapshot } from '../mavlink/host/session';
+import {
+  MavlinkSession,
+  type InspectorSnapshot,
+  type TelemetrySnapshot,
+} from '../mavlink/host/session';
 import {
   RPC_CONFIGURE,
   RPC_INGEST_BYTES,
+  RPC_INSPECTOR,
   RPC_OUTGOING,
   RPC_RESET,
   RPC_SEND_MESSAGE,
   RPC_TELEMETRY,
   type ConfigureRequest,
   type IngestBytesRequest,
+  type InspectorRequest,
   type OutgoingRequest,
   type SendMessageRequest,
   type TelemetryRequest,
@@ -31,6 +37,8 @@ import { serveWorker } from './rpc';
 
 /** Default coalesced-telemetry cadence (Hz) — UI-friendly, well under packet rate. */
 const DEFAULT_TELEMETRY_HZ = 25;
+/** Default ON-DEMAND inspector cadence (Hz) per task T1.12 (~5–8 Hz). */
+const DEFAULT_INSPECTOR_HZ = 6;
 /** Default GCS heartbeat cadence (Hz) per spec plan/03 §3.3. */
 const DEFAULT_HEARTBEAT_HZ = 1;
 
@@ -76,6 +84,28 @@ rpc.handleStream<TelemetryRequest, TelemetrySnapshot>(RPC_TELEMETRY, (req, send,
   return new Promise<void>((resolve) => {
     const timer = setInterval(() => {
       const snap = session.takeSnapshot();
+      if (snap.rev === lastRev) return; // coalesce: only emit on change
+      lastRev = snap.rev;
+      send(snap);
+    }, periodMs);
+    const stop = (): void => {
+      clearInterval(timer);
+      resolve();
+    };
+    if (signal.aborted) stop();
+    else signal.addEventListener('abort', stop, { once: true });
+  });
+});
+
+rpc.handleStream<InspectorRequest, InspectorSnapshot>(RPC_INSPECTOR, (req, send, signal) => {
+  // On-demand only: the full inspector table is built and emitted ONLY while
+  // this stream is subscribed (task T1.12). The interval is torn down on cancel.
+  const hz = req.hz !== undefined && req.hz > 0 ? req.hz : DEFAULT_INSPECTOR_HZ;
+  const periodMs = Math.max(1, Math.round(1000 / hz));
+  let lastRev = -1;
+  return new Promise<void>((resolve) => {
+    const timer = setInterval(() => {
+      const snap = session.takeInspectorSnapshot();
       if (snap.rev === lastRev) return; // coalesce: only emit on change
       lastRev = snap.rev;
       send(snap);
