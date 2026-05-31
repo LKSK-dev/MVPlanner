@@ -1,0 +1,36 @@
+/*
+ * HUD widget styles (task T2.1; spec plan/05 §5.5/§5.6/§5.8).
+ *
+ * The widget fills its container; the canvas is HiDPI-sized in JS. The a11y
+ * summary is visually hidden but available to assistive tech (spec §5.8).
+ */
+.mvp-hud {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-width: 120px;
+  min-height: 90px;
+  overflow: hidden;
+  background: var(--mvp-hud-ground, var(--mvp-surface, #161b22));
+  border-radius: var(--mvp-radius, 8px);
+}
+
+.mvp-hud__canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Visually-hidden but screen-reader-available textual equivalent. */
+.mvp-hud__a11y {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}

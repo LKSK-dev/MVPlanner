@@ -1,0 +1,120 @@
+/**
+ * Instrument gauge styles (task T2.2; spec plan/05 §5.5/§5.6/§5.8). Token-driven
+ * so every gauge tracks the active theme; no hard-coded colors. Imported by the
+ * app where the gauges are mounted (see README integration note).
+ */
+
+.mvp-gauges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--mvp-gap);
+  padding: var(--mvp-gap);
+  align-content: flex-start;
+}
+
+.mvp-gauge {
+  margin: 0;
+  background: var(--mvp-surface);
+  border: 1px solid var(--mvp-border);
+  border-radius: var(--mvp-radius);
+  color: var(--mvp-text);
+  padding: 0.6rem 0.7rem;
+}
+
+.mvp-gauge__title {
+  margin: 0 0 0.35rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--mvp-text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* --- Canvas dials -------------------------------------------------------- */
+.mvp-gauge--canvas {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  inline-size: max-content;
+}
+
+.mvp-gauge__canvas {
+  display: block;
+  border-radius: 50%;
+}
+
+.mvp-gauge__caption {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  text-align: center;
+}
+
+.mvp-gauge__value {
+  font-family: var(--mvp-font-mono);
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Value cards --------------------------------------------------------- */
+.mvp-gauge--card {
+  min-inline-size: 9rem;
+  flex: 1 1 9rem;
+}
+
+.mvp-gauge__readings {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.2rem 0.6rem;
+  margin: 0;
+}
+
+.mvp-gauge__reading {
+  display: contents;
+}
+
+.mvp-gauge__reading-label {
+  color: var(--mvp-text-dim);
+  font-size: 0.78rem;
+  overflow-wrap: anywhere;
+}
+
+.mvp-gauge__reading-value {
+  margin: 0;
+  font-family: var(--mvp-font-mono);
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+  text-align: end;
+  white-space: nowrap;
+}
+
+.mvp-gauge__unit {
+  color: var(--mvp-text-dim);
+  font-size: 0.72rem;
+}
+
+/* Non-color status cue: a leading marker + the themed status color. The marker
+ * keeps the cue legible for color-blind users / high-contrast (spec §5.8). */
+.mvp-gauge__reading[data-status='ok'] .mvp-gauge__reading-value {
+  color: var(--mvp-ok);
+}
+
+.mvp-gauge__reading[data-status='warn'] .mvp-gauge__reading-value {
+  color: var(--mvp-warn);
+}
+
+.mvp-gauge__reading[data-status='error'] .mvp-gauge__reading-value {
+  color: var(--mvp-error);
+}
+
+.mvp-gauge__reading[data-status='warn'] .mvp-gauge__reading-number::before {
+  content: '\26a0\fe0e'; /* ⚠ */
+  margin-inline-end: 0.25rem;
+}
+
+.mvp-gauge__reading[data-status='error'] .mvp-gauge__reading-number::before {
+  content: '\26d4\fe0e'; /* ⛔ */
+  margin-inline-end: 0.25rem;
+}
