@@ -1,0 +1,84 @@
+/*
+ * Map widget styles (task T2.3; spec plan/05 §5.5/§5.6/§5.8).
+ *
+ * The widget fills its container; the canvas is HiDPI-sized in JS. Controls and
+ * the readout overlay the canvas. The readout doubles as the screen-reader live
+ * region, so it is visible but unobtrusive.
+ */
+.mvp-map {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-width: 160px;
+  min-height: 120px;
+  overflow: hidden;
+  background: var(--mvp-surface, #0d1117);
+  border-radius: var(--mvp-radius, 8px);
+  outline: none;
+  touch-action: none;
+}
+
+.mvp-map:focus-visible {
+  box-shadow: 0 0 0 2px var(--mvp-focus, #58a6ff);
+}
+
+.mvp-map__canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.mvp-map__controls {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mvp-map__btn {
+  width: 32px;
+  height: 32px;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--mvp-text, #e6edf3);
+  background: var(--mvp-surface-2, #161b22);
+  border: 1px solid var(--mvp-border, #30363d);
+  border-radius: var(--mvp-radius, 6px);
+  cursor: pointer;
+}
+
+.mvp-map__btn:hover {
+  background: var(--mvp-surface-3, #21262d);
+}
+
+.mvp-map__btn:focus-visible {
+  outline: 2px solid var(--mvp-focus, #58a6ff);
+  outline-offset: 1px;
+}
+
+.mvp-map__readout {
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  margin: 0;
+  padding: 2px 6px;
+  font: 12px/1.4 var(--mvp-font-mono, monospace);
+  color: var(--mvp-text-dim, #9da7b3);
+  background: color-mix(in srgb, var(--mvp-surface, #0d1117) 70%, transparent);
+  border-radius: var(--mvp-radius, 4px);
+  pointer-events: none;
+}
+
+.mvp-map__attribution {
+  position: absolute;
+  right: 6px;
+  bottom: 4px;
+  font-size: 10px;
+  color: var(--mvp-text-dim, #9da7b3);
+  background: color-mix(in srgb, var(--mvp-surface, #0d1117) 70%, transparent);
+  padding: 1px 4px;
+  border-radius: 3px;
+  pointer-events: none;
+}

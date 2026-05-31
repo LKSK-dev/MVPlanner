@@ -1,0 +1,144 @@
+/*
+ * STATUSTEXT messages console styles (task T2.8; spec plan/05 §5.5/§5.6/§5.8).
+ * Token-driven so it tracks every theme; severity coloring uses the shared
+ * `--mvp-error/warn/ok` system. Color is never the only cue — each row also
+ * shows a glyph + the full level name. Imported by the app where the console is
+ * mounted (T2.11).
+ */
+
+.mvp-messages {
+  display: flex;
+  flex-direction: column;
+  block-size: 100%;
+  min-block-size: 0;
+  color: var(--mvp-text);
+  font-size: 0.85rem;
+}
+
+.mvp-messages__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--mvp-gap);
+  padding: var(--mvp-gap);
+  border-block-end: 1px solid var(--mvp-border);
+}
+
+.mvp-messages__filter {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.mvp-messages__filter-label {
+  font-size: 0.7rem;
+  color: var(--mvp-text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.mvp-messages__filter-select,
+.mvp-messages__clear {
+  background: var(--mvp-surface-2);
+  color: var(--mvp-text);
+  border: 1px solid var(--mvp-border);
+  border-radius: var(--mvp-radius);
+  padding: 0.3rem 0.5rem;
+  font: inherit;
+}
+
+.mvp-messages__clear {
+  margin-inline-start: auto;
+  cursor: pointer;
+}
+
+/* Visually-hidden assertive live region (kept in the a11y tree). */
+.mvp-messages__sr-only {
+  position: absolute;
+  inline-size: 1px;
+  block-size: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.mvp-messages__log {
+  flex: 1 1 auto;
+  min-block-size: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-y: auto;
+  font-family: var(--mvp-font-mono);
+}
+
+.mvp-messages__empty {
+  padding: var(--mvp-gap);
+  color: var(--mvp-text-dim);
+}
+
+.mvp-messages__row {
+  display: grid;
+  grid-template-columns: auto auto 1fr auto;
+  gap: 0.5rem;
+  align-items: baseline;
+  padding: 0.2rem var(--mvp-gap);
+  border-block-end: 1px solid var(--mvp-border);
+  border-inline-start: 3px solid transparent;
+}
+
+.mvp-messages__row--error {
+  border-inline-start-color: var(--mvp-error);
+}
+
+.mvp-messages__row--warn {
+  border-inline-start-color: var(--mvp-warn);
+}
+
+.mvp-messages__row--info {
+  border-inline-start-color: var(--mvp-ok);
+}
+
+.mvp-messages__time {
+  color: var(--mvp-text-dim);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.mvp-messages__badge {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.25rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+.mvp-messages__row--error .mvp-messages__sev {
+  color: var(--mvp-error);
+}
+
+.mvp-messages__row--warn .mvp-messages__sev {
+  color: var(--mvp-warn);
+}
+
+.mvp-messages__row--info .mvp-messages__sev {
+  color: var(--mvp-text-dim);
+}
+
+.mvp-messages__text {
+  color: var(--mvp-text);
+  word-break: break-word;
+}
+
+.mvp-messages__src {
+  color: var(--mvp-text-dim);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
