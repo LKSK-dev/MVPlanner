@@ -15,6 +15,11 @@ Behaviour:
     AUTO) plus ATTITUDE, GPS_RAW_INT (3D fix, ~12 sats) and GLOBAL_POSITION_INT
     (a known lat/lon/alt) at a few Hz. Sends are silently dropped by pymavlink
     until a TCP client (the bridge) connects and is accepted.
+  * Answers the COMMAND microservice (M2 gate): when it receives a COMMAND_LONG
+    or COMMAND_INT (e.g. 400 MAV_CMD_COMPONENT_ARM_DISARM, 176 DO_SET_MODE) it
+    replies with a COMMAND_ACK for that command id with MAV_RESULT_ACCEPTED (0).
+    Reads and writes happen on the SAME accepted tcpin socket, so a single
+    connection both streams telemetry and round-trips commands.
 """
 import argparse
 import os
@@ -72,11 +77,22 @@ def main() -> int:
     amsl_mm = int(round(AMSL_M * 1000))
     rel_mm = int(round(REL_ALT_M * 1000))
 
+    accepted = mavutil.mavlink.MAV_RESULT_ACCEPTED
+
     boot = time.time()
     while True:
-        # Drive the lazy TCP accept and drain any inbound bytes (non-blocking).
+        # Drive the lazy TCP accept and drain ALL pending inbound messages
+        # (non-blocking). Each COMMAND_LONG / COMMAND_INT is acknowledged with a
+        # COMMAND_ACK(result=ACCEPTED) on the same socket so the GCS-side
+        # CommandClient's retry-until-ack loop resolves.
         try:
-            conn.recv_match(blocking=False)
+            while True:
+                msg = conn.recv_match(blocking=False)
+                if msg is None:
+                    break
+                mtype = msg.get_type()
+                if mtype in ("COMMAND_LONG", "COMMAND_INT"):
+                    mav.command_ack_send(msg.command, accepted)
         except Exception:
             pass
 
