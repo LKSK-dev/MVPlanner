@@ -3,3 +3,16 @@ node_modules
 .npm-cache
 plan
 package-lock.json
+
+# Generated MAVLink dialect tables (T1.2) are committed compact (size budget,
+# spec plan/08 §8.1); Prettier would expand them. Regenerate via
+# scripts/gen-dialects.py instead of formatting.
+src/mavlink/dialects/generated
+
+# Generated MAVLink reference vectors (T1.3) are committed compact and are the
+# pymavlink-authoritative oracle; Prettier would expand/rewrite them. Regenerate
+# via scripts/gen-vectors.py instead of formatting.
+test/vectors/vectors-v1.json
+test/vectors/vectors-v2.json
+test/vectors/vectors-signed.json
+test/vectors/manifest.json
