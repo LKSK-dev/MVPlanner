@@ -1,15 +1,20 @@
-import { type Component } from 'solid-js';
+import { onCleanup, type Component } from 'solid-js';
 import type { Capabilities } from './core/capabilities';
 import { detectRealCapabilities } from './core/capabilities';
 import { createAppStore } from './core/store';
 import { t } from './core/i18n';
 import { createStorage } from './data/storage';
-import { Shell, createUiRegistry, type ShellContextValue } from './ui/shell';
+import { Shell, createUiRegistry, setScreenPanel, type ShellContextValue } from './ui/shell';
 import { ConnectionProvider } from './ui/shell/connection';
 import { MavlinkHost } from './mavlink/host';
 import type { MavlinkHostLike } from './transport/manager';
 import { registerInspector } from './ui/widgets/inspector/register';
 import type { InspectorSource } from './ui/widgets/inspector/types';
+import {
+  createFlightServices,
+  createFlightScreenPanel,
+  type FlightHost,
+} from './ui/screens/flight';
 import './ui/shell/shell.css';
 import './ui/shell/connection/connection.css';
 import './ui/widgets/inspector/inspector.css';
@@ -53,6 +58,23 @@ export const App: Component<AppProps> = (props) => {
     registerInspector(registry, inspectorSource as InspectorSource, t);
   }
 
+  // T2.11 integration: construct the app/connection-scoped Flight services ONCE
+  // (so recording/audit/STATUSTEXT survive screen switches) and install the real
+  // `flight` screen panel over the shell placeholder BEFORE the shell renders.
+  // Guarded so a test mock host (a bare `MavlinkHostLike` without the selective
+  // `onMessage`/`onRawFrame` taps) simply leaves the Flight placeholder in place.
+  if (isFlightHost(host)) {
+    const flight = createFlightServices({ host, store, storage });
+    const disposeFlightPanel = setScreenPanel(
+      'flight',
+      createFlightScreenPanel({ services: flight.services, store, registry, t }),
+    );
+    onCleanup(() => {
+      disposeFlightPanel();
+      void flight.dispose();
+    });
+  }
+
   const ctx: ShellContextValue = {
     store,
     registry,
@@ -66,3 +88,13 @@ export const App: Component<AppProps> = (props) => {
     </ConnectionProvider>
   );
 };
+
+/**
+ * Narrow a {@link MavlinkHostLike} to the richer {@link FlightHost} the Flight
+ * services need (selective decoded-message + never-dropped raw-frame taps). The
+ * real {@link MavlinkHost} satisfies it; a bare test mock does not.
+ */
+function isFlightHost(host: MavlinkHostLike): host is MavlinkHostLike & FlightHost {
+  const candidate = host as Partial<FlightHost>;
+  return typeof candidate.onMessage === 'function' && typeof candidate.onRawFrame === 'function';
+}

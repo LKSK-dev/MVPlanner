@@ -10,7 +10,7 @@ export { Shell } from './shell';
 export { createUiRegistry } from './registry';
 export type { ShellRegistry, ShellToast, ShellConfirmRequest, ShellMenuItem } from './registry';
 export { ShellContext, useShell, type ShellContextValue } from './context';
-export { SCREEN_ORDER, screenPanelId, createScreenPanels } from './screens';
+export { SCREEN_ORDER, screenPanelId, createScreenPanels, setScreenPanel } from './screens';
 export {
   ACTIVE_SCREEN,
   DEFAULT_WORKSPACE_ID,

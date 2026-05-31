@@ -22,6 +22,33 @@ export function screenPanelId(screen: ScreenId): string {
   return `screen.${screen}`;
 }
 
+/**
+ * Real screen-panel overrides, keyed by {@link ScreenId}. A later milestone
+ * builds a screen's real {@link PanelDef} (with its services wired) and installs
+ * it here via {@link setScreenPanel} BEFORE the shell renders; the shell then
+ * mounts that panel instead of the placeholder, keeping the rest as placeholders
+ * (T2.11 replaces `flight`). The map is intentionally tiny + module-scoped so
+ * the override is in place by the time {@link createScreenPanels} runs during the
+ * shell's synchronous setup — no mount-order races.
+ */
+const screenPanelOverrides = new Map<ScreenId, PanelDef>();
+
+/**
+ * Install (or clear, when `panel` is `undefined`) the real {@link PanelDef} for
+ * `screen`, replacing its placeholder. Returns a disposer that removes the
+ * override (only if it is still the one installed).
+ */
+export function setScreenPanel(screen: ScreenId, panel: PanelDef | undefined): () => void {
+  if (panel === undefined) {
+    screenPanelOverrides.delete(screen);
+    return () => undefined;
+  }
+  screenPanelOverrides.set(screen, panel);
+  return () => {
+    if (screenPanelOverrides.get(screen) === panel) screenPanelOverrides.delete(screen);
+  };
+}
+
 /** Build the placeholder {@link PanelDef} for one screen. */
 function createScreenPanel(screen: ScreenId): PanelDef {
   return {
@@ -52,7 +79,14 @@ function createScreenPanel(screen: ScreenId): PanelDef {
   };
 }
 
-/** Build placeholder panels for every screen, in {@link SCREEN_ORDER}. */
+/**
+ * Build the screen panels in {@link SCREEN_ORDER}: the real {@link PanelDef} for
+ * any screen with an installed override ({@link setScreenPanel}), else the
+ * labelled placeholder. T2.11 installs the real `flight` screen; the other five
+ * remain placeholders until their milestone.
+ */
 export function createScreenPanels(): PanelDef[] {
-  return SCREEN_ORDER.map(createScreenPanel);
+  return SCREEN_ORDER.map(
+    (screen) => screenPanelOverrides.get(screen) ?? createScreenPanel(screen),
+  );
 }

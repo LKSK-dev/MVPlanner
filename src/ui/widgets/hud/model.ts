@@ -362,6 +362,7 @@ export function hudSignature(
     q(v.velocity?.groundMs, 10),
     q(v.velocity?.airMs, 10),
     q(v.velocity?.climbMs, 10),
+    q(v.throttlePct, 1),
     q(v.battery?.voltageV, 10),
     q(v.battery?.remainingPct, 1),
     q(v.gps?.fix, 1),
@@ -389,9 +390,9 @@ export function buildHudModel(
     altRel: fmtMeters(vehicle?.position?.altRelM),
     altAmsl: fmtMeters(vehicle?.position?.altAmslM),
     climb: fmtClimb(vehicle?.velocity?.climbMs),
-    // Throttle is not part of the frozen VehicleState contract (see README);
-    // shown as unavailable until/if the contract exposes it.
-    throttle: fmtThrottle(undefined),
+    // Throttle output % from `VFR_HUD.throttle`, surfaced on `VehicleState`
+    // (T2.4 enrichment); a dash when the field is absent.
+    throttle: fmtThrottle(vehicle?.throttlePct),
     battery: fmtBattery(vehicle?.battery?.voltageV, vehicle?.battery?.remainingPct),
     gps: fmtGps(vehicle?.gps?.fix, vehicle?.gps?.sats),
     ekf: fmtEkf(vehicle?.ekfOk),

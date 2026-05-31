@@ -1,0 +1,233 @@
+/**
+ * Flight Data screen layout (task T2.11; spec plan/05 §5.3 dock, §5.4 Flight).
+ *
+ * Map-dominant stage with the HUD as a resizable overlay card; an instruments
+ * rail, an actions + record column, a STATUSTEXT console and a quick-watch pane.
+ * A one-class swap (`.mvp-flight--hud-dominant`) trades map ⇆ HUD dominance.
+ * Tokens come from `core/theme`; widget chrome lives in each widget's own CSS.
+ */
+
+.mvp-flight {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(240px, 22vw, 340px);
+  grid-template-rows: minmax(260px, 1fr) auto minmax(120px, 220px);
+  grid-template-areas:
+    'stage rail'
+    'actions rail'
+    'console quickwatch';
+  gap: var(--mvp-gap);
+  box-sizing: border-box;
+  height: 100%;
+  min-height: 0;
+  padding: var(--mvp-gap);
+  background: var(--mvp-bg);
+  color: var(--mvp-text);
+  overflow: auto;
+}
+
+/* --- stage: map dominant with the HUD as a resizable overlay card --------- */
+
+.mvp-flight__stage {
+  grid-area: stage;
+  position: relative;
+  min-height: 0;
+  border: 1px solid var(--mvp-border);
+  border-radius: var(--mvp-radius);
+  overflow: hidden;
+}
+
+.mvp-flight__map {
+  position: absolute;
+  inset: 0;
+}
+
+.mvp-flight__map .mvp-map {
+  height: 100%;
+}
+
+.mvp-flight__map-toolbar {
+  position: absolute;
+  top: var(--mvp-gap);
+  left: var(--mvp-gap);
+  z-index: 3;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--mvp-gap);
+  padding: 6px 8px;
+  background: color-mix(in srgb, var(--mvp-surface) 88%, transparent);
+  border: 1px solid var(--mvp-border);
+  border-radius: var(--mvp-radius);
+}
+
+.mvp-flight__field {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mvp-flight__field-label {
+  font-size: 0.72rem;
+  color: var(--mvp-text-dim);
+}
+
+.mvp-flight__select {
+  background: var(--mvp-surface-2);
+  color: var(--mvp-text);
+  border: 1px solid var(--mvp-border);
+  border-radius: var(--mvp-radius);
+  padding: 3px 6px;
+  font: inherit;
+}
+
+.mvp-flight__swap {
+  align-self: stretch;
+  background: var(--mvp-surface-2);
+  color: var(--mvp-text);
+  border: 1px solid var(--mvp-border);
+  border-radius: var(--mvp-radius);
+  padding: 4px 8px;
+  cursor: pointer;
+}
+
+.mvp-flight__hud {
+  position: absolute;
+  top: var(--mvp-gap);
+  right: var(--mvp-gap);
+  z-index: 2;
+  width: clamp(180px, 30%, 360px);
+  height: clamp(140px, 40%, 300px);
+  resize: both;
+  overflow: hidden;
+  border: 1px solid var(--mvp-border);
+  border-radius: var(--mvp-radius);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 35%);
+}
+
+.mvp-flight__hud .mvp-hud {
+  height: 100%;
+}
+
+/* Dominance swap: HUD fills the stage, the map becomes the overlay card. */
+.mvp-flight--hud-dominant .mvp-flight__hud {
+  inset: 0;
+  width: auto;
+  height: auto;
+  resize: none;
+  z-index: 1;
+}
+
+.mvp-flight--hud-dominant .mvp-flight__map {
+  inset: auto;
+  top: var(--mvp-gap);
+  right: var(--mvp-gap);
+  z-index: 2;
+  width: clamp(220px, 34%, 420px);
+  height: clamp(180px, 46%, 340px);
+  border: 1px solid var(--mvp-border);
+  border-radius: var(--mvp-radius);
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgb(0 0 0 / 35%);
+}
+
+/* --- rail / actions / console / quick-watch ------------------------------- */
+
+.mvp-flight__rail {
+  grid-area: rail;
+  min-height: 0;
+  overflow: auto;
+}
+
+.mvp-flight__actions {
+  grid-area: actions;
+  display: flex;
+  flex-direction: column;
+  gap: var(--mvp-gap);
+  min-height: 0;
+}
+
+.mvp-flight__record {
+  border: 1px solid var(--mvp-border);
+  border-radius: var(--mvp-radius);
+  padding: 8px;
+}
+
+.mvp-flight__record-title {
+  margin: 0 0 6px;
+  font-size: 0.85rem;
+  color: var(--mvp-text-dim);
+}
+
+.mvp-flight__record-row {
+  display: flex;
+  align-items: center;
+  gap: var(--mvp-gap);
+  flex-wrap: wrap;
+}
+
+.mvp-flight__btn {
+  background: var(--mvp-surface-2);
+  color: var(--mvp-text);
+  border: 1px solid var(--mvp-border);
+  border-radius: var(--mvp-radius);
+  padding: 5px 10px;
+  cursor: pointer;
+}
+
+.mvp-flight__btn--danger {
+  border-color: var(--mvp-error);
+  color: var(--mvp-error);
+}
+
+.mvp-flight__record-state {
+  font-size: 0.78rem;
+  color: var(--mvp-text-dim);
+}
+
+.mvp-flight__record-state[data-recording='true'] {
+  color: var(--mvp-error);
+}
+
+.mvp-flight__record-stats {
+  margin: 6px 0 0;
+  font-family: var(--mvp-font-mono);
+  font-size: 0.78rem;
+  color: var(--mvp-text-dim);
+}
+
+.mvp-flight__audit {
+  border: 1px solid var(--mvp-border);
+  border-radius: var(--mvp-radius);
+  padding: 4px 8px;
+}
+
+.mvp-flight__audit-summary {
+  cursor: pointer;
+  color: var(--mvp-text-dim);
+}
+
+.mvp-flight__console {
+  grid-area: console;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.mvp-flight__quickwatch {
+  grid-area: quickwatch;
+  min-height: 0;
+  overflow: auto;
+}
+
+/* Responsive collapse: stack everything on narrow screens (spec §5.3/§5.10). */
+@media (max-width: 720px) {
+  .mvp-flight {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto;
+    grid-template-areas:
+      'stage'
+      'rail'
+      'actions'
+      'console'
+      'quickwatch';
+  }
+}
