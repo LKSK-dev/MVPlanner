@@ -134,6 +134,34 @@ export interface InspectorSnapshot {
   rev: number;
 }
 
+/**
+ * The lean per-frame projection emitted to {@link MavlinkSession.onRawFrame}
+ * subscribers — the minimum the tlog recorder (spec plan/07 §7.4) needs: the
+ * raw wire bytes plus routing/identity. Emitted for EVERY parsed frame, on a
+ * path SEPARATE from the coalesced telemetry, so recording is never dropped
+ * (spec plan/02 §2.6 — "Logging/recording is never dropped (separate path)").
+ */
+export interface RawFrame {
+  /** Raw frame bytes exactly as parsed off the wire (v1/v2, incl. signature). */
+  raw: Uint8Array;
+  /** Receive time (us) of the frame, from the parser's rx clock. */
+  rxTimeUs: number;
+  /** Source system id. */
+  sysid: number;
+  /** Source component id. */
+  compid: number;
+  /** Decoded message id. */
+  msgId: number;
+}
+
+/** A selective decoded-message subscription: a name filter + its callback. */
+interface MessageTap {
+  /** Message names this subscriber wants (verbatim MAVLink names). */
+  names: ReadonlySet<string>;
+  /** Invoked once per ingested message whose name is in {@link names}. */
+  cb: (msg: DecodedMessage) => void;
+}
+
 /** Construction options for {@link MavlinkSession}. */
 export interface MavlinkSessionOptions {
   /** Dialect tables for parse + encode (default {@link BUILTIN_DIALECTS}). */
@@ -170,6 +198,15 @@ export class MavlinkSession {
 
   private parser: MavParser;
   private signing: SigningConfig | undefined;
+  /**
+   * Selective decoded-message taps (ACK/reply microservices). Each subscription
+   * is independent and filtered by its OWN name set (multiplex, not a shared
+   * union): a message is delivered to every tap whose set contains its name, so
+   * concurrent subscribers each receive exactly what they asked for.
+   */
+  private readonly messageTaps = new Set<MessageTap>();
+  /** Raw-frame taps (tlog recording) — every parsed frame reaches every tap. */
+  private readonly rawTaps = new Set<(frame: RawFrame) => void>();
   /** Single transmit sequence shared by every outgoing frame (wraps at 256). */
   private txSeq = 0;
   /** Monotonic snapshot revision; bumps when ingested traffic changes state. */
@@ -207,9 +244,56 @@ export class MavlinkSession {
       this.registry.ingest(msg, now);
       this.vehicles.ingest(msg, now);
       if (msg.name === 'HEARTBEAT') this.activeSysid = msg.sysid;
+      this.dispatchTaps(msg);
     }
     if (msgs.length > 0) this.rev += 1;
     return msgs;
+  }
+
+  /**
+   * Subscribe a SELECTIVE decoded-message tap: `cb` fires for every ingested
+   * message whose `name` is in `names` (ACK/reply-driven microservices — e.g.
+   * awaiting `COMMAND_ACK`, `PARAM_VALUE`, `MISSION_*`). Independent of the
+   * always-on coalesced telemetry path. Returns an unsubscribe function.
+   *
+   * Subscriptions are multiplexed: each gets its own name filter, so multiple
+   * concurrent subscribers do not interfere. An empty `names` set never fires.
+   */
+  onMessage(names: readonly string[], cb: (msg: DecodedMessage) => void): () => void {
+    const tap: MessageTap = { names: new Set(names), cb };
+    this.messageTaps.add(tap);
+    return (): void => {
+      this.messageTaps.delete(tap);
+    };
+  }
+
+  /**
+   * Subscribe a RAW-FRAME tap: `cb` fires once for EVERY parsed frame (for tlog
+   * recording, spec plan/07 §7.4, which must never drop). The {@link RawFrame}
+   * carries the raw wire bytes plus routing/identity. Returns an unsubscribe fn.
+   */
+  onRawFrame(cb: (frame: RawFrame) => void): () => void {
+    this.rawTaps.add(cb);
+    return (): void => {
+      this.rawTaps.delete(cb);
+    };
+  }
+
+  /** Fan one ingested message out to the raw-frame and selective message taps. */
+  private dispatchTaps(msg: DecodedMessage): void {
+    if (this.rawTaps.size > 0) {
+      const frame: RawFrame = {
+        raw: msg.raw,
+        rxTimeUs: msg.rxTimeUs,
+        sysid: msg.sysid,
+        compid: msg.compid,
+        msgId: msg.msgId,
+      };
+      for (const cb of this.rawTaps) cb(frame);
+    }
+    for (const tap of this.messageTaps) {
+      if (tap.names.has(msg.name)) tap.cb(msg);
+    }
   }
 
   /**

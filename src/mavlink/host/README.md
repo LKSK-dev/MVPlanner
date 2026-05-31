@@ -73,6 +73,45 @@ crcOk, signed, linkId?, seq, rxTimeUs }`, sourced from the `MessageRegistry`
 Enum decoding of field values is the UI's job (the inspector widget reads dialect
 metadata); the wire payload stays raw to keep it light.
 
+## Message taps (selective + raw, T2.5 / T2.10 / T1.9)
+
+Two worker→main taps let microservices (command/mode/param/mission) and tlog
+recording be built as independent modules without each editing the worker. Both
+are kept SEPARATE from the always-on coalesced telemetry stream.
+
+**1. Selective decoded-message tap** (reply path for ACK/reply microservices,
+spec `plan/03` §3.4):
+
+- `host.ts` adds `onMessage(names, cb): () => void` — opens a `messages` RPC
+  stream parameterised by `names`. Only decoded messages whose `name` is in the
+  set are forwarded (un-throttled), so awaiting `COMMAND_ACK` / `PARAM_VALUE` /
+  `MISSION_*` never misses a frame.
+- `protocol.ts` adds `RPC_MESSAGES = 'messages'` + `MessagesRequest { names }`.
+- `session.ts` adds `onMessage(names, cb)`; `pushBytes` fans each ingested
+  message to every tap whose name set contains it.
+- The worker registers one `session.onMessage(req.names, send)` per stream and
+  disposes it on cancel. **Multiplex, not a shared union:** each subscription is
+  its own stream with its own filter, so concurrent subscribers each get exactly
+  the names they asked for (the effective "currently-subscribed" set is the union
+  of all live streams, since every message is offered to every matching tap).
+
+**2. Raw-frame tap** (tlog recording, spec `plan/07` §7.4 — never dropped):
+
+- `host.ts` adds `onRawFrame(cb): () => void` — opens a `rawFrames` RPC stream
+  that forwards a lean `RawFrame { raw, rxTimeUs, sysid, compid, msgId }` for
+  EVERY parsed frame.
+- `protocol.ts` adds `RPC_RAW_FRAMES = 'rawFrames'` + `RawFramesRequest` (empty).
+- `session.ts` adds `onRawFrame(cb)` and the `RawFrame` type; `pushBytes` builds
+  one `RawFrame` per ingested message and offers it to every raw tap.
+- The worker registers one `session.onRawFrame(send)` per stream, disposed on
+  cancel.
+
+The session owns ALL filtering/fan-out (pure, directly unit-tested in
+`test/unit/host-taps.test.ts` with synthetic COMMAND_ACK / PARAM_VALUE / HEARTBEAT
+frames); the worker handlers are thin bridges from a session tap to an RPC stream.
+Full `DecodedMessage`s and raw `Uint8Array`s cross the boundary by structured
+clone (spec §2.6) — no contract change.
+
 ## How to test
 
 - `test/unit/mavlink-session.test.ts` drives the **pure** `MavlinkSession`

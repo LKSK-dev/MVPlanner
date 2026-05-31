@@ -24,6 +24,21 @@ export const RPC_TELEMETRY = 'telemetry';
  * deliberately separate and not part of the always-on telemetry path.
  */
 export const RPC_INSPECTOR = 'inspector';
+/**
+ * stream: SELECTIVE decoded-message tap. Emits ONLY decoded messages whose
+ * `name` is in the request's `names` set — the reply path for ACK/reply-driven
+ * microservices (await `COMMAND_ACK`, `PARAM_VALUE`, `MISSION_*`; spec plan/03
+ * §3.4). SEPARATE from {@link RPC_TELEMETRY}: it is not coalesced and carries
+ * full {@link import('../../contracts').DecodedMessage}s. Each subscription is
+ * its own stream with its own filter (multiplex); cancelling closes it.
+ */
+export const RPC_MESSAGES = 'messages';
+/**
+ * stream: RAW FRAME tap. Emits a lean {@link import('./session').RawFrame} for
+ * EVERY parsed frame (for tlog recording, spec plan/07 §7.4, which must never
+ * drop). SEPARATE from the coalesced telemetry path; runs only while subscribed.
+ */
+export const RPC_RAW_FRAMES = 'rawFrames';
 /** stream: outgoing frame bytes the host writes to `transport.writable`. */
 export const RPC_OUTGOING = 'outgoing';
 
@@ -53,6 +68,20 @@ export interface TelemetryRequest {
 export interface InspectorRequest {
   hz?: number;
 }
+
+/**
+ * {@link RPC_MESSAGES} request — the message names this subscription wants. Only
+ * decoded messages whose `name` is in `names` are streamed back.
+ */
+export interface MessagesRequest {
+  names: readonly string[];
+}
+
+/**
+ * {@link RPC_RAW_FRAMES} request — no parameters; the raw tap streams every
+ * parsed frame. Modelled as an empty object so the wire stays a plain record.
+ */
+export type RawFramesRequest = Record<string, never>;
 
 /** {@link RPC_OUTGOING} request — desired GCS heartbeat cadence in Hz (optional). */
 export interface OutgoingRequest {

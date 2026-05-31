@@ -12,8 +12,8 @@
  * @see ./locale — locale registry + active-locale signal.
  * @see ./format — locale-aware Intl number/date helpers.
  */
-import { EN_MESSAGES, interpolate, type MessageVars } from './catalog';
-import { catalogFor, getLocale } from './locale';
+import { interpolate, type MessageVars } from './catalog';
+import { catalogFor, DEFAULT_LOCALE, getLocale } from './locale';
 
 export type { MessageCatalog, MessageVars } from './catalog';
 export type { DateInput } from './format';
@@ -26,6 +26,7 @@ export {
   listLocales,
   locale,
   registerLocale,
+  registerMessages,
   setLocale,
 } from './locale';
 export {
@@ -46,6 +47,9 @@ export {
  */
 export function t(key: string, vars?: MessageVars): string {
   const active = catalogFor(getLocale());
-  const template = active?.[key] ?? EN_MESSAGES[key] ?? key;
+  // English fallback reads the registry catalog (seeded with EN_MESSAGES) so
+  // keys contributed via registerMessages('en', …) participate in the fallback.
+  const english = catalogFor(DEFAULT_LOCALE);
+  const template = active?.[key] ?? english?.[key] ?? key;
   return interpolate(template, vars);
 }

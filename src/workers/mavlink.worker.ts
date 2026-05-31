@@ -12,24 +12,29 @@
  * this worker touches device I/O.
  */
 import type { MessageEndpoint } from '../core/bus';
-import type { SigningConfig } from '../contracts';
+import type { DecodedMessage, SigningConfig } from '../contracts';
 import {
   MavlinkSession,
   type InspectorSnapshot,
+  type RawFrame,
   type TelemetrySnapshot,
 } from '../mavlink/host/session';
 import {
   RPC_CONFIGURE,
   RPC_INGEST_BYTES,
   RPC_INSPECTOR,
+  RPC_MESSAGES,
   RPC_OUTGOING,
+  RPC_RAW_FRAMES,
   RPC_RESET,
   RPC_SEND_MESSAGE,
   RPC_TELEMETRY,
   type ConfigureRequest,
   type IngestBytesRequest,
   type InspectorRequest,
+  type MessagesRequest,
   type OutgoingRequest,
+  type RawFramesRequest,
   type SendMessageRequest,
   type TelemetryRequest,
 } from '../mavlink/host/protocol';
@@ -112,6 +117,36 @@ rpc.handleStream<InspectorRequest, InspectorSnapshot>(RPC_INSPECTOR, (req, send,
     }, periodMs);
     const stop = (): void => {
       clearInterval(timer);
+      resolve();
+    };
+    if (signal.aborted) stop();
+    else signal.addEventListener('abort', stop, { once: true });
+  });
+});
+
+rpc.handleStream<MessagesRequest, DecodedMessage>(RPC_MESSAGES, (req, send, signal) => {
+  // Selective decoded-message tap: forward only messages whose name is in
+  // `req.names`. Filtering lives in the pure session; this handler just bridges
+  // the session tap to the RPC stream and disposes it on cancel. Each subscriber
+  // gets its own session tap (multiplex), so concurrent streams do not interfere.
+  return new Promise<void>((resolve) => {
+    const dispose = session.onMessage(req.names, (msg) => send(msg));
+    const stop = (): void => {
+      dispose();
+      resolve();
+    };
+    if (signal.aborted) stop();
+    else signal.addEventListener('abort', stop, { once: true });
+  });
+});
+
+rpc.handleStream<RawFramesRequest, RawFrame>(RPC_RAW_FRAMES, (_req, send, signal) => {
+  // Raw-frame tap: forward EVERY parsed frame for tlog recording (never dropped).
+  // The session tap runs only while subscribed; cancelling disposes it.
+  return new Promise<void>((resolve) => {
+    const dispose = session.onRawFrame((frame) => send(frame));
+    const stop = (): void => {
+      dispose();
       resolve();
     };
     if (signal.aborted) stop();

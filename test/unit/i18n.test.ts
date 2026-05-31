@@ -12,6 +12,7 @@ import {
   listLocales,
   locale,
   registerLocale,
+  registerMessages,
   setLocale,
   t,
 } from '../../src/core/i18n';
@@ -76,6 +77,67 @@ describe('i18n locale registry', () => {
 
   it('rejects an empty locale code', () => {
     expect(() => registerLocale('', {})).toThrow();
+  });
+});
+
+describe('i18n registerMessages', () => {
+  it('adds keys to English that t() resolves', () => {
+    registerMessages({ 'hud.altitude': 'Altitude' });
+    expect(t('hud.altitude')).toBe('Altitude');
+  });
+
+  it('defaults the locale to English when omitted', () => {
+    registerMessages({ 'gauges.speed': 'Speed' });
+    expect(getLocale()).toBe('en');
+    expect(t('gauges.speed')).toBe('Speed');
+  });
+
+  it('merges additively without dropping earlier-registered keys', () => {
+    registerMessages({ 'hud.heading': 'Heading' });
+    registerMessages({ 'hud.airspeed': 'Airspeed' });
+    expect(t('hud.heading')).toBe('Heading');
+    expect(t('hud.airspeed')).toBe('Airspeed');
+  });
+
+  it('preserves the central EN_MESSAGES keys', () => {
+    registerMessages({ 'gauges.battery': 'Battery gauge' });
+    // A pre-existing central key still resolves unchanged.
+    expect(t('nav.flight')).toBe('Flight');
+    expect(t('gauges.battery')).toBe('Battery gauge');
+  });
+
+  it('is last-write-wins for the same key (override)', () => {
+    registerMessages({ 'hud.mode': 'Mode' });
+    registerMessages({ 'hud.mode': 'Flight mode' });
+    expect(t('hud.mode')).toBe('Flight mode');
+  });
+
+  it('still falls back to the key for keys never registered', () => {
+    registerMessages({ 'hud.roll': 'Roll' });
+    expect(t('hud.never.registered')).toBe('hud.never.registered');
+  });
+
+  it('resolves keys registered under a non-active locale after setLocale', () => {
+    // Distinct key so the module-singleton registry is not pre-seeded under en.
+    registerMessages({ 'gauges.altitudeFr': 'Altitude FR' }, 'fr');
+    // Not active yet → English/key precedence applies.
+    expect(t('gauges.altitudeFr')).toBe('gauges.altitudeFr');
+    setLocale('fr');
+    expect(t('gauges.altitudeFr')).toBe('Altitude FR');
+  });
+
+  it('still falls back to English for keys missing from a non-active locale', () => {
+    registerMessages({ 'hud.compass': 'Compass' }); // en
+    registerMessages({ 'hud.airspeed': 'Vitesse air' }, 'fr');
+    setLocale('fr');
+    // Present in fr.
+    expect(t('hud.airspeed')).toBe('Vitesse air');
+    // Only registered under en → English fallback resolves it.
+    expect(t('hud.compass')).toBe('Compass');
+  });
+
+  it('rejects an empty locale code', () => {
+    expect(() => registerMessages({ 'x.y': 'z' }, '')).toThrow();
   });
 });
 

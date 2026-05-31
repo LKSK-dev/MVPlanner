@@ -18,21 +18,25 @@
  */
 import MavlinkWorker from '../../workers/mavlink.worker.ts?worker&inline';
 import { type PostMessageRpc, createRpc } from '../../core/bus';
-import type { ConnState, LinkStats, Transport } from '../../contracts';
+import type { ConnState, DecodedMessage, LinkStats, Transport } from '../../contracts';
 import { BUILTIN_TRANSPORT_FACTORIES } from '../../transport';
 import {
   RPC_CONFIGURE,
   RPC_INGEST_BYTES,
   RPC_INSPECTOR,
+  RPC_MESSAGES,
   RPC_OUTGOING,
+  RPC_RAW_FRAMES,
   RPC_RESET,
   RPC_SEND_MESSAGE,
   RPC_TELEMETRY,
   type ConfigureRequest,
   type InspectorRequest,
+  type MessagesRequest,
+  type RawFramesRequest,
   type SendMessageRequest,
 } from './protocol';
-import type { InspectorSnapshot, TelemetrySnapshot } from './session';
+import type { InspectorSnapshot, RawFrame, TelemetrySnapshot } from './session';
 
 /** Callback for coalesced telemetry snapshots (link stats already overlaid). */
 export type TelemetryListener = (snapshot: TelemetrySnapshot) => void;
@@ -40,6 +44,10 @@ export type TelemetryListener = (snapshot: TelemetrySnapshot) => void;
 export type StateListener = (state: ConnState) => void;
 /** Callback for ON-DEMAND full inspector snapshots (task T1.12). */
 export type InspectorListener = (snapshot: InspectorSnapshot) => void;
+/** Callback for the SELECTIVE decoded-message tap (ACK/reply microservices). */
+export type MessageListener = (msg: DecodedMessage) => void;
+/** Callback for the RAW-FRAME tap (tlog recording). */
+export type RawFrameListener = (frame: RawFrame) => void;
 
 /** Construction options for {@link MavlinkHost}. */
 export interface MavlinkHostOptions {
@@ -202,6 +210,58 @@ export class MavlinkHost {
     const req: InspectorRequest = opts.hz !== undefined ? { hz: opts.hz } : {};
     void this.rpc
       .stream<InspectorRequest, InspectorSnapshot>(RPC_INSPECTOR, req, (snap) => cb(snap), {
+        signal: abort.signal,
+      })
+      .catch(() => {
+        /* aborted on unsubscribe / dispose — expected */
+      });
+    return () => abort.abort();
+  }
+
+  /**
+   * Subscribe a SELECTIVE decoded-message tap (spec plan/03 §3.4 microservices).
+   *
+   * Opens a dedicated worker `messages` RPC stream that forwards ONLY decoded
+   * messages whose `name` is in `names` — the reply path for ACK/reply-driven
+   * microservices (command/param/mission: await `COMMAND_ACK`, `PARAM_VALUE`,
+   * `MISSION_*`). This is SEPARATE from the coalesced telemetry stream and is
+   * NOT throttled, so reply correlation never misses a frame.
+   *
+   * Each call is its own stream with its own filter (multiplex); the worker
+   * unions nothing across subscriptions — every subscriber receives exactly the
+   * names it requested. The returned disposer aborts (closes) this stream.
+   * Independent of {@link connect}: a pre-connection subscription simply receives
+   * nothing until traffic arrives. Throws if the host has been {@link dispose}d.
+   */
+  onMessage(names: readonly string[], cb: MessageListener): () => void {
+    if (this.disposed) throw new Error('MavlinkHost disposed');
+    const abort = new AbortController();
+    const req: MessagesRequest = { names: [...names] };
+    void this.rpc
+      .stream<MessagesRequest, DecodedMessage>(RPC_MESSAGES, req, (msg) => cb(msg), {
+        signal: abort.signal,
+      })
+      .catch(() => {
+        /* aborted on unsubscribe / dispose — expected */
+      });
+    return () => abort.abort();
+  }
+
+  /**
+   * Subscribe a RAW-FRAME tap (spec plan/07 §7.4 tlog recording).
+   *
+   * Opens a dedicated worker `rawFrames` RPC stream that forwards a lean
+   * {@link RawFrame} (`raw` bytes + `rxTimeUs` + `sysid`/`compid`/`msgId`) for
+   * EVERY parsed frame. SEPARATE from the coalesced telemetry path so recording
+   * is never dropped. The returned disposer aborts (closes) this stream.
+   * Independent of {@link connect}. Throws if the host has been {@link dispose}d.
+   */
+  onRawFrame(cb: RawFrameListener): () => void {
+    if (this.disposed) throw new Error('MavlinkHost disposed');
+    const abort = new AbortController();
+    const req: RawFramesRequest = {};
+    void this.rpc
+      .stream<RawFramesRequest, RawFrame>(RPC_RAW_FRAMES, req, (frame) => cb(frame), {
         signal: abort.signal,
       })
       .catch(() => {

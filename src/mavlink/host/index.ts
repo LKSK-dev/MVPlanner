@@ -19,6 +19,7 @@ export type {
   RateEntry,
   InspectorSnapshot,
   InspectorRow,
+  RawFrame,
 } from './session';
 
 export { MavlinkHost } from './host';
@@ -27,6 +28,8 @@ export type {
   StateListener,
   TelemetryListener,
   InspectorListener,
+  MessageListener,
+  RawFrameListener,
 } from './host';
 
 export {
@@ -36,6 +39,8 @@ export {
   RPC_RESET,
   RPC_TELEMETRY,
   RPC_INSPECTOR,
+  RPC_MESSAGES,
+  RPC_RAW_FRAMES,
   RPC_OUTGOING,
 } from './protocol';
 export type {
@@ -44,5 +49,7 @@ export type {
   SendMessageRequest,
   TelemetryRequest,
   InspectorRequest,
+  MessagesRequest,
+  RawFramesRequest,
   OutgoingRequest,
 } from './protocol';

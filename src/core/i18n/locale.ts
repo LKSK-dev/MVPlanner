@@ -49,6 +49,45 @@ export function registerLocale(code: LocaleCode, messages: MessageCatalog): void
   registry.set(code, messages);
 }
 
+/**
+ * Additively merge `messages` into the in-memory catalog for `locale`,
+ * letting each UI module contribute its own (namespaced) keys at import time
+ * without editing the central English catalog.
+ *
+ * Unlike {@link registerLocale} this never replaces the existing catalog — keys
+ * are merged on top of what is already registered. Merging is last-write-wins:
+ * a later registration overrides an earlier entry for the same key (a dev-mode
+ * `console.warn` flags such overrides). Registered keys resolve through `t()`
+ * with the usual precedence (active locale → English → key) and react to the
+ * active-locale signal, so registering under a non-active locale takes effect
+ * once {@link setLocale} switches to it.
+ *
+ * The shipped {@link EN_MESSAGES} object is never mutated: merges produce a new
+ * catalog object stored in the registry.
+ *
+ * @param messages - Flat map of message key → template string to contribute.
+ * @param locale - Target locale code; defaults to {@link DEFAULT_LOCALE} (`'en'`).
+ * @throws if `locale` is empty.
+ */
+export function registerMessages(
+  messages: Record<string, string>,
+  locale: LocaleCode = DEFAULT_LOCALE,
+): void {
+  if (!locale) throw new Error('registerMessages: locale code must be a non-empty string');
+  const existing = registry.get(locale);
+  const merged: Record<string, string> = { ...existing, ...messages };
+  if (import.meta.env.DEV && existing) {
+    for (const key of Object.keys(messages)) {
+      if (key in existing) {
+        console.warn(
+          `registerMessages: key "${key}" overrides an existing entry for locale "${locale}"`,
+        );
+      }
+    }
+  }
+  registry.set(locale, merged);
+}
+
 /** True when a catalog is registered for `code`. */
 export function hasLocale(code: LocaleCode): boolean {
   return registry.has(code);
