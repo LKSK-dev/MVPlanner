@@ -1,0 +1,36 @@
+{
+  "name": "mvplanner",
+  "version": "0.0.0",
+  "description": "Modern browser-based MAVLink ground control station (single-file)",
+  "type": "module",
+  "private": true,
+  "license": "ISC",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && node scripts/postbuild.mjs",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "check:size": "node scripts/check-size.mjs"
+  },
+  "dependencies": {
+    "solid-js": "^1.9.13"
+  },
+  "devDependencies": {
+    "@solidjs/testing-library": "^0.8.10",
+    "eslint": "^9.39.4",
+    "eslint-plugin-solid": "^0.14.5",
+    "happy-dom": "^20.9.0",
+    "prettier": "^3.8.3",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.60.0",
+    "vite": "^8.0.14",
+    "vite-plugin-singlefile": "^2.3.3",
+    "vite-plugin-solid": "^2.11.12",
+    "vitest": "^4.1.7"
+  }
+}

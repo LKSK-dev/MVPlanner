@@ -1,0 +1,49 @@
+/*
+ * Design tokens (T0.1 base; full theme system + Light/High-contrast/Field in T0.8).
+ * Themes are token sets toggled via [data-theme] (spec plan/05 §5.6).
+ */
+:root,
+:root[data-theme='dark'] {
+  --mvp-bg: #0e1116;
+  --mvp-surface: #161b22;
+  --mvp-surface-2: #1f2730;
+  --mvp-border: #2d3743;
+  --mvp-text: #e6edf3;
+  --mvp-text-dim: #9aa7b4;
+  --mvp-accent: #3fb6ff;
+  --mvp-ok: #3fb950;
+  --mvp-warn: #d29922;
+  --mvp-error: #f85149;
+
+  --mvp-radius: 8px;
+  --mvp-gap: 12px;
+  --mvp-font: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --mvp-font-mono: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--mvp-bg);
+  color: var(--mvp-text);
+  font-family: var(--mvp-font);
+  font-size: 14px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}

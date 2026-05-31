@@ -1,0 +1,30 @@
+# Planning & internal design docs (not shipped)
+/plan/
+
+# Dependencies
+node_modules/
+.pnp/
+.pnp.js
+
+# Build output
+dist/
+build/
+*.tsbuildinfo
+
+# Single-file release artifact (built, not tracked)
+MVPlanner.html
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Logs & local data
+*.log
+*.tlog
+*.bin
+coverage/
+.env
+.env.local
+.npm-cache/
