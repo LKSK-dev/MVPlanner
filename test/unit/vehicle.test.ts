@@ -6,7 +6,8 @@
  * mapping per `MAV_TYPE`, armed flag on/off, ArduPilot/PX4 mode decode (incl.
  * pinned copter/plane/rover values and unknown→numeric fallback), and field
  * derivation from GLOBAL_POSITION_INT / SYS_STATUS / GPS_RAW_INT / ATTITUDE /
- * VFR_HUD / BATTERY_STATUS / EKF_STATUS_REPORT / HOME_POSITION.
+ * VFR_HUD (incl. throttle) / BATTERY_STATUS / EKF_STATUS_REPORT / HOME_POSITION,
+ * and RC in/out from RC_CHANNELS / SERVO_OUTPUT_RAW.
  */
 import { describe, expect, it } from 'vitest';
 import type { DecodedMessage, FieldValue } from '../../src/contracts';
@@ -271,6 +272,53 @@ describe('VehicleModel — field derivation from telemetry', () => {
     expect(s?.velocity?.groundMs).toBeCloseTo(17.2, 3);
     expect(s?.velocity?.airMs).toBeCloseTo(18.5, 3);
     expect(s?.velocity?.climbMs).toBeCloseTo(2.5, 3);
+    expect(s?.throttlePct).toBe(60);
+  });
+
+  it('derives rcIn from RC_CHANNELS, truncated to chancount', () => {
+    const m = new VehicleModel();
+    m.ingest(
+      decoded({
+        name: 'RC_CHANNELS',
+        msgId: 65,
+        fields: {
+          time_boot_ms: 0,
+          chancount: 6,
+          chan1_raw: 1500,
+          chan2_raw: 1501,
+          chan3_raw: 1100,
+          chan4_raw: 1502,
+          chan5_raw: 1000,
+          chan6_raw: 2000,
+          chan7_raw: 1234, // beyond chancount → dropped
+          chan8_raw: 1234,
+          rssi: 255,
+        },
+      }),
+    );
+    const s = m.getState(1, 1);
+    expect(s?.rcIn).toEqual([1500, 1501, 1100, 1502, 1000, 2000]);
+  });
+
+  it('derives rcOut from SERVO_OUTPUT_RAW present channels', () => {
+    const m = new VehicleModel();
+    m.ingest(
+      decoded({
+        name: 'SERVO_OUTPUT_RAW',
+        msgId: 36,
+        fields: {
+          time_usec: 0,
+          port: 0,
+          servo1_raw: 1500,
+          servo2_raw: 1490,
+          servo3_raw: 1100,
+          servo4_raw: 1600,
+          // servo5+ absent → truncated
+        },
+      }),
+    );
+    const s = m.getState(1, 1);
+    expect(s?.rcOut).toEqual([1500, 1490, 1100, 1600]);
   });
 
   it('derives attitude (radians) from ATTITUDE', () => {

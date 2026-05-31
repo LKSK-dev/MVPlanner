@@ -19,6 +19,18 @@ export interface VehicleState {
   attitude: { rollRad: number; pitchRad: number; yawRad: number };
   position?: { lat: number; lon: number; altRelM: number; altAmslM: number };
   velocity?: { groundMs: number; airMs?: number; climbMs: number };
+  /** Throttle output as a percentage (0..100), from `VFR_HUD.throttle`. */
+  throttlePct?: number;
+  /**
+   * RC input channel values (microseconds) from `RC_CHANNELS`, truncated to the
+   * present channel count (`chancount`). Index 0 is channel 1.
+   */
+  rcIn?: number[];
+  /**
+   * Servo/RC output channel values (microseconds) from `SERVO_OUTPUT_RAW`.
+   * Index 0 is servo output 1.
+   */
+  rcOut?: number[];
   battery?: { voltageV: number; currentA?: number; remainingPct?: number; consumedmAh?: number };
   gps?: { fix: number; sats: number; hdop: number };
   ekfOk?: boolean;

@@ -84,6 +84,8 @@ function cloneState(s: VehicleState): VehicleState {
     ...(s.gps ? { gps: { ...s.gps } } : {}),
     ...(s.home ? { home: { ...s.home } } : {}),
     ...(s.vibe ? { vibe: { ...s.vibe } } : {}),
+    ...(s.rcIn ? { rcIn: [...s.rcIn] } : {}),
+    ...(s.rcOut ? { rcOut: [...s.rcOut] } : {}),
   };
 }
 
@@ -185,6 +187,10 @@ export class VehicleModel {
         return this.applyGlobalPosition(msg, f);
       case 'VFR_HUD':
         return this.applyVfrHud(msg, f);
+      case 'RC_CHANNELS':
+        return this.applyRcChannels(msg, f);
+      case 'SERVO_OUTPUT_RAW':
+        return this.applyServoOutput(msg, f);
       case 'ATTITUDE':
         return this.applyAttitude(msg, f);
       case 'SYS_STATUS':
@@ -262,6 +268,38 @@ export class VehicleModel {
       climbMs: climb,
       ...(airMs !== undefined ? { airMs } : {}),
     };
+    const throttle = num(f, 'throttle');
+    if (throttle !== undefined) s.throttlePct = throttle;
+    return true;
+  }
+
+  /** Max RC input channels carried by `RC_CHANNELS` (chan1_raw..chan18_raw). */
+  private applyRcChannels(msg: DecodedMessage, f: Record<string, FieldValue>): boolean {
+    const count = num(f, 'chancount');
+    const limit = count !== undefined ? Math.min(Math.max(Math.trunc(count), 0), 18) : 18;
+    const chans: number[] = [];
+    for (let i = 1; i <= limit; i++) {
+      const v = num(f, `chan${i}_raw`);
+      if (v === undefined) break;
+      chans.push(v);
+    }
+    if (chans.length === 0) return false;
+    const s = this.ensure(msg.sysid, msg.compid);
+    s.rcIn = chans;
+    return true;
+  }
+
+  /** Servo/RC outputs from `SERVO_OUTPUT_RAW` (servo1_raw..servo16_raw). */
+  private applyServoOutput(msg: DecodedMessage, f: Record<string, FieldValue>): boolean {
+    const servos: number[] = [];
+    for (let i = 1; i <= 16; i++) {
+      const v = num(f, `servo${i}_raw`);
+      if (v === undefined) break;
+      servos.push(v);
+    }
+    if (servos.length === 0) return false;
+    const s = this.ensure(msg.sysid, msg.compid);
+    s.rcOut = servos;
     return true;
   }
 
