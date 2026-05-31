@@ -91,6 +91,25 @@ describe('generated dialect tables', () => {
       expect(prn?.arrayLen).toBe(20);
     });
 
+    it('PARAM_VALUE (id 22): arrayLen keyed by wire order, not declaration', () => {
+      // Regression guard for the generator's declaration-vs-wire ordering bug:
+      // pymavlink truth is param_id=char[16], param_count=scalar uint16_t.
+      const pv = requireMsg(table, 22);
+      const paramId = pv.fields.find((f) => f.name === 'param_id');
+      expect(paramId?.type).toBe('char');
+      expect(paramId?.arrayLen).toBe(16);
+      const paramCount = pv.fields.find((f) => f.name === 'param_count');
+      expect(paramCount?.type).toBe('uint16_t');
+      expect(paramCount?.arrayLen).toBeUndefined();
+    });
+
+    it('ATTITUDE_TARGET (id 83): float[4] quaternion array captured', () => {
+      const at = requireMsg(table, 83);
+      const q = at.fields.find((f) => f.name === 'q');
+      expect(q?.type).toBe('float');
+      expect(q?.arrayLen).toBe(4);
+    });
+
     it('MAV_CMD metadata: names, descriptions, and param labels', () => {
       const wp = findEnumEntry(table, 'MAV_CMD', 16);
       expect(wp.name).toBe('MAV_CMD_NAV_WAYPOINT');

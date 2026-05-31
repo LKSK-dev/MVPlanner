@@ -103,20 +103,33 @@ def _parse_xml_closure(dialect: str):
 
 
 def _build_message(cls, ext_start: dict[str, int]) -> dict:
-    """Build a MessageMeta dict from a compiled pymavlink message class."""
+    """Build a MessageMeta dict from a compiled pymavlink message class.
+
+    pymavlink mixes two field orderings, so every per-field attribute MUST be
+    looked up BY NAME from the list that actually carries it:
+      - ``fieldtypes`` aligns with ``fieldnames`` (XML DECLARATION order).
+      - ``array_lengths`` aligns with ``ordered_fieldnames`` (MAVLink WIRE order).
+    Indexing ``array_lengths`` with a declaration-order index silently shifts
+    array lengths onto the wrong fields (e.g. PARAM_VALUE: ``param_id`` is the
+    ``char[16]`` but a positional bug attributed it to ``param_count``).
+    """
     name = cls.msgname
     decl_names: list[str] = list(cls.fieldnames)
-    types: list[str] = list(cls.fieldtypes)
-    array_lengths: list[int] = list(cls.array_lengths)
+    # type: keyed by DECLARATION-order names (fieldtypes aligns with fieldnames).
+    type_by_name: dict[str, str] = dict(zip(cls.fieldnames, cls.fieldtypes))
+    # arrayLen: keyed by WIRE-order names (array_lengths aligns with
+    # ordered_fieldnames). 0 => scalar (emit no arrayLen).
+    arraylen_by_name: dict[str, int] = dict(
+        zip(cls.ordered_fieldnames, cls.array_lengths)
+    )
     enums_by_name: dict[str, str] = dict(cls.fieldenums_by_name)
     units_by_name: dict[str, str] = dict(cls.fieldunits_by_name)
 
     fields: list[dict] = []
     for fname in cls.ordered_fieldnames:  # MAVLink WIRE order
-        j = decl_names.index(fname)
-        field: dict = {"name": fname, "type": types[j]}
-        if array_lengths[j] > 0:
-            field["arrayLen"] = array_lengths[j]
+        field: dict = {"name": fname, "type": type_by_name[fname]}
+        if arraylen_by_name[fname] > 0:
+            field["arrayLen"] = arraylen_by_name[fname]
         enum = enums_by_name.get(fname)
         if enum:
             field["enum"] = enum
@@ -146,6 +159,51 @@ def _build_message(cls, ext_start: dict[str, int]) -> dict:
         msg["extensionIndex"] = ext_idx
 
     return msg
+
+
+def _self_check(module, messages: dict[str, dict]) -> None:
+    """Assert every emitted field's arrayLen matches pymavlink's authority.
+
+    pymavlink's ``array_lengths`` is the authoritative per-field array length,
+    aligned with ``ordered_fieldnames`` (WIRE order). For each generated message
+    we re-derive the wire-order ``{name: length}`` map directly from the
+    compiled class and assert that:
+      - every emitted array field has the exact same arrayLen, and
+      - every scalar field (length 0) emits NO arrayLen.
+    Any mismatch fails generation (non-zero exit) so the declaration-vs-wire
+    ordering bug can never silently ship again.
+    """
+    errors: list[str] = []
+    for key, msg in messages.items():
+        cls = module.mavlink_map[int(key)]
+        authority: dict[str, int] = dict(
+            zip(cls.ordered_fieldnames, cls.array_lengths)
+        )
+        emitted_order = [f["name"] for f in msg["fields"]]
+        if emitted_order != list(cls.ordered_fieldnames):
+            errors.append(
+                f"{msg['name']}: field order {emitted_order} != wire order "
+                f"{list(cls.ordered_fieldnames)}"
+            )
+        for field in msg["fields"]:
+            want = int(authority[field["name"]])
+            got = field.get("arrayLen")
+            if want > 0:
+                if got != want:
+                    errors.append(
+                        f"{msg['name']}.{field['name']}: arrayLen {got!r} "
+                        f"!= authoritative {want}"
+                    )
+            elif got is not None:
+                errors.append(
+                    f"{msg['name']}.{field['name']}: scalar field must have no "
+                    f"arrayLen, got {got!r}"
+                )
+    if errors:
+        joined = "\n  ".join(errors)
+        raise SystemExit(
+            f"SELF-CHECK FAILED ({len(errors)} arrayLen mismatch(es)):\n  {joined}"
+        )
 
 
 def _build_enums(module, cmd_param_labels: dict[tuple[str, int], list[str]]) -> dict:
@@ -191,6 +249,8 @@ def generate(dialect: str) -> tuple[str, int, int, int]:
     for msgid in sorted(module.mavlink_map.keys()):
         cls = module.mavlink_map[msgid]
         messages[str(int(msgid))] = _build_message(cls, ext_start)
+
+    _self_check(module, messages)
 
     enums = _build_enums(module, cmd_param_labels)
 
