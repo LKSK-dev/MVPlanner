@@ -32,7 +32,10 @@ import { fileURLToPath } from 'node:url';
 
 import { MavlinkSession } from '../../src/mavlink/host/session';
 import { CommandClient } from '../../src/mavlink/microservices/command';
-import { CMD_COMPONENT_ARM_DISARM, MAV_RESULT } from '../../src/mavlink/microservices/command/constants';
+import {
+  CMD_COMPONENT_ARM_DISARM,
+  MAV_RESULT,
+} from '../../src/mavlink/microservices/command/constants';
 import { TlogRecorder } from '../../src/data/tlog';
 import { parseTlog } from '../../src/transport/replay';
 import type { BlobStore, BlobMeta } from '../../src/contracts';
