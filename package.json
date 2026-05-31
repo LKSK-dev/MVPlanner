@@ -18,12 +18,14 @@
     "check:size": "node scripts/check-size.mjs"
   },
   "dependencies": {
+    "idb": "^8.0.3",
     "solid-js": "^1.9.13"
   },
   "devDependencies": {
     "@solidjs/testing-library": "^0.8.10",
     "eslint": "^9.39.4",
     "eslint-plugin-solid": "^0.14.5",
+    "fake-indexeddb": "^6.2.5",
     "happy-dom": "^20.9.0",
     "prettier": "^3.8.3",
     "typescript": "^6.0.3",
