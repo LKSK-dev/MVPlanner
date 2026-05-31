@@ -4,8 +4,13 @@
  * bump per the change-control rule (impl 00 §0.6).
  */
 
-/** Internal contract version. Bump on any breaking seam change. */
-export const CONTRACTS_VERSION = '1.0.0';
+/**
+ * Internal contract version. Bump on any seam change (minor = additive,
+ * major = breaking) per the change-control rule (impl 00 §0.6).
+ * - 1.0.0: initial frozen seams (T0.3).
+ * - 1.1.0: add `Rpc.handleStream` (server counterpart to `Rpc.stream`).
+ */
+export const CONTRACTS_VERSION = '1.1.0';
 
 export type * from './bus';
 export type * from './transport';

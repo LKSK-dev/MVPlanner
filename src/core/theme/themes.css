@@ -1,0 +1,102 @@
+/*
+ * Theme token sets (T0.8). Each built-in theme redefines the same color custom
+ * properties; theme-independent shape/typography/motion tokens live in
+ * tokens.css. Themes are selected via <html data-theme> (applyTheme), or — in
+ * system/auto mode (no data-theme) — via prefers-* (spec plan/05 §5.6/§5.8).
+ * This file is @imported first by tokens.css.
+ */
+
+/* Dark — default token set; also applies when no explicit theme is set. */
+:root,
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --mvp-bg: #0e1116;
+  --mvp-surface: #161b22;
+  --mvp-surface-2: #1f2730;
+  --mvp-border: #2d3743;
+  --mvp-text: #e6edf3;
+  --mvp-text-dim: #9aa7b4;
+  --mvp-accent: #3fb6ff;
+  --mvp-ok: #3fb950;
+  --mvp-warn: #d29922;
+  --mvp-error: #f85149;
+}
+
+/* Light. */
+:root[data-theme='light'] {
+  color-scheme: light;
+  --mvp-bg: #f6f8fa;
+  --mvp-surface: #ffffff;
+  --mvp-surface-2: #eaeef2;
+  --mvp-border: #d0d7de;
+  --mvp-text: #1f2328;
+  --mvp-text-dim: #59636e;
+  --mvp-accent: #0969da;
+  --mvp-ok: #1a7f37;
+  --mvp-warn: #9a6700;
+  --mvp-error: #cf222e;
+}
+
+/* High-contrast — maximised legibility; non-color cues live in components. */
+:root[data-theme='high-contrast'] {
+  color-scheme: dark;
+  --mvp-bg: #000000;
+  --mvp-surface: #000000;
+  --mvp-surface-2: #0d0d0d;
+  --mvp-border: #ffffff;
+  --mvp-text: #ffffff;
+  --mvp-text-dim: #d6d6d6;
+  --mvp-accent: #4cc2ff;
+  --mvp-ok: #5dff7a;
+  --mvp-warn: #ffd400;
+  --mvp-error: #ff6d6d;
+}
+
+/* Field — sunlight-readable: bright background, bold high-contrast ink. */
+:root[data-theme='field'] {
+  color-scheme: light;
+  --mvp-bg: #ffffff;
+  --mvp-surface: #f4f4f4;
+  --mvp-surface-2: #e6e6e6;
+  --mvp-border: #2b2b2b;
+  --mvp-text: #0a0a0a;
+  --mvp-text-dim: #2b2b2b;
+  --mvp-accent: #0050b3;
+  --mvp-ok: #0a7d2c;
+  --mvp-warn: #8a5a00;
+  --mvp-error: #b00020;
+}
+
+/* System/auto mode (no explicit data-theme): follow the OS color scheme. */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) {
+    color-scheme: light;
+    --mvp-bg: #f6f8fa;
+    --mvp-surface: #ffffff;
+    --mvp-surface-2: #eaeef2;
+    --mvp-border: #d0d7de;
+    --mvp-text: #1f2328;
+    --mvp-text-dim: #59636e;
+    --mvp-accent: #0969da;
+    --mvp-ok: #1a7f37;
+    --mvp-warn: #9a6700;
+    --mvp-error: #cf222e;
+  }
+}
+
+/* prefers-contrast wins over color-scheme in system/auto mode. */
+@media (prefers-contrast: more) {
+  :root:not([data-theme]) {
+    color-scheme: dark;
+    --mvp-bg: #000000;
+    --mvp-surface: #000000;
+    --mvp-surface-2: #0d0d0d;
+    --mvp-border: #ffffff;
+    --mvp-text: #ffffff;
+    --mvp-text-dim: #d6d6d6;
+    --mvp-accent: #4cc2ff;
+    --mvp-ok: #5dff7a;
+    --mvp-warn: #ffd400;
+    --mvp-error: #ff6d6d;
+  }
+}

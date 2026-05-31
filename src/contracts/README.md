@@ -32,3 +32,10 @@ worktrees, disjoint file ownership) against stable types.
 | `storage.ts`       | `KvStore`, `BlobStore`, `FileIo`                            |
 
 `index.ts` re-exports all types and the runtime `CONTRACTS_VERSION`.
+
+## Changelog
+
+| Version | Change                                                                                                                    | Approved by  |
+| ------- | ------------------------------------------------------------------------------------------------------------------------- | ------------ |
+| 1.0.0   | Initial frozen seams (T0.3).                                                                                              | orchestrator |
+| 1.1.0   | Add `Rpc.handleStream` (server counterpart to `Rpc.stream`; `stream` is non-functional without it). Surfaced during T0.4. | orchestrator |

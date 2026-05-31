@@ -1,24 +1,18 @@
 /*
- * Design tokens (T0.1 base; full theme system + Light/High-contrast/Field in T0.8).
- * Themes are token sets toggled via [data-theme] (spec plan/05 §5.6).
+ * Design tokens entry (T0.1 base, extended in T0.8). This is the stable entry
+ * imported by src/main.tsx; the per-theme color token sets are split into
+ * themes.css and pulled in below. Themes = token sets toggled via
+ * <html data-theme> (spec plan/05 §5.6); applyTheme() (./apply.ts) sets it.
  */
-:root,
-:root[data-theme='dark'] {
-  --mvp-bg: #0e1116;
-  --mvp-surface: #161b22;
-  --mvp-surface-2: #1f2730;
-  --mvp-border: #2d3743;
-  --mvp-text: #e6edf3;
-  --mvp-text-dim: #9aa7b4;
-  --mvp-accent: #3fb6ff;
-  --mvp-ok: #3fb950;
-  --mvp-warn: #d29922;
-  --mvp-error: #f85149;
+@import './themes.css';
 
+:root {
+  /* Shape, spacing, typography & motion — shared across every theme. */
   --mvp-radius: 8px;
   --mvp-gap: 12px;
   --mvp-font: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --mvp-font-mono: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, monospace;
+  --mvp-motion-duration: 150ms;
 }
 
 * {
@@ -41,7 +35,12 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Respect reduced-motion: drop the motion token and neutralise animations. */
 @media (prefers-reduced-motion: reduce) {
+  :root {
+    --mvp-motion-duration: 0ms;
+  }
+
   * {
     animation-duration: 0.001ms !important;
     transition-duration: 0.001ms !important;

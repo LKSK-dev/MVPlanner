@@ -1,12 +1,20 @@
 import { defineConfig } from 'vitest/config';
+import solid from 'vite-plugin-solid';
 
-// Unit tests run as pure logic by default (no Solid JSX transform needed here);
-// component/DOM tests are added with their owning UI tasks (T0.7/T0.8).
+// The unit-test harness uses vite-plugin-solid + the 'browser'/'development'
+// resolve conditions so solid-js resolves its REACTIVE build (not the SSR
+// no-op build). This lets reactive store/UI tests actually exercise
+// createMemo/createEffect. happy-dom provides the DOM/MessageChannel APIs.
 export default defineConfig({
+  plugins: [solid()],
+  resolve: {
+    conditions: ['development', 'browser'],
+  },
   test: {
     environment: 'happy-dom',
     globals: false,
     include: ['test/unit/**/*.test.ts', 'src/**/*.test.ts'],
     exclude: ['node_modules', 'dist', '.npm-cache'],
+    server: { deps: { inline: [/solid-js/, /@solidjs/] } },
   },
 });

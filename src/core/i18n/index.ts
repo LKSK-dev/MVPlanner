@@ -1,31 +1,51 @@
 /**
- * i18n shim (T0.1). All user-facing strings route through `t()` from day one
- * (conventions plan/implementation/00 §0.3). The full runtime-switchable
- * catalog + locale formatting lands in T0.8; this keeps the call-site contract
- * stable so no hard-coded UI copy accumulates.
+ * i18n public surface (T0.8).
+ *
+ * Evolved from the T0.1 shim into a runtime-switchable catalog while keeping the
+ * exact call-site contract: `t(key, vars?)`. All user-facing strings route
+ * through `t()` (conventions plan/implementation/00 §0.3); the active locale is
+ * a Solid signal so the UI reacts to language changes (spec plan/05 §5.9).
+ *
+ * Resolution order for a key: active-locale catalog → English → the key itself.
+ *
+ * @see ./catalog — message/catalog types + the shipped English strings.
+ * @see ./locale — locale registry + active-locale signal.
+ * @see ./format — locale-aware Intl number/date helpers.
  */
-const en: Record<string, string> = {
-  'app.name': 'MVPlanner',
-  'app.tagline': 'Modern MAVLink Ground Control',
-  'nav.flight': 'Flight',
-  'nav.plan': 'Plan',
-  'nav.setup': 'Setup',
-  'nav.config': 'Config',
-  'nav.logs': 'Logs',
-  'nav.sim': 'Sim',
-  'screen.placeholder': '{screen} — coming in a later milestone',
-  'conn.disconnected': 'Disconnected',
-};
+import { EN_MESSAGES, interpolate, type MessageVars } from './catalog';
+import { catalogFor, getLocale } from './locale';
 
-export type MessageVars = Record<string, string | number>;
+export type { MessageCatalog, MessageVars } from './catalog';
+export type { DateInput } from './format';
+export type { LocaleCode } from './locale';
 
-/** Translate a key, substituting `{var}` placeholders. Falls back to the key. */
+export {
+  DEFAULT_LOCALE,
+  getLocale,
+  hasLocale,
+  listLocales,
+  locale,
+  registerLocale,
+  setLocale,
+} from './locale';
+export {
+  formatDate,
+  formatDateTime,
+  formatDecimal,
+  formatInteger,
+  formatNumber,
+  formatTime,
+} from './format';
+
+/**
+ * Translate `key` in the active locale, substituting `{var}` placeholders.
+ *
+ * Falls back to the English string, then to `key` itself, so the UI never shows
+ * a blank. Reads the active-locale signal, so Solid consumers re-render when the
+ * language changes. Backward-compatible with the T0.1 shim signature.
+ */
 export function t(key: string, vars?: MessageVars): string {
-  let s = en[key] ?? key;
-  if (vars) {
-    for (const [k, v] of Object.entries(vars)) {
-      s = s.replaceAll(`{${k}}`, String(v));
-    }
-  }
-  return s;
+  const active = catalogFor(getLocale());
+  const template = active?.[key] ?? EN_MESSAGES[key] ?? key;
+  return interpolate(template, vars);
 }

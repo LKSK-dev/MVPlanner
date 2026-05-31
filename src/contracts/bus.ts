@@ -18,4 +18,15 @@ export interface Rpc {
     onMsg: (m: Msg) => void,
     opts?: { signal?: AbortSignal },
   ): Promise<void>;
+  /**
+   * Server counterpart to {@link Rpc.stream}: register a streaming handler for
+   * `method`. `fn` calls `send(msg)` for each message and resolves to end the
+   * stream; throwing surfaces as a rejection on the caller's `stream` promise.
+   * `signal` aborts when the caller cancels. (Added in CONTRACTS_VERSION 1.1.0 —
+   * `stream` is non-functional without a handler counterpart.)
+   */
+  handleStream<Req, Msg>(
+    method: string,
+    fn: (req: Req, send: (msg: Msg) => void, signal: AbortSignal) => Promise<void>,
+  ): void;
 }
