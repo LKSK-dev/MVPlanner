@@ -7,6 +7,7 @@
  * link_id || timestamp)` truncated to its first 6 bytes. The timestamp counts
  * 10-microsecond ticks since 2015-01-01T00:00:00 UTC.
  */
+import type { SigningConfig } from '../../contracts';
 import { sha256 } from './sha256';
 
 /** Length of the trailing signature block on a signed v2 frame. */
@@ -14,6 +15,20 @@ export const SIGNATURE_LEN = 13;
 
 /** `incompat_flags` bit indicating a frame carries a signature block. */
 export const MAVLINK_IFLAG_SIGNED = 0x01;
+
+/**
+ * Whether an *unsigned* frame may be accepted under `signing`.
+ *
+ * Security default: when signing is enabled, unsigned frames are **rejected**
+ * unless `allowUnsigned === true` is set explicitly. An undefined
+ * `allowUnsigned` is treated as `false`, so merely enabling signing can never
+ * silently accept unsigned traffic (opt-in, not opt-out). When signing is
+ * disabled (or absent) unsigned frames are always accepted.
+ */
+export function unsignedAllowed(signing: SigningConfig | undefined): boolean {
+  if (!signing?.enabled) return true;
+  return signing.allowUnsigned === true;
+}
 
 /** Milliseconds between the Unix epoch and the MAVLink signing epoch (2015-01-01). */
 const MAVLINK_EPOCH_MS = Date.UTC(2015, 0, 1);

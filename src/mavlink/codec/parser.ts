@@ -3,9 +3,12 @@
  *
  * `push` buffers bytes across calls, locates frames by magic, validates the
  * CRC (with the per-message `crcExtra`), optionally verifies v2 signatures, and
- * never throws on garbage: on a bad magic, short frame, CRC mismatch, or failed
- * signature it advances a single byte and resynchronises. v2 truncated payloads
- * are zero-filled back to their full field set before unpacking.
+ * never throws on garbage: on a bad magic, short frame, CRC mismatch, failed
+ * signature, or a v2 frame carrying an unknown `incompat_flags` bit it advances
+ * a single byte and resynchronises. With signing enabled, unsigned frames are
+ * rejected unless `allowUnsigned === true` is set explicitly (secure default;
+ * see {@link unsignedAllowed}). v2 truncated payloads are zero-filled back to
+ * their full field set before unpacking.
  */
 import type {
   DecodedMessage,
@@ -25,6 +28,7 @@ import {
   computeSignature,
   readTimestamp48,
   signaturesEqual,
+  unsignedAllowed,
 } from './signing';
 
 const V1_HEADER = 6;
@@ -110,7 +114,15 @@ export class StreamingParser implements MavParser {
       }
 
       const payloadLen = buf[i + 1] as number;
-      const signed = isV2 && ((buf[i + 2] as number) & MAVLINK_IFLAG_SIGNED) !== 0;
+      const incompat = isV2 ? (buf[i + 2] as number) : 0;
+      // An unknown incompat_flags bit (anything but SIGNED) means the frame
+      // cannot be safely interpreted (spec plan/03 §3.2): drop it and resync.
+      // compat_flags are advisory and remain ignored.
+      if ((incompat & ~MAVLINK_IFLAG_SIGNED) !== 0) {
+        i++;
+        continue;
+      }
+      const signed = isV2 && (incompat & MAVLINK_IFLAG_SIGNED) !== 0;
       const frameLen = headerLen + payloadLen + 2 + (signed ? SIGNATURE_LEN : 0);
       if (buf.length - i < frameLen) {
         // Incomplete: remember it but keep scanning for a later complete frame.
@@ -189,8 +201,8 @@ export class StreamingParser implements MavParser {
         }
         isSigned = true;
       }
-    } else if (this.signing?.enabled && this.signing.allowUnsigned === false) {
-      return null; // signing required but frame is unsigned
+    } else if (!unsignedAllowed(this.signing)) {
+      return null; // signing enabled: unsigned frames rejected unless allowUnsigned === true
     }
 
     const count = fieldCount(meta, version);

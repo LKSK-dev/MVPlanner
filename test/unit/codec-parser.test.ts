@@ -107,6 +107,38 @@ describe('StreamingParser resync & robustness', () => {
     expect(msgs[0]!.seq).toBe(5);
   });
 
+  it('drops a v2 frame with an unknown incompat bit but decodes a following valid frame', () => {
+    const parser = codec.parser({ dialects });
+    const bad = frameV2(30);
+    bad[2] = 0x02; // unknown incompat bit (not MAVLINK_IFLAG_SIGNED) — must be discarded
+    const good = frameV2(31);
+    const stream = new Uint8Array(bad.length + good.length);
+    stream.set(bad, 0);
+    stream.set(good, bad.length);
+    const msgs = parser.push(stream);
+    expect(msgs).toHaveLength(1);
+    expect(msgs[0]!.seq).toBe(31);
+  });
+
+  it('resyncs past a false 0xFD magic with an oversized length header to a later valid frame', () => {
+    const parser = codec.parser({ dialects });
+    const good = frameV2(42);
+    const stream = new Uint8Array(4 + good.length);
+    stream[0] = 0xfd; // false v2 magic
+    stream[1] = 0xff; // oversized payload length: claims a 255-byte payload (frame never completes)
+    stream[2] = 0x00; // incompat flags: no unknown bits, so this exercises the length skip-ahead
+    stream[3] = 0x00; // compat flags
+    stream.set(good, 4);
+    const msgs = parser.push(stream);
+    expect(msgs).toHaveLength(1);
+    expect(msgs[0]!.seq).toBe(42);
+    // The oversized candidate must not be retained: the buffer stays bounded and
+    // a fresh frame decodes alone on the next push.
+    const next = parser.push(frameV2(43));
+    expect(next).toHaveLength(1);
+    expect(next[0]!.seq).toBe(43);
+  });
+
   it('decodes two back-to-back frames in a single push', () => {
     const parser = codec.parser({ dialects });
     const a = frameV2(1);
@@ -159,6 +191,25 @@ describe('v2 signing accept/reject', () => {
     signed[si] = ((signed[si] ?? 0) ^ 0x01) & 0xff; // flip a signature byte
     const parser = codec.parser({ dialects, signing: { enabled: true, key, linkId: 1 } });
     expect(parser.push(signed)).toHaveLength(0);
+  });
+
+  it('rejects a validly-signed frame verified under the wrong key', () => {
+    const signed = codec.encode(heartbeat, {
+      version: 2,
+      seq: 0,
+      signing: { enabled: true, key, linkId: 1 },
+      timestamp: 1234567n,
+    });
+    const wrongKey = new Uint8Array(32);
+    for (let i = 0; i < 32; i++) wrongKey[i] = (i + 1) & 0xff; // differs from `key`
+    const parser = codec.parser({ dialects, signing: { enabled: true, key: wrongKey, linkId: 1 } });
+    expect(parser.push(signed)).toHaveLength(0);
+  });
+
+  it('rejects an unsigned frame when allowUnsigned is undefined (secure default)', () => {
+    const unsigned = codec.encode(heartbeat, { version: 2, seq: 0 });
+    const parser = codec.parser({ dialects, signing: { enabled: true, key, linkId: 1 } });
+    expect(parser.push(unsigned)).toHaveLength(0);
   });
 
   it('rejects an unsigned frame when allowUnsigned is false', () => {

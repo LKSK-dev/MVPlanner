@@ -16,11 +16,15 @@ frozen `MavCodec` / `MavParser` / `DecodedMessage` contracts in
 - **24-bit message ids**, incompat/compat flags.
 - **v2 message signing** (`signing.ts`, `sha256.ts`) — `link_id(1) |
 timestamp(6, LE 48-bit) | sig(6)`, `sig = SHA-256(key‖frame‖link_id‖timestamp)[0:6]`;
-  verify on decode, optional per-(link, sysid, compid) timestamp monotonicity,
-  `allowUnsigned` policy.
+  verify on decode, optional per-(link, sysid, compid) timestamp monotonicity.
+  **Secure-by-default `allowUnsigned` policy:** when `signing.enabled` is true,
+  unsigned frames are **rejected** unless `allowUnsigned === true` is set
+  explicitly — an undefined `allowUnsigned` is treated as `false`, so enabling
+  signing can never silently accept unsigned traffic.
 - **Resync-safe parser** (`parser.ts`) — buffers across `push()` calls, never
   throws on garbage, scans past false magic bytes, drops bad-CRC / bad-signature
-  frames.
+  frames, and discards v2 frames carrying an unknown `incompat_flags` bit
+  (anything but `MAVLINK_IFLAG_SIGNED`); advisory `compat_flags` are ignored.
 - **Typed fields** — 64-bit ints → `bigint`, `char[]` → `string` (NUL-trimmed),
   numeric arrays → `number[]`, floats per IEEE-754 (incl. NaN/Inf).
 
@@ -92,14 +96,3 @@ these change the `MavCodec` surface.
 export npm_config_cache="$PWD/.npm-cache"
 npm run typecheck && npm test
 ```
-
-## Known upstream defect (NOT in this module)
-
-The generated dialect tables (`src/mavlink/dialects/generated/*.json`, task T1.2)
-misattribute `arrayLen` for 90 messages / 224 fields: `array_lengths` was indexed
-by XML field order instead of wire (`ordered_fieldnames`) order. Within the
-shipped conformance set this only hits **`PARAM_VALUE`** (`param_id` should be
-`char[16]`; `param_count` should be a scalar `uint16`). The codec is correct; the
-table is wrong. The conformance test runs those cases under `it.fails` so they
-are documented (not hidden) and will become hard failures the moment the dialect
-generator is fixed and the tables regenerated.
