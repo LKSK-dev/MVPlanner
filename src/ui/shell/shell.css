@@ -1,0 +1,393 @@
+/*
+ * App-shell styles (T0.7; spec plan/05 §5.2/§5.3). Hand-rolled CSS grid/flex —
+ * no UI framework. Colours/shape come from the theme tokens (tokens.css), so
+ * the shell restyles instantly on theme switch.
+ */
+
+.mvp-shell {
+  display: grid;
+  grid-template-rows: auto auto 1fr;
+  height: 100%;
+  min-height: 0;
+}
+
+.mvp-visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* --- Top bar ------------------------------------------------------------- */
+.mvp-topbar {
+  display: flex;
+  align-items: center;
+  gap: var(--mvp-gap);
+  padding: 0 var(--mvp-gap);
+  height: 48px;
+  background: var(--mvp-surface);
+  border-bottom: 1px solid var(--mvp-border);
+}
+
+.mvp-brand {
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  color: var(--mvp-accent);
+}
+
+.mvp-nav {
+  display: flex;
+  gap: 4px;
+}
+
+.mvp-nav-item {
+  appearance: none;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--mvp-text-dim);
+  padding: 6px 12px;
+  border-radius: var(--mvp-radius);
+  font: inherit;
+  cursor: pointer;
+}
+
+.mvp-nav-item:hover {
+  color: var(--mvp-text);
+  background: var(--mvp-surface-2);
+}
+
+.mvp-nav-item[aria-current='page'] {
+  color: var(--mvp-text);
+  background: var(--mvp-surface-2);
+  border-color: var(--mvp-border);
+}
+
+.mvp-status {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-variant-numeric: tabular-nums;
+}
+
+.mvp-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--mvp-border);
+  background: var(--mvp-surface-2);
+  color: var(--mvp-text-dim);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.mvp-chip--muted {
+  opacity: 0.85;
+}
+
+.mvp-chip__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--mvp-text-dim);
+}
+
+.mvp-chip--ok {
+  color: var(--mvp-text);
+}
+
+.mvp-chip--ok .mvp-chip__dot {
+  background: var(--mvp-ok);
+}
+
+.mvp-palette-btn {
+  appearance: none;
+  border: 1px solid var(--mvp-border);
+  background: var(--mvp-surface-2);
+  color: var(--mvp-text-dim);
+  border-radius: var(--mvp-radius);
+  padding: 6px 10px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.mvp-palette-btn:hover {
+  color: var(--mvp-text);
+}
+
+/* --- Capability notice --------------------------------------------------- */
+.mvp-cap-notice {
+  padding: 8px var(--mvp-gap);
+  background: color-mix(in srgb, var(--mvp-warn) 18%, var(--mvp-surface));
+  border-bottom: 1px solid var(--mvp-border);
+  color: var(--mvp-text);
+  font-size: 13px;
+}
+
+/* --- Main / dock --------------------------------------------------------- */
+.mvp-main {
+  min-height: 0;
+  overflow: hidden;
+  padding: var(--mvp-gap);
+}
+
+.mvp-dock,
+.mvp-dock-cell {
+  min-height: 0;
+  min-width: 0;
+  height: 100%;
+}
+
+.mvp-dock-split {
+  display: flex;
+  flex-direction: row;
+  height: 100%;
+  gap: 0;
+}
+
+.mvp-dock-split--col {
+  flex-direction: column;
+}
+
+.mvp-dock-cell {
+  display: flex;
+}
+
+.mvp-dock-gutter {
+  flex: 0 0 6px;
+  background: var(--mvp-border);
+  cursor: col-resize;
+}
+
+.mvp-dock-split--col > .mvp-dock-gutter {
+  cursor: row-resize;
+}
+
+.mvp-dock-panel {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  border: 1px solid var(--mvp-border);
+  border-radius: var(--mvp-radius);
+  background: var(--mvp-surface);
+  overflow: hidden;
+}
+
+.mvp-dock-panel__header {
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--mvp-text-dim);
+  background: var(--mvp-surface-2);
+  border-bottom: 1px solid var(--mvp-border);
+}
+
+.mvp-dock-panel__body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  padding: var(--mvp-gap);
+}
+
+.mvp-screen__title {
+  margin: 0 0 4px;
+  font-size: 18px;
+}
+
+.mvp-screen__hint {
+  margin: 0;
+  color: var(--mvp-text-dim);
+}
+
+/* --- Command palette ----------------------------------------------------- */
+.mvp-palette-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 12vh;
+  z-index: 100;
+}
+
+.mvp-palette {
+  width: min(560px, 92vw);
+  background: var(--mvp-surface);
+  border: 1px solid var(--mvp-border);
+  border-radius: var(--mvp-radius);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+}
+
+.mvp-palette__input {
+  width: 100%;
+  padding: 12px 14px;
+  border: 0;
+  border-bottom: 1px solid var(--mvp-border);
+  background: transparent;
+  color: var(--mvp-text);
+  font: inherit;
+  outline: none;
+}
+
+.mvp-palette__list {
+  list-style: none;
+  margin: 0;
+  padding: 4px;
+  max-height: 50vh;
+  overflow: auto;
+}
+
+.mvp-palette__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: var(--mvp-radius);
+  cursor: pointer;
+  color: var(--mvp-text);
+}
+
+.mvp-palette__item--active {
+  background: var(--mvp-surface-2);
+}
+
+.mvp-palette__kbd {
+  font-family: var(--mvp-font-mono);
+  font-size: 12px;
+  color: var(--mvp-text-dim);
+  border: 1px solid var(--mvp-border);
+  border-radius: 4px;
+  padding: 1px 5px;
+}
+
+.mvp-palette__empty {
+  padding: 12px 10px;
+  color: var(--mvp-text-dim);
+  list-style: none;
+}
+
+/* --- Toasts + modal ------------------------------------------------------ */
+.mvp-toasts {
+  position: fixed;
+  right: var(--mvp-gap);
+  bottom: var(--mvp-gap);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 90;
+  max-width: min(360px, 92vw);
+}
+
+.mvp-toast {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: var(--mvp-radius);
+  border: 1px solid var(--mvp-border);
+  background: var(--mvp-surface);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+.mvp-toast__msg {
+  flex: 1 1 auto;
+}
+
+.mvp-toast--info {
+  border-left: 3px solid var(--mvp-accent);
+}
+
+.mvp-toast--warn {
+  border-left: 3px solid var(--mvp-warn);
+}
+
+.mvp-toast--error {
+  border-left: 3px solid var(--mvp-error);
+}
+
+.mvp-toast__close {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--mvp-text-dim);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.mvp-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 110;
+}
+
+.mvp-modal {
+  width: min(440px, 92vw);
+  background: var(--mvp-surface);
+  border: 1px solid var(--mvp-border);
+  border-radius: var(--mvp-radius);
+  padding: 18px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.45);
+}
+
+.mvp-modal__title {
+  margin: 0 0 8px;
+  font-size: 17px;
+}
+
+.mvp-modal__body {
+  margin: 0 0 12px;
+  color: var(--mvp-text);
+}
+
+.mvp-modal__warn {
+  margin: 0 0 12px;
+  color: var(--mvp-warn);
+  font-weight: 600;
+}
+
+.mvp-modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.mvp-btn {
+  appearance: none;
+  border: 1px solid var(--mvp-border);
+  background: var(--mvp-surface-2);
+  color: var(--mvp-text);
+  border-radius: var(--mvp-radius);
+  padding: 8px 14px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.mvp-btn--primary {
+  background: var(--mvp-accent);
+  border-color: var(--mvp-accent);
+  color: #04121d;
+  font-weight: 600;
+}
+
+.mvp-btn--danger {
+  background: var(--mvp-error);
+  border-color: var(--mvp-error);
+  color: #fff;
+}

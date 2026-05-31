@@ -1,48 +1,37 @@
-import { createSignal, For, type Component } from 'solid-js';
+import { type Component } from 'solid-js';
+import type { Capabilities } from './core/capabilities';
+import { detectRealCapabilities } from './core/capabilities';
+import { createAppStore } from './core/store';
 import { t } from './core/i18n';
-import { APP_VERSION } from './version';
+import { createStorage } from './data/storage';
+import { Shell, createUiRegistry, type ShellContextValue } from './ui/shell';
+import './ui/shell/shell.css';
+
+/** Optional injection points (used by tests; real singletons by default). */
+export interface AppProps {
+  /** Override capability detection (defaults to {@link detectRealCapabilities}). */
+  capabilities?: Capabilities;
+}
 
 /**
- * M0 placeholder shell. Demonstrates the build, theming, i18n, and routing
- * surface. The real dockable shell (top bar, command palette, dock manager,
- * alert center) is built in T0.7; the six screens are filled per-milestone.
+ * Application root (T0.7). Constructs the singleton {@link Store} (persisting
+ * settings/layout to IndexedDB via `data/storage`), the shell {@link UiRegistry}
+ * and the capability record, bundles them into the {@link ShellContextValue} and
+ * renders the {@link Shell}. The shell itself wires settings → theme/locale and
+ * registers the six screens (see `ui/shell`).
  */
-type ScreenId = 'flight' | 'plan' | 'setup' | 'config' | 'logs' | 'sim';
-const SCREENS: ScreenId[] = ['flight', 'plan', 'setup', 'config', 'logs', 'sim'];
+export const App: Component<AppProps> = (props) => {
+  const storage = createStorage();
+  const store = createAppStore(undefined, storage.kv);
+  const registry = createUiRegistry();
+  const capabilities = props.capabilities ?? detectRealCapabilities();
 
-export const App: Component = () => {
-  const [screen, setScreen] = createSignal<ScreenId>('flight');
+  const ctx: ShellContextValue = {
+    store,
+    registry,
+    capabilities,
+    panelApi: { store, t },
+  };
 
-  return (
-    <div class="mvp-shell">
-      <header class="mvp-topbar">
-        <span class="mvp-brand">{t('app.name')}</span>
-        <nav class="mvp-nav">
-          <For each={SCREENS}>
-            {(id) => (
-              <button
-                type="button"
-                class="mvp-nav-item"
-                aria-current={screen() === id ? 'page' : undefined}
-                onClick={() => setScreen(id)}
-              >
-                {t(`nav.${id}`)}
-              </button>
-            )}
-          </For>
-        </nav>
-        <span class="mvp-conn" title={t('conn.disconnected')}>
-          ● {t('conn.disconnected')}
-        </span>
-      </header>
-
-      <main class="mvp-main">
-        <p class="mvp-placeholder">{t('screen.placeholder', { screen: t(`nav.${screen()}`) })}</p>
-      </main>
-
-      <footer class="mvp-footer">
-        {t('app.tagline')} · v{APP_VERSION}
-      </footer>
-    </div>
-  );
+  return <Shell ctx={ctx} />;
 };
