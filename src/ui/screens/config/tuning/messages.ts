@@ -26,6 +26,8 @@ export const TUNING_MESSAGES: Readonly<Record<string, string>> = {
   'tuning.group.angle': 'Angle controllers',
   'tuning.group.position': 'Position / velocity controllers',
   'tuning.group.controllers': 'Steering & speed controllers',
+  'tuning.group.vtolRate': 'VTOL rate controllers',
+  'tuning.group.vtolAngle': 'VTOL angle controllers',
 
   // Table column headers.
   'tuning.col.param': 'Parameter',

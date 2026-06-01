@@ -76,10 +76,26 @@ describe('motor-test mapping', () => {
       ['copter', 4],
       ['sub', 6],
       ['rover', 1],
-      ['plane', 1],
+      // A plane reaching the motor-test step is a QuadPlane (VTOL lift motors).
+      ['plane', 4],
     ];
     for (const [cls, expected] of cases) {
       expect(defaultMotorCount(cls)).toBe(expected);
     }
+  });
+
+  it('derives the count from a (Q_)FRAME_CLASS geometry when known', () => {
+    expect(defaultMotorCount('plane', 1)).toBe(4); // QuadPlane Quad
+    expect(defaultMotorCount('plane', 2)).toBe(6); // Hexa
+    expect(defaultMotorCount('plane', 3)).toBe(8); // Octa
+    expect(defaultMotorCount('plane', 4)).toBe(8); // OctaQuad
+    expect(defaultMotorCount('plane', 5)).toBe(6); // Y6
+    expect(defaultMotorCount('plane', 7)).toBe(3); // Tri
+    expect(defaultMotorCount('copter', 2)).toBe(6); // Hexa copter
+    expect(defaultMotorCount('plane', 12)).toBe(12); // DodecaHexa
+    expect(defaultMotorCount('plane', 14)).toBe(10); // Deca
+    // Unmapped/undefined frame classes fall back to the per-class default.
+    expect(defaultMotorCount('plane', 0)).toBe(4);
+    expect(defaultMotorCount('rover', 0)).toBe(1);
   });
 });

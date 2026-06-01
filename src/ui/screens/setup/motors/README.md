@@ -44,8 +44,11 @@ Defaults are deliberately **low/short**: `5%` throttle, `2s` timeout.
 - **Emergency stop** sends `motorTestStopParams(instance)` (throttle `0`, timeout
   `0`) for every motor — no confirmation, always available.
 
-`count` is seeded from `defaultMotorCount(vehicleClass)` (copter `4`, sub `6`,
-else `1`) and is user-adjustable within `[1, 12]`.
+`count` is seeded from `defaultMotorCount(vehicleClass, frameClass?)`: when a
+`(Q_)FRAME_CLASS` is known the count is derived from the geometry (Quad `4`,
+Hexa `6`, Octa/OctaQuad `8`, Y6 `6`, Tri `3`, …); otherwise copter `4`, sub `6`,
+plane `4` (a QuadPlane — a pure fixed-wing user adjusts to `1`), else `1`. It is
+user-adjustable within `[1, 12]`.
 
 ## Safety gating (the point of this step)
 

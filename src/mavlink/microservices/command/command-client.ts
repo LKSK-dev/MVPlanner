@@ -53,6 +53,30 @@ export interface ActiveVehicle {
   readonly sysid: number;
   readonly compid: number;
   readonly vehicleClass: VehicleClass;
+  /**
+   * Raw `MAV_TYPE`, when known. Used to distinguish a QuadPlane / VTOL plane
+   * (the `MAV_TYPE_VTOL_*` types 19..25, which all classify as `plane`) from a
+   * pure fixed-wing so {@link CommandClient.land} can command a vertical QLAND
+   * landing rather than a fixed-wing runway/belly `MAV_CMD_NAV_LAND`. Optional
+   * so callers that only have a class still satisfy this seam; a `VehicleState`
+   * (which carries `mavType`) fits without change.
+   */
+  readonly mavType?: number;
+}
+
+/** First `MAV_TYPE_VTOL_*` value (`MAV_TYPE_VTOL_DUOROTOR`); see mode-maps. */
+const MAV_TYPE_VTOL_MIN = 19;
+/** Last `MAV_TYPE_VTOL_*` value (`MAV_TYPE_VTOL_RESERVED5`); see mode-maps. */
+const MAV_TYPE_VTOL_MAX = 25;
+
+/**
+ * Whether `mavType` is a VTOL airframe (`MAV_TYPE_VTOL_*`, 19..25). ArduPlane
+ * reports one of these when QuadPlane support is enabled (`Q_ENABLE = 1`), so
+ * this is our best-effort "is QuadPlane" signal in this microservice, which has
+ * no parameter access to read `Q_ENABLE` directly.
+ */
+function isVtolMavType(mavType: number | undefined): boolean {
+  return mavType !== undefined && mavType >= MAV_TYPE_VTOL_MIN && mavType <= MAV_TYPE_VTOL_MAX;
 }
 
 /** Returns the currently-active vehicle, or `undefined` when none is selected. */
@@ -273,13 +297,21 @@ export class CommandClient implements CommandClientApi {
   }
 
   /**
-   * Land: copters/subs use their `LAND`/`SURFACE`-style `LAND` mode; other
-   * classes issue `MAV_CMD_NAV_LAND` (land in place, lat/lon/alt = 0).
+   * Land: copters use their `LAND` flight mode. A QuadPlane / VTOL plane uses the
+   * `QLAND` flight mode (a vertical landing); we detect it from the reported
+   * `MAV_TYPE` (the `MAV_TYPE_VTOL_*` types 19..25), since this microservice has
+   * no parameter access to read `Q_ENABLE`. A pure fixed-wing (and every other
+   * class) issues `MAV_CMD_NAV_LAND` (land in place, lat/lon/alt = 0) — a
+   * fixed-wing runway/belly landing.
    */
   async land(): Promise<void> {
     const vehicle = this.requireVehicle(CMD_NAV_LAND);
     if (vehicle.vehicleClass === 'copter') {
       await this.setMode('LAND');
+      return;
+    }
+    if (vehicle.vehicleClass === 'plane' && isVtolMavType(vehicle.mavType)) {
+      await this.setMode('QLAND');
       return;
     }
     await this.send(CMD_NAV_LAND, [0, 0, 0, 0, 0, 0, 0]);

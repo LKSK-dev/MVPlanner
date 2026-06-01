@@ -132,18 +132,47 @@ export function motorTestStopParams(instance: number): number[] {
 }
 
 /**
- * A sensible default motor count for a vehicle class, used to seed the count
- * input. The user can adjust within `[1, MAX_MOTOR_COUNT]`; this is only a hint.
+ * Lift-motor count for an ArduPilot `FRAME_CLASS` / QuadPlane `Q_FRAME_CLASS`
+ * geometry. Only the geometries with an unambiguous motor count are listed;
+ * anything else (e.g. `Undefined`, `Tailsitter`) is left to the per-class
+ * default. Source: ArduCopter `FRAME_CLASS` / ArduPlane `Q_FRAME_CLASS`.
  */
-export function defaultMotorCount(vehicleClass: VehicleClass): number {
+const FRAME_CLASS_MOTOR_COUNT: Readonly<Record<number, number>> = {
+  1: 4, // Quad
+  2: 6, // Hexa
+  3: 8, // Octa
+  4: 8, // OctaQuad
+  5: 6, // Y6
+  7: 3, // Tri
+  12: 12, // DodecaHexa
+  14: 10, // Deca
+};
+
+/**
+ * A sensible default motor count for a vehicle, used to seed the count input.
+ * The user can adjust within `[1, MAX_MOTOR_COUNT]`; this is only a hint.
+ *
+ * When a `frameClass` (ArduCopter `FRAME_CLASS` / ArduPlane `Q_FRAME_CLASS`) is
+ * known it is preferred and the count is derived from the geometry. Otherwise a
+ * per-class heuristic applies: copter `4`, sub `6`, and — since a `plane` that
+ * reaches the motor-test step almost always has VTOL lift motors (`Q_ENABLE`
+ * on) — a QuadPlane seeds the common quad layout (`4`); a pure fixed-wing user
+ * adjusts down to `1`. All other classes seed `1`.
+ */
+export function defaultMotorCount(vehicleClass: VehicleClass, frameClass?: number): number {
+  if (frameClass !== undefined) {
+    const derived = FRAME_CLASS_MOTOR_COUNT[frameClass];
+    if (derived !== undefined) return derived;
+  }
   switch (vehicleClass) {
     case 'copter':
       return 4;
     case 'sub':
       return 6;
+    case 'plane':
+      return 4;
     case 'rover':
     case 'boat':
-    case 'plane':
     case 'tracker':
     case 'unknown':
       return 1;

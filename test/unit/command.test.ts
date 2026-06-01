@@ -111,20 +111,21 @@ const UNSUPPORTED = 3;
 const FAILED = 4;
 const IN_PROGRESS = 5;
 
-function vehicle(cls: VehicleClass, sysid = 1, compid = 1): ActiveVehicle {
-  return { sysid, compid, vehicleClass: cls };
+function vehicle(cls: VehicleClass, sysid = 1, compid = 1, mavType?: number): ActiveVehicle {
+  return { sysid, compid, vehicleClass: cls, ...(mavType !== undefined ? { mavType } : {}) };
 }
 
 function setup(
   cls: VehicleClass = 'copter',
   extra: Partial<ConstructorParameters<typeof CommandClient>[0]> = {},
+  mavType?: number,
 ) {
   const host = new MockHost();
   const clock = new FakeClock();
   const client = createCommandClient({
     sendMessage: host.sendMessage,
     onMessage: host.onMessage,
-    getActiveVehicle: () => vehicle(cls),
+    getActiveVehicle: () => vehicle(cls, 1, 1, mavType),
     clock,
     maxAttempts: 3,
     resendMs: 1000,
@@ -350,11 +351,21 @@ describe('CommandClient — guided / ROI / mission helpers', () => {
     await pr;
   });
 
-  it('land uses NAV_LAND (21) for non-copters', async () => {
-    const { host, client } = setup('plane');
+  it('land uses NAV_LAND (21) for a pure fixed-wing plane (no VTOL MAV_TYPE)', async () => {
+    const { host, client } = setup('plane'); // MAV_TYPE_FIXED_WING / unknown
     const pr = client.land();
     expect(host.sent[0]?.fields).toMatchObject({ command: 21 });
     host.emitAck(21, ACCEPTED);
+    await pr;
+  });
+
+  it('land uses QLAND mode for a QuadPlane (VTOL MAV_TYPE 20)', async () => {
+    // MAV_TYPE_VTOL_QUADROTOR (20) classifies as `plane` but is a QuadPlane;
+    // land() must command a vertical QLAND (plane custom_mode 20), not NAV_LAND.
+    const { host, client } = setup('plane', {}, 20);
+    const pr = client.land();
+    expect(host.sent[0]?.fields).toMatchObject({ command: 176, param1: 1, param2: 20 });
+    host.emitAck(176, ACCEPTED);
     await pr;
   });
 

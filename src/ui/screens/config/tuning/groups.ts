@@ -56,7 +56,14 @@ const COPTER_GROUPS: readonly TuningGroup[] = [
   },
 ];
 
-/** ArduPlane fixed-wing rate-controller groups (4.1+ `*_RATE_*` controllers). */
+/**
+ * ArduPlane groups: the fixed-wing `*_RATE_*` controllers (4.1+) plus the
+ * QuadPlane VTOL attitude/rate controllers. ArduPlane runs the multirotor
+ * `AC_AttitudeControl` for VTOL flight under the `Q_A_*` prefix — the same
+ * controller Copter exposes as `ATC_*` (source: ArduPlane `quadplane.cpp` /
+ * `Parameters.cpp`, `Q_A_RAT_*` / `Q_A_ANG_*`). These are only present when
+ * `Q_ENABLE = 1`; on a pure fixed-wing the grid simply shows nothing for them.
+ */
 const PLANE_GROUPS: readonly TuningGroup[] = [
   {
     id: 'rate',
@@ -74,6 +81,24 @@ const PLANE_GROUPS: readonly TuningGroup[] = [
       'YAW_RATE_D',
       'YAW_RATE_FF',
     ],
+  },
+  {
+    id: 'vtolRate',
+    params: [
+      'Q_A_RAT_RLL_P',
+      'Q_A_RAT_RLL_I',
+      'Q_A_RAT_RLL_D',
+      'Q_A_RAT_PIT_P',
+      'Q_A_RAT_PIT_I',
+      'Q_A_RAT_PIT_D',
+      'Q_A_RAT_YAW_P',
+      'Q_A_RAT_YAW_I',
+      'Q_A_RAT_YAW_D',
+    ],
+  },
+  {
+    id: 'vtolAngle',
+    params: ['Q_A_ANG_RLL_P', 'Q_A_ANG_PIT_P', 'Q_A_ANG_YAW_P'],
   },
 ];
 

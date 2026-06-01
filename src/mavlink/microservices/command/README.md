@@ -30,8 +30,10 @@ dispose()                 -> void   // extra: unsubscribe + reject in-flight
   (bound by the caller to the worker host's `sendMessage` / `onMessage`) so the
   client never imports the worker and is fully unit-testable. `onMessage` is
   subscribed once to `['COMMAND_ACK']` for the client's lifetime.
-- `getActiveVehicle()` returns `{ sysid, compid, vehicleClass }` (a
-  `VehicleState` satisfies it). `send`/helpers reject with a typed
+- `getActiveVehicle()` returns `{ sysid, compid, vehicleClass, mavType? }` (a
+  `VehicleState` satisfies it). `mavType` lets `land()` detect a QuadPlane / VTOL
+  plane (`MAV_TYPE_VTOL_*`, 19..25) and command `QLAND` instead of a fixed-wing
+  `MAV_CMD_NAV_LAND`. `send`/helpers reject with a typed
   `CommandError('no-vehicle')` when there is no active vehicle.
 - `clock.setTimeout(handler, ms) -> cancel` abstracts timers so retries/timeouts
   are driven by a deterministic fake clock in tests; the default uses the host

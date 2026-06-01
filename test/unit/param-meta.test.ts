@@ -117,6 +117,16 @@ describe('curated fallback', () => {
     expect(store.get('SERIAL1_PROTOCOL')?.values?.[-1]).toBe('None');
   });
 
+  it('resolves QuadPlane Q_* frame metadata with friendly labels', () => {
+    expect(store.get('Q_ENABLE')?.values?.[1]).toBe('Enabled');
+    expect(store.get('Q_ENABLE')?.rebootRequired).toBe(true);
+    expect(store.get('Q_FRAME_CLASS')?.values?.[1]).toBe('Quad');
+    expect(store.get('Q_FRAME_CLASS')?.values?.[4]).toBe('OctaQuad');
+    expect(store.get('Q_FRAME_CLASS')?.values?.[10]).toBe('Tailsitter');
+    expect(store.get('Q_FRAME_CLASS')?.rebootRequired).toBe(true);
+    expect(store.get('Q_FRAME_TYPE')?.values?.[1]).toBe('X');
+  });
+
   it('exposes a compact curated table (~30-50 params)', () => {
     const n = Object.keys(CURATED_PARAM_META).length;
     expect(n).toBeGreaterThanOrEqual(30);

@@ -313,6 +313,44 @@ export const CURATED_PARAM_META: Readonly<Record<string, ParamMeta>> = {
     },
   },
 
+  // --- QuadPlane / VTOL frame configuration (ArduPlane Q_*) ---
+  Q_ENABLE: {
+    description: 'Enable QuadPlane (VTOL) functionality on a plane',
+    rebootRequired: true,
+    values: { 0: 'Disabled', 1: 'Enabled' },
+  },
+  Q_FRAME_CLASS: {
+    // Source: ArduPlane Q_FRAME_CLASS @Values (quadplane motors frame class).
+    description: 'Controls major frame class for QuadPlane (VTOL) motors',
+    rebootRequired: true,
+    values: {
+      0: 'Undefined',
+      1: 'Quad',
+      2: 'Hexa',
+      3: 'Octa',
+      4: 'OctaQuad',
+      5: 'Y6',
+      7: 'Tri',
+      10: 'Tailsitter',
+      12: 'DodecaHexa',
+      14: 'Deca',
+    },
+  },
+  Q_FRAME_TYPE: {
+    // Reuses the multicopter FRAME_TYPE geometry labels for QuadPlane motors.
+    description: 'Controls motor mixing geometry for QuadPlane (VTOL) motors',
+    values: {
+      0: 'Plus',
+      1: 'X',
+      2: 'V',
+      3: 'H',
+      4: 'V-Tail',
+      5: 'A-Tail',
+      10: 'Y6B',
+      12: 'BetaFlightX',
+    },
+  },
+
   // --- Serial ports ---
   SERIAL1_PROTOCOL: {
     description: 'Protocol used on the Telem1 serial port',
