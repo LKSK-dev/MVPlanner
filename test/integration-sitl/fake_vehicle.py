@@ -45,6 +45,17 @@ Behaviour:
       - MISSION_REQUEST_INT(seq, type) (and legacy MISSION_REQUEST) -> reply the
         stored MISSION_ITEM_INT(seq, type).
       - MISSION_CLEAR_ALL(type) -> clear that list; reply MISSION_ACK ACCEPTED.
+  * Answers the CALIBRATION microservice (M5 gate): the generic COMMAND_ACK
+    path already ACCEPTs MAV_CMD_PREFLIGHT_CALIBRATION (241), covering gyro
+    (p1=1) and level (p5=2). For onboard compass calibration it additionally
+    streams a result:
+      - MAV_CMD_DO_START_MAG_CAL(42424) -> COMMAND_ACK ACCEPTED, then a few
+        MAG_CAL_PROGRESS (msg 191) with increasing completion_pct (25/50/75)
+        and finally MAG_CAL_REPORT (msg 192) with cal_status=MAG_CAL_SUCCESS,
+        a good fitness, and known ofs_x/ofs_y/ofs_z offsets (compass_id=0).
+      - MAV_CMD_DO_CANCEL_MAG_CAL(42426) -> COMMAND_ACK ACCEPTED + stop stream.
+    Streaming is driven by a non-blocking scheduler in the main loop so it never
+    stalls telemetry or the other microservice handshakes.
 """
 import argparse
 import os
@@ -184,6 +195,26 @@ def main() -> int:
 
     accepted = mavutil.mavlink.MAV_RESULT_ACCEPTED
 
+    # --- CALIBRATION microservice state (M5 gate) ---------------------------
+    # The generic COMMAND_ACK handler below already ACCEPTS every COMMAND_LONG/
+    # INT, so MAV_CMD_PREFLIGHT_CALIBRATION (241; gyro p1=1 / level p5=2) is
+    # acknowledged for free. The onboard compass flow additionally needs the
+    # vehicle to STREAM progress then a result, so MAV_CMD_DO_START_MAG_CAL
+    # (42424) arms a small NON-BLOCKING scheduler that emits a few
+    # MAG_CAL_PROGRESS (msg 191) with increasing completion_pct and finally a
+    # MAG_CAL_REPORT (msg 192, cal_status=MAG_CAL_SUCCESS) carrying known
+    # offsets; MAV_CMD_DO_CANCEL_MAG_CAL (42426) stops the stream.
+    CMD_START_MAG_CAL = mavutil.mavlink.MAV_CMD_DO_START_MAG_CAL  # 42424
+    CMD_CANCEL_MAG_CAL = mavutil.mavlink.MAV_CMD_DO_CANCEL_MAG_CAL  # 42426
+    MAG_CAL_RUNNING = mavutil.mavlink.MAG_CAL_RUNNING_STEP_TWO  # 3
+    MAG_CAL_SUCCESS = mavutil.mavlink.MAG_CAL_SUCCESS  # 4
+    # Known compass offsets the GCS-side CalibrationClient must read back from
+    # MAG_CAL_REPORT.ofs_x/y/z (float32-exact integers avoid quantisation).
+    MAG_OFS_X, MAG_OFS_Y, MAG_OFS_Z = 12.0, -7.0, 23.0
+    MAG_FITNESS = 4.5
+    MAG_PCTS = (25, 50, 75)
+    mag_cal = None  # active compass-cal stream state, or None
+
     boot = time.time()
     last_telemetry = 0.0
     while True:
@@ -199,6 +230,12 @@ def main() -> int:
                 mtype = msg.get_type()
                 if mtype in ("COMMAND_LONG", "COMMAND_INT"):
                     mav.command_ack_send(msg.command, accepted)
+                    if msg.command == CMD_START_MAG_CAL:
+                        # Arm the compass-cal stream (progress -> success report).
+                        mag_cal = {"i": 0, "next_at": time.time() + 0.2, "report_sent": False}
+                    elif msg.command == CMD_CANCEL_MAG_CAL:
+                        # Stop streaming; the ACCEPTED ACK above already replied.
+                        mag_cal = None
                 elif mtype == "PARAM_REQUEST_LIST":
                     # Stream the whole set, dropping ONE index on the first burst
                     # only to force the client's missing-index PARAM_REQUEST_READ.
@@ -308,6 +345,39 @@ def main() -> int:
             pass
 
         now = time.time()
+        # Drive the onboard compass-cal stream (non-blocking): a few
+        # MAG_CAL_PROGRESS messages with rising completion_pct, then a final
+        # MAG_CAL_REPORT(MAG_CAL_SUCCESS) carrying the known offsets.
+        if mag_cal is not None and now >= mag_cal["next_at"]:
+            try:
+                if mag_cal["i"] < len(MAG_PCTS):
+                    pct = MAG_PCTS[mag_cal["i"]]
+                    mav.mag_cal_progress_send(
+                        0, 1, MAG_CAL_RUNNING, 1, pct, [0] * 10, 0.0, 0.0, 0.0
+                    )
+                    mag_cal["i"] += 1
+                    mag_cal["next_at"] = now + 0.2
+                elif not mag_cal["report_sent"]:
+                    mav.mag_cal_report_send(
+                        0,
+                        1,
+                        MAG_CAL_SUCCESS,
+                        1,
+                        MAG_FITNESS,
+                        MAG_OFS_X,
+                        MAG_OFS_Y,
+                        MAG_OFS_Z,
+                        1.0,
+                        1.0,
+                        1.0,
+                        0.0,
+                        0.0,
+                        0.0,
+                    )
+                    mag_cal = None
+            except Exception:
+                pass
+
         # Stream telemetry at ~4 Hz, but service inbound far more often (the
         # short sleep below) so the multi-step MISSION handshake completes
         # briskly rather than at one round-trip per telemetry tick.
