@@ -157,6 +157,7 @@ function makeServices(mission: MissionSpy): FlightServices {
   });
   return {
     command: {} as FlightServices['command'],
+    calibration: {} as FlightServices['calibration'],
     mission: mission.client,
     param: stubParamClient(),
     paramMeta: createParamMetaStore(),

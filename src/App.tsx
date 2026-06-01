@@ -17,6 +17,7 @@ import {
 } from './ui/screens/flight';
 import { createConfigScreenPanel } from './ui/screens/config';
 import { createPlanScreenPanel } from './ui/screens/plan';
+import { createSetupScreenPanel } from './ui/screens/setup';
 import './ui/shell/shell.css';
 import './ui/shell/connection/connection.css';
 import './ui/widgets/inspector/inspector.css';
@@ -94,10 +95,26 @@ export const App: Component<AppProps> = (props) => {
       'plan',
       createPlanScreenPanel({ services: flight.services, t }),
     );
+    // M5 keystone: install the real Setup screen (frame/accel/compass/radio/
+    // modes/failsafe/battery/motors wizard) over its placeholder, sharing the
+    // app-scoped CalibrationClient / ParamClient / CommandClient + the shell
+    // `confirm` seam (motor-test gating) from the same services.
+    const disposeSetupPanel = setScreenPanel(
+      'setup',
+      createSetupScreenPanel({
+        calibration: flight.services.calibration,
+        param: flight.services.param,
+        command: flight.services.command,
+        store,
+        registry,
+        t,
+      }),
+    );
     onCleanup(() => {
       disposeFlightPanel();
       disposeConfigPanel();
       disposePlanPanel();
+      disposeSetupPanel();
       void flight.dispose();
     });
   }

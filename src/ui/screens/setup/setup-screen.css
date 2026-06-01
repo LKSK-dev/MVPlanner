@@ -1,0 +1,50 @@
+/**
+ * Setup screen assembly styles (task T5.12; spec plan/05 §5.4/§5.6). Just the
+ * thin parameter-fetch bar above the wizard; the wizard owns its own layout
+ * (framework/wizard-shell.css). Token-driven so it tracks every theme.
+ */
+
+.mvp-setup-screen {
+  display: flex;
+  flex-direction: column;
+  block-size: 100%;
+  min-block-size: 0;
+  color: var(--mvp-text);
+}
+
+.mvp-setup-screen__bar {
+  display: flex;
+  align-items: center;
+  gap: var(--mvp-gap);
+  padding: var(--mvp-gap);
+  border-block-end: 1px solid var(--mvp-border);
+}
+
+.mvp-setup-screen__fetch {
+  padding: 0.4rem 0.9rem;
+  border-radius: var(--mvp-radius);
+  border: 1px solid var(--mvp-accent);
+  background: var(--mvp-surface);
+  color: var(--mvp-accent);
+  cursor: pointer;
+}
+
+.mvp-setup-screen__fetch:focus-visible {
+  outline: 2px solid var(--mvp-accent);
+  outline-offset: 1px;
+}
+
+.mvp-setup-screen__fetch:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.mvp-setup-screen__status {
+  font-size: 0.82rem;
+  color: var(--mvp-text-dim);
+}
+
+.mvp-setup-screen__error {
+  font-size: 0.82rem;
+  color: var(--mvp-warn);
+}

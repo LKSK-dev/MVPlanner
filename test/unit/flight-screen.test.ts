@@ -13,6 +13,7 @@ import { t } from '../../src/core/i18n';
 import type {
   AppState,
   BlobStore,
+  CalibrationClient,
   CommandClient,
   FileIo,
   MissionClient,
@@ -88,6 +89,17 @@ function stubParamClient(): ParamClient {
     get: (): Param | undefined => undefined,
     set: (): Promise<void> => Promise.resolve(),
     onChange: (): (() => void) => () => undefined,
+  };
+}
+
+/** Inert CalibrationClient stub (Flight does not exercise calibration). */
+function stubCalibrationClient(): CalibrationClient {
+  return {
+    accel6Point: (): Promise<void> => Promise.resolve(),
+    level: (): Promise<void> => Promise.resolve(),
+    compass: (): Promise<{ offsets: number[] }> => Promise.resolve({ offsets: [] }),
+    gyro: (): Promise<void> => Promise.resolve(),
+    radio: (): Promise<void> => Promise.resolve(),
   };
 }
 
@@ -202,6 +214,7 @@ function makeHarness(): Harness {
   const [statusMessages, setStatus] = createSignal<readonly StatusMessage[]>([]);
   const services: FlightServices = {
     command: command.client,
+    calibration: stubCalibrationClient(),
     mission: stubMissionClient(),
     param: stubParamClient(),
     paramMeta: createParamMetaStore(),

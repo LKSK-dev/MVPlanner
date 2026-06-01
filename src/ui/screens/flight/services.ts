@@ -31,6 +31,7 @@ import { createSignal, type Accessor } from 'solid-js';
 import type {
   AppState,
   BlobStore,
+  CalibrationClient,
   CommandClient,
   DecodedMessage,
   FieldValue,
@@ -40,6 +41,7 @@ import type {
   Store,
   VehicleState,
 } from '../../../contracts';
+import { createCalibrationClient } from '../../../mavlink/microservices/calibration';
 import { createCommandClient } from '../../../mavlink/microservices/command';
 import { createMissionClient } from '../../../mavlink/microservices/mission';
 import { createParamClient } from '../../../mavlink/microservices/param';
@@ -98,6 +100,13 @@ export interface FlightHost {
 export interface FlightServices {
   /** Command microservice bound to the host + store active vehicle. */
   readonly command: CommandClient;
+  /**
+   * Calibration microservice (accel 6-point/level, onboard compass `MAG_CAL`,
+   * gyro, radio capture) bound to the host + store active vehicle. App/
+   * connection-scoped so a running calibration survives a Setup ⇄ Flight screen
+   * switch. Consumed by the Setup screen (T5.12).
+   */
+  readonly calibration: CalibrationClient;
   /**
    * Mission microservice (mission/fence/rally up/download + verify) bound to the
    * host + store active vehicle. App/connection-scoped so an in-flight transfer
@@ -255,6 +264,12 @@ export function createFlightServices(deps: FlightServicesDeps): FlightServicesHa
     getTarget: targetOf,
   });
 
+  const calibration = createCalibrationClient({
+    command,
+    onMessage: (names, cb) => host.onMessage(names, cb),
+    getTarget: targetOf,
+  });
+
   // Terrain: a storage-backed terrain tile cache + elevation provider, plus the
   // TERRAIN microservice that serves TERRAIN_DATA to the vehicle from it.
   const terrainTiles = createTileCache({ blobs: storage.blobs, fetch: platformFetch });
@@ -300,6 +315,7 @@ export function createFlightServices(deps: FlightServicesDeps): FlightServicesHa
 
   const services: FlightServices = {
     command,
+    calibration,
     mission,
     param,
     paramMeta,
@@ -316,6 +332,7 @@ export function createFlightServices(deps: FlightServicesDeps): FlightServicesHa
   const dispose = async (): Promise<void> => {
     offStatus();
     command.dispose();
+    calibration.dispose();
     mission.dispose();
     terrainService.dispose();
     param.dispose();
