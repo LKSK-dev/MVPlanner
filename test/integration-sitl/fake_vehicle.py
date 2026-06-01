@@ -30,6 +30,21 @@ Behaviour:
         single PARAM_VALUE (this is how the client recovers the dropped index).
       - PARAM_SET (param_id, param_value, param_type) -> update the in-memory
         value and ECHO PARAM_VALUE with the new value (set->confirm round-trip).
+  * Answers the MISSION microservice (M4 gate): implements the MAVLink
+    MISSION_* item-transfer protocol with SEPARATE stored item lists per
+    MAV_MISSION_TYPE (mission=0, fence=1, rally=2). Items are kept VERBATIM
+    (int lat/lon in x/y, frame, command, current, autocontinue, all four
+    params and z) so a download read-back is byte-faithful to what was
+    uploaded. It handles:
+      - MISSION_COUNT(count, type) -> begin receive; reply
+        MISSION_REQUEST_INT(seq=0, type) (or MISSION_ACK ACCEPTED if count==0).
+      - MISSION_ITEM_INT(seq, ..., type) -> store; reply
+        MISSION_REQUEST_INT(seq+1, type) until the set is complete, then commit
+        the list and reply MISSION_ACK(type, MAV_MISSION_ACCEPTED).
+      - MISSION_REQUEST_LIST(type) -> reply MISSION_COUNT(len, type).
+      - MISSION_REQUEST_INT(seq, type) (and legacy MISSION_REQUEST) -> reply the
+        stored MISSION_ITEM_INT(seq, type).
+      - MISSION_CLEAR_ALL(type) -> clear that list; reply MISSION_ACK ACCEPTED.
 """
 import argparse
 import os
@@ -129,6 +144,39 @@ def main() -> int:
             name.encode("ascii"), float(value), ptype, param_count, idx
         )
 
+    # --- MISSION microservice state (M4 gate) -------------------------------
+    # SEPARATE stored item lists per MAV_MISSION_TYPE, each a seq->fields dict;
+    # items are kept verbatim so a read-back is byte-faithful. `mission_rx`
+    # holds the in-progress GCS->vehicle upload (count + accumulated items).
+    MT_MISSION = PT.MAV_MISSION_TYPE_MISSION  # 0
+    MT_FENCE = PT.MAV_MISSION_TYPE_FENCE  # 1
+    MT_RALLY = PT.MAV_MISSION_TYPE_RALLY  # 2
+    mission_lists = {MT_MISSION: {}, MT_FENCE: {}, MT_RALLY: {}}
+    mission_rx = {MT_MISSION: None, MT_FENCE: None, MT_RALLY: None}
+    mission_accepted = PT.MAV_MISSION_ACCEPTED
+
+    def mission_type_of(m) -> int:
+        """Read the inbound message's mission_type (extension), defaulting to 0."""
+        mt = getattr(m, "mission_type", 0)
+        return 0 if mt is None else int(mt)
+
+    def store_item(m) -> dict:
+        """Capture a MISSION_ITEM_INT's fields verbatim for faithful read-back."""
+        return {
+            "seq": int(m.seq),
+            "frame": int(m.frame),
+            "command": int(m.command),
+            "current": int(m.current),
+            "autocontinue": int(m.autocontinue),
+            "param1": float(m.param1),
+            "param2": float(m.param2),
+            "param3": float(m.param3),
+            "param4": float(m.param4),
+            "x": int(m.x),
+            "y": int(m.y),
+            "z": float(m.z),
+        }
+
     lat_i = int(round(LAT_DEG * 1e7))
     lon_i = int(round(LON_DEG * 1e7))
     amsl_mm = int(round(AMSL_M * 1000))
@@ -137,6 +185,7 @@ def main() -> int:
     accepted = mavutil.mavlink.MAV_RESULT_ACCEPTED
 
     boot = time.time()
+    last_telemetry = 0.0
     while True:
         # Drive the lazy TCP accept and drain ALL pending inbound messages
         # (non-blocking). Each COMMAND_LONG / COMMAND_INT is acknowledged with a
@@ -175,27 +224,111 @@ def main() -> int:
                     if name in param_state:
                         param_state[name][0] = float(msg.param_value)
                         send_param_index(param_names.index(name))
+                elif mtype == "MISSION_COUNT":
+                    # GCS begins an upload of `count` items for this type.
+                    mt = mission_type_of(msg)
+                    sys_id = msg.get_srcSystem()
+                    comp_id = msg.get_srcComponent()
+                    count = int(msg.count)
+                    if count <= 0:
+                        mission_lists[mt] = {}
+                        mission_rx[mt] = None
+                        mav.mission_ack_send(
+                            sys_id, comp_id, mission_accepted, mission_type=mt
+                        )
+                    else:
+                        mission_rx[mt] = {"count": count, "items": {}}
+                        mav.mission_request_int_send(
+                            sys_id, comp_id, 0, mission_type=mt
+                        )
+                elif mtype == "MISSION_ITEM_INT":
+                    # An uploaded item: store it verbatim and pull the next one
+                    # (or commit the list + ACK when the set is complete).
+                    mt = mission_type_of(msg)
+                    sys_id = msg.get_srcSystem()
+                    comp_id = msg.get_srcComponent()
+                    rx = mission_rx.get(mt)
+                    if rx is not None:
+                        seq = int(msg.seq)
+                        rx["items"][seq] = store_item(msg)
+                        if seq + 1 < rx["count"]:
+                            mav.mission_request_int_send(
+                                sys_id, comp_id, seq + 1, mission_type=mt
+                            )
+                        else:
+                            mission_lists[mt] = dict(rx["items"])
+                            mission_rx[mt] = None
+                            mav.mission_ack_send(
+                                sys_id, comp_id, mission_accepted, mission_type=mt
+                            )
+                elif mtype == "MISSION_REQUEST_LIST":
+                    # GCS begins a download: reply with the stored item count.
+                    mt = mission_type_of(msg)
+                    sys_id = msg.get_srcSystem()
+                    comp_id = msg.get_srcComponent()
+                    items = mission_lists.get(mt, {})
+                    mav.mission_count_send(
+                        sys_id, comp_id, len(items), mission_type=mt
+                    )
+                elif mtype in ("MISSION_REQUEST_INT", "MISSION_REQUEST"):
+                    # GCS pulls a single stored item by seq (download).
+                    mt = mission_type_of(msg)
+                    sys_id = msg.get_srcSystem()
+                    comp_id = msg.get_srcComponent()
+                    it = mission_lists.get(mt, {}).get(int(msg.seq))
+                    if it is not None:
+                        mav.mission_item_int_send(
+                            sys_id,
+                            comp_id,
+                            it["seq"],
+                            it["frame"],
+                            it["command"],
+                            it["current"],
+                            it["autocontinue"],
+                            it["param1"],
+                            it["param2"],
+                            it["param3"],
+                            it["param4"],
+                            it["x"],
+                            it["y"],
+                            it["z"],
+                            mission_type=mt,
+                        )
+                elif mtype == "MISSION_CLEAR_ALL":
+                    # Wipe one type's list and ACK.
+                    mt = mission_type_of(msg)
+                    sys_id = msg.get_srcSystem()
+                    comp_id = msg.get_srcComponent()
+                    mission_lists[mt] = {}
+                    mission_rx[mt] = None
+                    mav.mission_ack_send(
+                        sys_id, comp_id, mission_accepted, mission_type=mt
+                    )
         except Exception:
             pass
 
         now = time.time()
-        t_ms = int((now - boot) * 1000) & 0xFFFFFFFF
-        t_us = int(now * 1e6)
+        # Stream telemetry at ~4 Hz, but service inbound far more often (the
+        # short sleep below) so the multi-step MISSION handshake completes
+        # briskly rather than at one round-trip per telemetry tick.
+        if now - last_telemetry >= 0.25:
+            last_telemetry = now
+            t_ms = int((now - boot) * 1000) & 0xFFFFFFFF
+            t_us = int(now * 1e6)
+            try:
+                mav.heartbeat_send(QUAD, ARDU, base_mode, custom_mode, state_active)
+                mav.attitude_send(t_ms, 0.01, -0.02, 1.57, 0.0, 0.0, 0.0)
+                # GPS_RAW_INT: 3D fix, eph/epv in cm, ~12 sats.
+                mav.gps_raw_int_send(t_us, 3, lat_i, lon_i, amsl_mm, 121, 169, 0, 0, 12)
+                # GLOBAL_POSITION_INT: known lat/lon, AMSL + relative alt, zero vel.
+                mav.global_position_int_send(
+                    t_ms, lat_i, lon_i, amsl_mm, rel_mm, 0, 0, 0, 0
+                )
+            except Exception:
+                # Client not connected / transient socket error: keep looping.
+                pass
 
-        try:
-            mav.heartbeat_send(QUAD, ARDU, base_mode, custom_mode, state_active)
-            mav.attitude_send(t_ms, 0.01, -0.02, 1.57, 0.0, 0.0, 0.0)
-            # GPS_RAW_INT: 3D fix, eph/epv in cm, ~12 sats.
-            mav.gps_raw_int_send(t_us, 3, lat_i, lon_i, amsl_mm, 121, 169, 0, 0, 12)
-            # GLOBAL_POSITION_INT: known lat/lon, AMSL + relative alt, zero vel.
-            mav.global_position_int_send(
-                t_ms, lat_i, lon_i, amsl_mm, rel_mm, 0, 0, 0, 0
-            )
-        except Exception:
-            # Client not connected / transient socket error: keep looping.
-            pass
-
-        time.sleep(0.25)
+        time.sleep(0.02)
 
 
 if __name__ == "__main__":
