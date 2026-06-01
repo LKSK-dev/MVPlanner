@@ -16,6 +16,7 @@ import {
   type FlightHost,
 } from './ui/screens/flight';
 import { createConfigScreenPanel } from './ui/screens/config';
+import { createPlanScreenPanel } from './ui/screens/plan';
 import './ui/shell/shell.css';
 import './ui/shell/connection/connection.css';
 import './ui/widgets/inspector/inspector.css';
@@ -85,9 +86,18 @@ export const App: Component<AppProps> = (props) => {
         t,
       }),
     );
+    // M4 keystone: install the real Plan screen (map + waypoint table + tool
+    // rail + fence/rally/survey drawer + terrain profile + upload/download)
+    // over its placeholder, sharing the app-scoped MissionClient / ParamClient /
+    // terrain provider + file I/O from the same services.
+    const disposePlanPanel = setScreenPanel(
+      'plan',
+      createPlanScreenPanel({ services: flight.services, t }),
+    );
     onCleanup(() => {
       disposeFlightPanel();
       disposeConfigPanel();
+      disposePlanPanel();
       void flight.dispose();
     });
   }

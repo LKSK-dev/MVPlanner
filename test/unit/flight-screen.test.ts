@@ -15,11 +15,13 @@ import type {
   BlobStore,
   CommandClient,
   FileIo,
+  MissionClient,
   Param,
   ParamClient,
   Store,
   VehicleState,
 } from '../../src/contracts';
+import type { ElevationProvider } from '../../src/geo/terrain';
 import { createParamMetaStore } from '../../src/mavlink/param-meta';
 import type { Preset, PresetStore } from '../../src/data/paramfile';
 import type { Capabilities } from '../../src/core/capabilities';
@@ -86,6 +88,28 @@ function stubParamClient(): ParamClient {
     get: (): Param | undefined => undefined,
     set: (): Promise<void> => Promise.resolve(),
     onChange: (): (() => void) => () => undefined,
+  };
+}
+
+/** Inert MissionClient stub (the Plan screen exercises a richer one). */
+function stubMissionClient(): MissionClient {
+  return {
+    download: () => Promise.resolve({ type: 'mission', items: [] }),
+    upload: () => Promise.resolve(),
+    clear: () => Promise.resolve(),
+    setCurrent: () => Promise.resolve(),
+    onCurrent: () => () => undefined,
+    onReached: () => () => undefined,
+  };
+}
+
+/** Inert ElevationProvider stub (no terrain sampling in Flight tests). */
+function stubElevationProvider(): ElevationProvider {
+  return {
+    sampleElevation: () => Promise.resolve(undefined),
+    pathProfile: () => Promise.resolve([]),
+    source: { id: 'stub', kind: 'xyz', url: '' },
+    zoom: 12,
   };
 }
 
@@ -178,6 +202,7 @@ function makeHarness(): Harness {
   const [statusMessages, setStatus] = createSignal<readonly StatusMessage[]>([]);
   const services: FlightServices = {
     command: command.client,
+    mission: stubMissionClient(),
     param: stubParamClient(),
     paramMeta: createParamMetaStore(),
     presetStore: stubPresetStore(),
@@ -185,6 +210,8 @@ function makeHarness(): Harness {
     recorder,
     statusMessages,
     blobs: fakeBlobs(),
+    files: fakeFiles(saved),
+    terrainProvider: stubElevationProvider(),
     quickWatchSource: emptyWatchSource(),
   };
   return {

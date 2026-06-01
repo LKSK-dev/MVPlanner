@@ -1,0 +1,182 @@
+/**
+ * Flight Plan screen layout (task T4.10; spec plan/05 §5.4 Plan). Map-dominant
+ * grid: a top transfer toolbar, a body row of [tool rail | map | side
+ * (table + editor drawer)] and a bottom terrain profile. Themed via the design
+ * tokens; the composed widgets bring their own component CSS.
+ */
+.mvp-plan {
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: var(--mvp-gap, 8px);
+  block-size: 100%;
+  min-block-size: 0;
+  color: var(--mvp-text);
+  background: var(--mvp-bg);
+}
+
+.mvp-plan__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--mvp-gap, 8px);
+  padding: var(--mvp-gap, 8px);
+  border-block-end: 1px solid var(--mvp-border);
+  background: var(--mvp-surface);
+}
+
+.mvp-plan__verify {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.mvp-plan__sep {
+  inline-size: 1px;
+  block-size: 1.5em;
+  background: var(--mvp-border);
+}
+
+.mvp-plan__status {
+  margin-inline-start: auto;
+  font-family: var(--mvp-font-mono);
+  color: var(--mvp-text-dim);
+}
+
+.mvp-plan__btn {
+  padding: 4px 10px;
+  border: 1px solid var(--mvp-border);
+  border-radius: var(--mvp-radius, 4px);
+  background: var(--mvp-surface-2);
+  color: var(--mvp-text);
+  cursor: pointer;
+}
+
+.mvp-plan__btn--primary {
+  border-color: var(--mvp-accent);
+  color: var(--mvp-accent);
+}
+
+.mvp-plan__btn:hover {
+  background: var(--mvp-surface);
+}
+
+.mvp-plan__body {
+  display: grid;
+  grid-template-columns: auto 1fr minmax(320px, 30%);
+  gap: var(--mvp-gap, 8px);
+  min-block-size: 0;
+}
+
+.mvp-plan__rail {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 4px;
+  border-inline-end: 1px solid var(--mvp-border);
+  background: var(--mvp-surface);
+}
+
+.mvp-plan__tool {
+  inline-size: 36px;
+  block-size: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  border: 1px solid var(--mvp-border);
+  border-radius: var(--mvp-radius, 4px);
+  background: var(--mvp-surface-2);
+  color: var(--mvp-text);
+  cursor: pointer;
+}
+
+.mvp-plan__tool--active {
+  border-color: var(--mvp-accent);
+  color: var(--mvp-accent);
+  background: var(--mvp-surface);
+}
+
+.mvp-plan__tool--import {
+  margin-block-start: auto;
+}
+
+.mvp-plan__map {
+  position: relative;
+  min-inline-size: 0;
+  min-block-size: 0;
+}
+
+.mvp-plan__hint,
+.mvp-plan__measure {
+  position: absolute;
+  inset-inline-start: 8px;
+  padding: 2px 6px;
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--mvp-text);
+  background: color-mix(in srgb, var(--mvp-surface) 80%, transparent);
+  border-radius: var(--mvp-radius, 4px);
+  pointer-events: none;
+}
+
+.mvp-plan__hint {
+  inset-block-start: 8px;
+}
+
+.mvp-plan__measure {
+  inset-block-end: 8px;
+  font-family: var(--mvp-font-mono);
+}
+
+.mvp-plan__side {
+  display: grid;
+  grid-template-rows: 1fr auto;
+  gap: var(--mvp-gap, 8px);
+  min-block-size: 0;
+  overflow: hidden;
+}
+
+.mvp-plan__table {
+  overflow: auto;
+  min-block-size: 0;
+}
+
+.mvp-plan__drawer {
+  border-block-start: 1px solid var(--mvp-border);
+  display: flex;
+  flex-direction: column;
+  min-block-size: 0;
+}
+
+.mvp-plan__tabs {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border-block-end: 1px solid var(--mvp-border);
+}
+
+.mvp-plan__tab {
+  padding: 2px 10px;
+  border: 1px solid var(--mvp-border);
+  border-radius: var(--mvp-radius, 4px);
+  background: var(--mvp-surface-2);
+  color: var(--mvp-text);
+  cursor: pointer;
+}
+
+.mvp-plan__tab--active {
+  border-color: var(--mvp-accent);
+  color: var(--mvp-accent);
+}
+
+.mvp-plan__drawer-body {
+  overflow: auto;
+  max-block-size: 40vh;
+}
+
+.mvp-plan__profile {
+  border-block-start: 1px solid var(--mvp-border);
+  padding: var(--mvp-gap, 8px);
+  background: var(--mvp-surface);
+  overflow: auto;
+}

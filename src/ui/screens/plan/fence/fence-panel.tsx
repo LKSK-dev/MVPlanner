@@ -38,6 +38,13 @@ export type TFn = (key: string, vars?: Record<string, string | number>) => strin
 export interface FencePanelProps {
   /** Optional initial fence; defaults to an empty fence with default limits. */
   initial?: Fence;
+  /**
+   * Optional CONTROLLED value accessor. When provided the panel renders from
+   * `value()` (a shared Plan-screen signal) instead of its own internal state,
+   * so map-drawn vertices and panel edits stay in sync; edits are reported via
+   * `onChange` only. Omit it for the uncontrolled (self-managed) behaviour.
+   */
+  value?: () => Fence;
   /** Called with the new {@link Fence} whenever the model changes. */
   onChange?: (fence: Fence) => void;
   /** i18n translate function (default the app `t`). */
@@ -53,11 +60,13 @@ function num(raw: string, prev: number): number {
 /** The Geofence editor panel. */
 export const FencePanel: Component<FencePanelProps> = (props) => {
   const t = props.t ?? defaultT;
-  const [fence, setFence] = createSignal<Fence>(props.initial ?? createFence());
+  const [internal, setInternal] = createSignal<Fence>(props.initial ?? createFence());
+  /** The active fence: the controlled accessor when present, else internal state. */
+  const fence = (): Fence => props.value?.() ?? internal();
 
-  /** Apply a pure edit op and emit the result. */
+  /** Apply a pure edit op and emit the result (controlled mode skips local state). */
   const apply = (next: Fence): void => {
-    setFence(next);
+    if (props.value === undefined) setInternal(next);
     props.onChange?.(next);
   };
   const edit = (mutate: (f: Fence) => Fence): void => apply(mutate(fence()));

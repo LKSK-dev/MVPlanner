@@ -20,7 +20,6 @@ import {
   setDefaultAlt,
   setRallyPoint,
   type Rally,
-  type RallyPoint,
   type RallyPatch,
 } from '../../../../geo/rally';
 import './messages';
@@ -31,8 +30,15 @@ export type TFn = (key: string, vars?: Record<string, string | number>) => strin
 
 /** {@link RallyPanel} props. */
 export interface RallyPanelProps {
-  /** Initial rally model; defaults to an empty rally set. */
+  /** Initial rally model (uncontrolled seed); defaults to an empty rally set. */
   value?: Rally;
+  /**
+   * Optional CONTROLLED model accessor. When provided the panel renders from
+   * `model()` (a shared Plan-screen signal) instead of its own internal state,
+   * so map-placed points and panel edits stay in sync; edits are reported via
+   * `onChange` only. Omit it for the uncontrolled (self-managed) behaviour.
+   */
+  model?: () => Rally;
   /** Called with the updated rally model after every edit. */
   onChange?: (rally: Rally) => void;
   /** i18n translate function (default the app `t`). */
@@ -58,11 +64,13 @@ function optNum(raw: string, prev: number | undefined): number | undefined {
 /** The Rally points editor panel. */
 export const RallyPanel: Component<RallyPanelProps> = (props) => {
   const t = props.t ?? defaultT;
-  const [rally, setRally] = createSignal<Rally>(props.value ?? createRally());
+  const [internal, setInternal] = createSignal<Rally>(props.value ?? createRally());
+  /** The active rally set: the controlled accessor when present, else internal state. */
+  const rally = (): Rally => props.model?.() ?? internal();
 
-  /** Apply a pure model transform, push the result to state + `onChange`. */
+  /** Apply a pure model transform (controlled mode skips local state). */
   const apply = (next: Rally): void => {
-    setRally(next);
+    if (props.model === undefined) setInternal(next);
     props.onChange?.(next);
   };
 

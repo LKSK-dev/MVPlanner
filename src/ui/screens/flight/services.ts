@@ -34,12 +34,24 @@ import type {
   CommandClient,
   DecodedMessage,
   FieldValue,
+  FileIo,
+  MissionClient,
   ParamClient,
   Store,
   VehicleState,
 } from '../../../contracts';
 import { createCommandClient } from '../../../mavlink/microservices/command';
+import { createMissionClient } from '../../../mavlink/microservices/mission';
 import { createParamClient } from '../../../mavlink/microservices/param';
+import { createTerrainService } from '../../../mavlink/microservices/terrain';
+import {
+  createElevationProvider,
+  createImageDecoder,
+  isImageDecoderAvailable,
+  type ElevationProvider,
+  type TileDecoder,
+} from '../../../geo/terrain';
+import { createTileCache } from '../../../geo/tiles';
 import { createParamMetaStore, type ParamMetaStore } from '../../../mavlink/param-meta';
 import { createPresetStore, type PresetStore } from '../../../data/paramfile';
 import { createAuditLog, type AuditLog } from '../../../core/audit';
@@ -87,6 +99,12 @@ export interface FlightServices {
   /** Command microservice bound to the host + store active vehicle. */
   readonly command: CommandClient;
   /**
+   * Mission microservice (mission/fence/rally up/download + verify) bound to the
+   * host + store active vehicle. App/connection-scoped so an in-flight transfer
+   * survives a Plan ⇄ Flight screen switch.
+   */
+  readonly mission: MissionClient;
+  /**
    * Parameter microservice bound to the host + store active vehicle. App-scoped
    * (fetched once, shared across the Parameters + Tuning Config tabs).
    */
@@ -103,6 +121,14 @@ export interface FlightServices {
   readonly statusMessages: Accessor<readonly StatusMessage[]>;
   /** Blob store for the map tile cache. */
   readonly blobs: BlobStore;
+  /** File picker I/O for mission/plan file load/save (Plan screen). */
+  readonly files: FileIo;
+  /**
+   * Terrain elevation provider (over a storage-backed terrain tile cache) the
+   * Plan screen samples for the elevation profile, and the TERRAIN microservice
+   * serves to the vehicle.
+   */
+  readonly terrainProvider: ElevationProvider;
   /** Live numeric-field source for the quick-watch widget. */
   readonly quickWatchSource: QuickWatchSource;
 }
@@ -131,6 +157,21 @@ export interface FlightServicesHandle {
 
 /** Default cap on retained STATUSTEXT entries. */
 const DEFAULT_MAX_STATUS = 1000;
+
+/** Wrap the platform `fetch` as a tile-cache fetch seam (terrain tiles). */
+function platformFetch(url: string, init?: { signal?: AbortSignal }): Promise<Response> {
+  return fetch(url, init);
+}
+
+/**
+ * Pick a terrain tile decoder: the browser `createImageBitmap`/`OffscreenCanvas`
+ * decoder when available, else a rejecting stub so elevation samples degrade to
+ * `undefined` (no throw) in non-browser/test contexts.
+ */
+function pickTileDecoder(): TileDecoder {
+  if (isImageDecoderAvailable()) return createImageDecoder();
+  return () => Promise.reject(new Error('tile decoder unavailable'));
+}
 
 /** Resolve the store's currently-active vehicle (non-reactive snapshot read). */
 function activeVehicleOf(store: Store<AppState>): VehicleState | undefined {
@@ -203,13 +244,34 @@ export function createFlightServices(deps: FlightServicesDeps): FlightServicesHa
     getActiveVehicle: () => activeVehicleOf(store),
   });
 
+  const targetOf = (): { sysid: number; compid: number } | undefined => {
+    const v = activeVehicleOf(store);
+    return v === undefined ? undefined : { sysid: v.sysid, compid: v.compid };
+  };
+
+  const mission = createMissionClient({
+    sendMessage: (name, fields) => host.sendMessage(name, fields),
+    onMessage: (names, cb) => host.onMessage(names, cb),
+    getTarget: targetOf,
+  });
+
+  // Terrain: a storage-backed terrain tile cache + elevation provider, plus the
+  // TERRAIN microservice that serves TERRAIN_DATA to the vehicle from it.
+  const terrainTiles = createTileCache({ blobs: storage.blobs, fetch: platformFetch });
+  const terrainProvider = createElevationProvider({
+    tiles: terrainTiles,
+    decode: pickTileDecoder(),
+  });
+  const terrainService = createTerrainService({
+    sendMessage: (name, fields) => host.sendMessage(name, fields),
+    onMessage: (names, cb) => host.onMessage(names, cb),
+    elevation: terrainProvider,
+  });
+
   const param = createParamClient({
     sendMessage: (name, fields) => host.sendMessage(name, fields),
     onMessage: (names, cb) => host.onMessage(names, cb),
-    getTarget: () => {
-      const v = activeVehicleOf(store);
-      return v === undefined ? undefined : { sysid: v.sysid, compid: v.compid };
-    },
+    getTarget: targetOf,
   });
   const paramMeta = createParamMetaStore();
   const presetStore = createPresetStore(storage.kv);
@@ -238,6 +300,7 @@ export function createFlightServices(deps: FlightServicesDeps): FlightServicesHa
 
   const services: FlightServices = {
     command,
+    mission,
     param,
     paramMeta,
     presetStore,
@@ -245,12 +308,16 @@ export function createFlightServices(deps: FlightServicesDeps): FlightServicesHa
     recorder,
     statusMessages,
     blobs: storage.blobs,
+    files: storage.files,
+    terrainProvider,
     quickWatchSource,
   };
 
   const dispose = async (): Promise<void> => {
     offStatus();
     command.dispose();
+    mission.dispose();
+    terrainService.dispose();
     param.dispose();
     await recorder.dispose();
   };
