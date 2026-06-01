@@ -1,0 +1,54 @@
+/**
+ * Config screen assembly styles (M3 keystone). Token-driven (spec plan/05 §5.6).
+ * Class names mirror `config-screen.tsx`; each sub-panel brings its own classes.
+ */
+
+.mvp-config {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+}
+
+.mvp-config__tabs {
+  display: flex;
+  align-items: stretch;
+  gap: var(--space-1, 0.25rem);
+  padding: var(--space-1, 0.25rem) var(--space-2, 0.5rem) 0;
+  border-bottom: 1px solid var(--color-border, #2c3444);
+}
+
+.mvp-config__tab {
+  padding: var(--space-2, 0.5rem) var(--space-3, 0.75rem);
+  background: none;
+  color: var(--color-text-muted, #8a94a6);
+  border: 1px solid transparent;
+  border-bottom: 0;
+  border-radius: var(--radius-sm, 4px) var(--radius-sm, 4px) 0 0;
+  cursor: pointer;
+}
+
+.mvp-config__tab.is-active {
+  background: var(--color-surface-2, #1b2230);
+  color: var(--color-text, #e6ebf2);
+  border-color: var(--color-border, #2c3444);
+}
+
+.mvp-config__body {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+}
+
+.mvp-config__panel {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  overflow: auto;
+}
+
+.mvp-config__panel.is-hidden {
+  display: none;
+}

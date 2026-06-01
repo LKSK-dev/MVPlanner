@@ -15,6 +15,7 @@ import {
   createFlightScreenPanel,
   type FlightHost,
 } from './ui/screens/flight';
+import { createConfigScreenPanel } from './ui/screens/config';
 import './ui/shell/shell.css';
 import './ui/shell/connection/connection.css';
 import './ui/widgets/inspector/inspector.css';
@@ -69,8 +70,24 @@ export const App: Component<AppProps> = (props) => {
       'flight',
       createFlightScreenPanel({ services: flight.services, store, registry, t }),
     );
+    // M3 keystone: install the real Config screen (Parameters | Tuning |
+    // Settings) over its placeholder, sharing the app-scoped ParamClient /
+    // ParamMetaStore + the CommandClient (autotune) from the same services.
+    const disposeConfigPanel = setScreenPanel(
+      'config',
+      createConfigScreenPanel({
+        paramClient: flight.services.param,
+        meta: flight.services.paramMeta,
+        command: flight.services.command,
+        store,
+        storage,
+        registry,
+        t,
+      }),
+    );
     onCleanup(() => {
       disposeFlightPanel();
+      disposeConfigPanel();
       void flight.dispose();
     });
   }

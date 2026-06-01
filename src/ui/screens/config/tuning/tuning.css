@@ -1,0 +1,178 @@
+/**
+ * PID / tuning panel styles (task T3.6). Token-driven (spec plan/05 §5.6).
+ * Class names mirror `tuning-panel.tsx`.
+ */
+
+.mvp-tuning {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  overflow: auto;
+  gap: var(--space-3, 0.75rem);
+  padding-block-end: var(--space-4, 1rem);
+}
+
+.mvp-tuning__toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2, 0.5rem);
+  padding: var(--space-2, 0.5rem);
+  border-bottom: 1px solid var(--color-border, #2c3444);
+  position: sticky;
+  top: 0;
+  background: var(--color-surface, #131722);
+  z-index: 1;
+}
+
+.mvp-tuning__btn {
+  padding: var(--space-1, 0.25rem) var(--space-3, 0.75rem);
+  background: var(--color-surface-2, #1b2230);
+  color: var(--color-text, #e6ebf2);
+  border: 1px solid var(--color-border, #2c3444);
+  border-radius: var(--radius-sm, 4px);
+  cursor: pointer;
+}
+
+.mvp-tuning__btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.mvp-tuning__btn--danger {
+  border-color: var(--color-danger, #d9534f);
+  color: var(--color-danger, #d9534f);
+}
+
+.mvp-tuning__changed {
+  color: var(--color-warning, #e0a800);
+  font-weight: 600;
+  font-size: var(--font-size-sm, 0.875rem);
+}
+
+.mvp-tuning__vehicle {
+  margin-inline-start: auto;
+  color: var(--color-text-muted, #8a94a6);
+  font-size: var(--font-size-sm, 0.875rem);
+}
+
+.mvp-tuning__hint,
+.mvp-tuning__empty,
+.mvp-tuning__status {
+  padding: var(--space-1, 0.25rem) var(--space-2, 0.5rem);
+  margin: 0;
+  color: var(--color-text-muted, #8a94a6);
+  font-size: var(--font-size-sm, 0.875rem);
+}
+
+.mvp-tuning__group {
+  padding-inline: var(--space-2, 0.5rem);
+}
+
+.mvp-tuning__group-title {
+  margin: var(--space-2, 0.5rem) 0 var(--space-1, 0.25rem);
+  font-size: var(--font-size-sm, 0.875rem);
+}
+
+.mvp-tuning__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-xs, 0.75rem);
+}
+
+.mvp-tuning__table th,
+.mvp-tuning__table td {
+  padding: var(--space-1, 0.25rem) var(--space-2, 0.5rem);
+  border-bottom: 1px solid var(--color-border-subtle, #222a38);
+  text-align: start;
+  vertical-align: top;
+}
+
+.mvp-tuning__pname {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  white-space: nowrap;
+}
+
+.mvp-tuning__input {
+  width: 7rem;
+  padding: var(--space-1, 0.25rem);
+  background: var(--color-surface-2, #1b2230);
+  color: var(--color-text, #e6ebf2);
+  border: 1px solid var(--color-border, #2c3444);
+  border-radius: var(--radius-sm, 4px);
+  font-family: var(--font-mono, ui-monospace, monospace);
+}
+
+.mvp-tuning__input.is-modified {
+  border-color: var(--color-warning, #e0a800);
+}
+
+.mvp-tuning__table tr.is-modified .mvp-tuning__pname {
+  color: var(--color-warning, #e0a800);
+}
+
+.mvp-tuning__punits,
+.mvp-tuning__prange {
+  color: var(--color-text-muted, #8a94a6);
+  white-space: nowrap;
+}
+
+.mvp-tuning__pdesc {
+  color: var(--color-text-muted, #8a94a6);
+}
+
+.mvp-tuning__sliders,
+.mvp-tuning__autotune,
+.mvp-tuning__plot {
+  padding-inline: var(--space-2, 0.5rem);
+}
+
+.mvp-tuning__slider-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 0.5rem);
+  padding-block: var(--space-1, 0.25rem);
+}
+
+.mvp-tuning__slider-label {
+  flex: 0 0 12rem;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: var(--font-size-xs, 0.75rem);
+}
+
+.mvp-tuning__slider {
+  flex: 1 1 auto;
+  min-width: 6rem;
+}
+
+.mvp-tuning__slider-value {
+  flex: 0 0 5rem;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: var(--font-size-xs, 0.75rem);
+  text-align: end;
+}
+
+.mvp-tuning__autotune-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 0.5rem);
+}
+
+.mvp-tuning__autotune-state {
+  color: var(--color-text-muted, #8a94a6);
+  font-size: var(--font-size-sm, 0.875rem);
+}
+
+.mvp-tuning__plot-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 6rem;
+  padding: var(--space-3, 0.75rem);
+  border: 1px dashed var(--color-border, #2c3444);
+  border-radius: var(--radius-sm, 4px);
+  color: var(--color-text-muted, #8a94a6);
+  font-size: var(--font-size-sm, 0.875rem);
+  text-align: center;
+}

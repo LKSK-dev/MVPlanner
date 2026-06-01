@@ -15,9 +15,13 @@ import type {
   BlobStore,
   CommandClient,
   FileIo,
+  Param,
+  ParamClient,
   Store,
   VehicleState,
 } from '../../src/contracts';
+import { createParamMetaStore } from '../../src/mavlink/param-meta';
+import type { Preset, PresetStore } from '../../src/data/paramfile';
 import type { Capabilities } from '../../src/core/capabilities';
 import { createAppStore } from '../../src/core/store';
 import { createAuditLog, type AuditLog } from '../../src/core/audit';
@@ -73,6 +77,26 @@ function mockCommand(): { client: CommandClient; calls: Call[] } {
     setCurrentWp: rec('setCurrentWp'),
   };
   return { client, calls };
+}
+
+/** Inert ParamClient stub (the Flight screen does not exercise params). */
+function stubParamClient(): ParamClient {
+  return {
+    fetchAll: (): Promise<Param[]> => Promise.resolve([]),
+    get: (): Param | undefined => undefined,
+    set: (): Promise<void> => Promise.resolve(),
+    onChange: (): (() => void) => () => undefined,
+  };
+}
+
+/** Inert PresetStore stub. */
+function stubPresetStore(): PresetStore {
+  return {
+    list: (): Promise<Preset[]> => Promise.resolve([]),
+    get: (): Promise<Preset | undefined> => Promise.resolve(undefined),
+    save: (): Promise<void> => Promise.resolve(),
+    remove: (): Promise<void> => Promise.resolve(),
+  };
 }
 
 function fakeBlobs(): BlobStore {
@@ -154,6 +178,9 @@ function makeHarness(): Harness {
   const [statusMessages, setStatus] = createSignal<readonly StatusMessage[]>([]);
   const services: FlightServices = {
     command: command.client,
+    param: stubParamClient(),
+    paramMeta: createParamMetaStore(),
+    presetStore: stubPresetStore(),
     audit,
     recorder,
     statusMessages,

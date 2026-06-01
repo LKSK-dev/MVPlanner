@@ -9,6 +9,10 @@
  *
  *  - {@link FlightServices.command} — a {@link CommandClient} bound to the host
  *    (`sendMessage` + `onMessage`) whose active vehicle is read from the store;
+ *  - {@link FlightServices.param} / {@link FlightServices.paramMeta} /
+ *    {@link FlightServices.presetStore} — the app-scoped {@link ParamClient},
+ *    {@link ParamMetaStore} and preset store the Config screen (T3.4/T3.6/T3.5)
+ *    shares, so the parameter set is fetched once and reused across screens;
  *  - {@link FlightServices.audit} — one shared {@link AuditLog} for every action
  *    (UI + map-guided), reachable via the audit viewer;
  *  - {@link FlightServices.recorder} — a {@link TlogRecorder} over the host's
@@ -30,10 +34,14 @@ import type {
   CommandClient,
   DecodedMessage,
   FieldValue,
+  ParamClient,
   Store,
   VehicleState,
 } from '../../../contracts';
 import { createCommandClient } from '../../../mavlink/microservices/command';
+import { createParamClient } from '../../../mavlink/microservices/param';
+import { createParamMetaStore, type ParamMetaStore } from '../../../mavlink/param-meta';
+import { createPresetStore, type PresetStore } from '../../../data/paramfile';
 import { createAuditLog, type AuditLog } from '../../../core/audit';
 import { TlogRecorder } from '../../../data/tlog';
 import type { RawFrameLike } from '../../../data/tlog';
@@ -74,10 +82,19 @@ export interface FlightHost {
   ): () => void;
 }
 
-/** The app/connection-scoped services the Flight screen consumes. */
+/** The app/connection-scoped services the Flight + Config screens consume. */
 export interface FlightServices {
   /** Command microservice bound to the host + store active vehicle. */
   readonly command: CommandClient;
+  /**
+   * Parameter microservice bound to the host + store active vehicle. App-scoped
+   * (fetched once, shared across the Parameters + Tuning Config tabs).
+   */
+  readonly param: ParamClient;
+  /** Shared parameter metadata resolver (the curated `ParamMetaStore`). */
+  readonly paramMeta: ParamMetaStore;
+  /** Persistent named-preset store (over the storage KV). */
+  readonly presetStore: PresetStore;
   /** Shared action audit log (UI + map-guided actions, audit viewer). */
   readonly audit: AuditLog;
   /** tlog recorder over the host raw-frame tap + storage (auto-on-connect). */
@@ -186,6 +203,17 @@ export function createFlightServices(deps: FlightServicesDeps): FlightServicesHa
     getActiveVehicle: () => activeVehicleOf(store),
   });
 
+  const param = createParamClient({
+    sendMessage: (name, fields) => host.sendMessage(name, fields),
+    onMessage: (names, cb) => host.onMessage(names, cb),
+    getTarget: () => {
+      const v = activeVehicleOf(store);
+      return v === undefined ? undefined : { sysid: v.sysid, compid: v.compid };
+    },
+  });
+  const paramMeta = createParamMetaStore();
+  const presetStore = createPresetStore(storage.kv);
+
   const audit = createAuditLog();
 
   const recorder = new TlogRecorder({
@@ -210,6 +238,9 @@ export function createFlightServices(deps: FlightServicesDeps): FlightServicesHa
 
   const services: FlightServices = {
     command,
+    param,
+    paramMeta,
+    presetStore,
     audit,
     recorder,
     statusMessages,
@@ -220,6 +251,7 @@ export function createFlightServices(deps: FlightServicesDeps): FlightServicesHa
   const dispose = async (): Promise<void> => {
     offStatus();
     command.dispose();
+    param.dispose();
     await recorder.dispose();
   };
 
