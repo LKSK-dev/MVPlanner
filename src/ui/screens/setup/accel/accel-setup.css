@@ -1,0 +1,101 @@
+.mvp-accel {
+  display: grid;
+  gap: 1rem;
+}
+
+.mvp-accel__intro,
+.mvp-accel__status,
+.mvp-accel__currenttext,
+.mvp-accel__levelstatus {
+  margin: 0;
+}
+
+.mvp-accel__controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.mvp-accel__btn {
+  border: 1px solid currentColor;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font: inherit;
+  padding: 0.55rem 0.8rem;
+}
+
+.mvp-accel__btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.mvp-accel__current,
+.mvp-accel__level {
+  border: 1px solid color-mix(in srgb, currentColor 22%, transparent);
+  border-radius: 0.75rem;
+  padding: 1rem;
+}
+
+.mvp-accel__currenttitle {
+  margin: 0 0 0.5rem;
+}
+
+.mvp-accel__graphic {
+  background: color-mix(in srgb, currentColor 8%, transparent);
+  border-radius: 0.5rem;
+  display: inline-block;
+  font-size: 2rem;
+  line-height: 1.05;
+  margin: 0.75rem 0;
+  min-inline-size: 5rem;
+  padding: 0.75rem;
+  text-align: center;
+  white-space: pre-line;
+}
+
+.mvp-accel__faces {
+  display: grid;
+  gap: 0.6rem;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.mvp-accel__face {
+  border: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+  border-radius: 0.65rem;
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.75rem;
+}
+
+.mvp-accel__face.is-current {
+  border-color: currentColor;
+  box-shadow: 0 0 0 2px color-mix(in srgb, currentColor 12%, transparent);
+}
+
+.mvp-accel__face.is-done {
+  background: color-mix(in srgb, #3fb950 12%, transparent);
+}
+
+.mvp-accel__facegraphic {
+  font-size: 1.4rem;
+  line-height: 1;
+  white-space: pre-line;
+}
+
+.mvp-accel__facelabel {
+  font-weight: 700;
+}
+
+.mvp-accel__faceinstruction,
+.mvp-accel__facestate {
+  font-size: 0.9rem;
+}
+
+.mvp-accel__error {
+  color: #b42318;
+  font-weight: 700;
+  margin: 0;
+}

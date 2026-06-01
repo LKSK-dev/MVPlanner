@@ -1,0 +1,141 @@
+/* ESC calibration + motor test setup step (T5.10). Scoped to this step. */
+
+.mvp-setup-motors {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mvp-gap);
+  max-inline-size: 48rem;
+}
+
+.mvp-setup-motors__intro,
+.mvp-setup-motors__status {
+  margin: 0;
+  color: var(--mvp-text-dim);
+}
+
+.mvp-setup-motors__section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.85rem;
+  border: 1px solid var(--mvp-border);
+  border-radius: var(--mvp-radius);
+  background: var(--mvp-surface);
+}
+
+.mvp-setup-motors__heading {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+/* Persistent "props removed" acknowledgement gate. */
+.mvp-setup-motors__ack {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--mvp-warn, var(--mvp-border));
+  border-radius: var(--mvp-radius);
+}
+
+.mvp-setup-motors__ack-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.mvp-setup-motors__ack-help,
+.mvp-setup-motors__help {
+  font-size: 0.75rem;
+  color: var(--mvp-text-dim);
+}
+
+.mvp-setup-motors__armed {
+  margin: 0;
+  color: var(--mvp-danger, #b00020);
+  font-weight: 600;
+}
+
+.mvp-setup-motors__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  gap: 0.75rem;
+}
+
+.mvp-setup-motors__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.mvp-setup-motors__label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--mvp-text-dim);
+}
+
+.mvp-setup-motors__input {
+  min-block-size: 2rem;
+  padding: 0.35rem 0.45rem;
+  border: 1px solid var(--mvp-border);
+  border-radius: var(--mvp-radius);
+  background: var(--mvp-surface);
+  color: var(--mvp-text);
+}
+
+.mvp-setup-motors__motors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.mvp-setup-motors__button {
+  min-block-size: 2rem;
+  padding: 0.35rem 0.8rem;
+  border: 1px solid var(--mvp-accent);
+  border-radius: var(--mvp-radius);
+  background: transparent;
+  color: var(--mvp-accent);
+  cursor: pointer;
+}
+
+.mvp-setup-motors__button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Destructive controls are visually marked beyond colour (border + weight). */
+.mvp-setup-motors__button--danger,
+.mvp-setup-motors__stop {
+  border-color: var(--mvp-danger, #b00020);
+  color: var(--mvp-danger, #b00020);
+  font-weight: 600;
+}
+
+.mvp-setup-motors__stop {
+  align-self: flex-start;
+  border-width: 2px;
+}
+
+.mvp-setup-motors__steps {
+  margin: 0;
+  padding-inline-start: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  color: var(--mvp-text-dim);
+}
+
+.mvp-setup-motors__esc-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.mvp-setup-motors__button:focus-visible,
+.mvp-setup-motors__input:focus-visible,
+.mvp-setup-motors__stop:focus-visible {
+  outline: 2px solid var(--mvp-accent);
+  outline-offset: 1px;
+}
