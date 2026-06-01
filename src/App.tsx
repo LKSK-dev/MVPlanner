@@ -19,6 +19,15 @@ import { createConfigScreenPanel } from './ui/screens/config';
 import { createPlanScreenPanel } from './ui/screens/plan';
 import { createSetupScreenPanel } from './ui/screens/setup';
 import { createLogsScreenPanel } from './ui/screens/logs';
+import {
+  createExtServices,
+  createInstallPromptController,
+  createSimDevTools,
+  InstallPromptHost,
+  type InstallPromptController,
+} from './ui/screens/sim';
+import { createEventsBus, createExtensionSystem } from './ext/api';
+import { examples } from '../extensions/index.js';
 import './ui/shell/shell.css';
 import './ui/shell/connection/connection.css';
 import './ui/widgets/inspector/inspector.css';
@@ -67,6 +76,7 @@ export const App: Component<AppProps> = (props) => {
   // `flight` screen panel over the shell placeholder BEFORE the shell renders.
   // Guarded so a test mock host (a bare `MavlinkHostLike` without the selective
   // `onMessage`/`onRawFrame` taps) simply leaves the Flight placeholder in place.
+  let installPrompt: InstallPromptController | undefined;
   if (isFlightHost(host)) {
     const flight = createFlightServices({ host, store, storage });
     const disposeFlightPanel = setScreenPanel(
@@ -128,12 +138,54 @@ export const App: Component<AppProps> = (props) => {
           : {}),
       }),
     );
+    // M7 keystone: build the extension API ports from the real app-scoped
+    // services, instantiate the ONE extension system over them (trusted
+    // in-process runtime; the bundled examples carry modules), and wire the
+    // Sim & Dev Tools hub (Extensions Manager + Scripting Console + API
+    // Reference) over the `sim` placeholder. The install prompt is rendered at
+    // the app root so it works from any screen + during example load.
+    const extServices = createExtServices({
+      host,
+      store,
+      command: flight.services.command,
+      params: flight.services.param,
+      mission: flight.services.mission,
+      registry,
+      files: storage.files,
+    });
+    const extEvents = createEventsBus();
+    const promptController = createInstallPromptController();
+    installPrompt = promptController;
+    const extSystem = createExtensionSystem({
+      storage: storage.kv,
+      services: extServices.services,
+      confirm: (opts) => registry.confirm(opts),
+      audit: flight.services.audit,
+      events: extEvents,
+    });
+    const simTools = createSimDevTools({
+      system: extSystem,
+      services: extServices.services,
+      events: extEvents,
+      prompt: promptController.prompt,
+      files: storage.files,
+      storage: storage.kv,
+      registry,
+      store,
+      t,
+      examples,
+    });
+    void simTools.ready();
+
     onCleanup(() => {
       disposeFlightPanel();
       disposeConfigPanel();
       disposePlanPanel();
       disposeSetupPanel();
       disposeLogsPanel();
+      simTools.dispose();
+      extSystem.dispose();
+      extServices.dispose();
       void flight.dispose();
     });
   }
@@ -148,6 +200,7 @@ export const App: Component<AppProps> = (props) => {
   return (
     <ConnectionProvider store={store} registry={registry} host={host}>
       <Shell ctx={ctx} />
+      {installPrompt !== undefined ? <InstallPromptHost controller={installPrompt} t={t} /> : null}
     </ConnectionProvider>
   );
 };

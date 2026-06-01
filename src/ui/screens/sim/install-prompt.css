@@ -1,0 +1,84 @@
+/* Install-time permission prompt (M7 assembly; spec plan/06 §6.5). */
+.mvp-extprompt {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgb(0 0 0 / 55%);
+}
+
+.mvp-extprompt__card {
+  width: min(28rem, calc(100vw - 2rem));
+  max-height: calc(100vh - 2rem);
+  overflow: auto;
+  padding: 1.25rem;
+  border-radius: var(--mvp-radius, 8px);
+  background: var(--mvp-color-panel, #1a1d23);
+  color: var(--mvp-color-text, #e7e9ee);
+  box-shadow: 0 0.5rem 2rem rgb(0 0 0 / 50%);
+}
+
+.mvp-extprompt__title {
+  margin: 0 0 0.5rem;
+  font-size: 1.1rem;
+}
+
+.mvp-extprompt__body {
+  margin: 0 0 0.75rem;
+  opacity: 0.85;
+}
+
+.mvp-extprompt__perms {
+  margin: 0 0 1rem;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.mvp-extprompt__perm {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+}
+
+.mvp-extprompt__perm.is-risk {
+  background: var(--mvp-color-warn-bg, rgb(255 176 0 / 12%));
+}
+
+.mvp-extprompt__perm-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.mvp-extprompt__risk {
+  font-size: 0.75rem;
+  color: var(--mvp-color-warning, #ffb000);
+}
+
+.mvp-extprompt__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.mvp-extprompt__actions button {
+  padding: 0.4rem 0.9rem;
+  border-radius: 4px;
+  border: 1px solid var(--mvp-color-border, #3a3f4b);
+  background: var(--mvp-color-surface, #242832);
+  color: inherit;
+  cursor: pointer;
+}
+
+.mvp-extprompt__approve {
+  border-color: var(--mvp-color-accent, #00d4ff);
+  color: var(--mvp-color-accent, #00d4ff);
+}

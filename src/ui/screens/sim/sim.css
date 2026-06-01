@@ -1,0 +1,61 @@
+/* Sim & Dev Tools hub (M7 assembly; spec plan/05 §5.4). */
+.mvp-sim {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.mvp-sim__tabs {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.5rem 0.5rem 0;
+  border-bottom: 1px solid var(--mvp-color-border, #3a3f4b);
+}
+
+.mvp-sim__tab {
+  padding: 0.4rem 0.9rem;
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+}
+
+.mvp-sim__tab.is-active {
+  background: var(--mvp-color-panel, #1a1d23);
+  border-color: var(--mvp-color-border, #3a3f4b);
+}
+
+.mvp-sim__body {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+.mvp-sim__panel {
+  position: absolute;
+  inset: 0;
+  overflow: auto;
+}
+
+.mvp-sim__panel.is-hidden {
+  display: none;
+}
+
+.mvp-sim__help {
+  padding: 1rem 1.25rem;
+}
+
+.mvp-sim__help-title {
+  margin: 0 0 0.5rem;
+}
+
+.mvp-sim__help-steps {
+  margin: 0.5rem 0 0;
+  padding-left: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}

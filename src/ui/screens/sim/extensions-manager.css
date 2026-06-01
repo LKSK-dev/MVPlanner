@@ -1,0 +1,148 @@
+/* Extensions manager (M7 assembly; spec plan/06 §6.3/§6.5). */
+.mvp-extmgr {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  height: 100%;
+  overflow: auto;
+}
+
+.mvp-extmgr__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.mvp-extmgr__title {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.mvp-extmgr__install,
+.mvp-extmgr__actions button,
+.mvp-extmgr__revoke {
+  padding: 0.3rem 0.7rem;
+  border-radius: 4px;
+  border: 1px solid var(--mvp-color-border, #3a3f4b);
+  background: var(--mvp-color-surface, #242832);
+  color: inherit;
+  cursor: pointer;
+}
+
+.mvp-extmgr__empty,
+.mvp-extmgr__noperms {
+  opacity: 0.7;
+}
+
+.mvp-extmgr__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.mvp-extmgr__item {
+  border: 1px solid var(--mvp-color-border, #3a3f4b);
+  border-radius: 6px;
+  padding: 0.6rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.mvp-extmgr__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.mvp-extmgr__meta {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.mvp-extmgr__name {
+  font-weight: 600;
+}
+
+.mvp-extmgr__version {
+  font-size: 0.8rem;
+  opacity: 0.7;
+}
+
+.mvp-extmgr__status {
+  font-size: 0.75rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  background: var(--mvp-color-surface, #242832);
+}
+
+.mvp-extmgr__status.is-error {
+  color: var(--mvp-color-error, #ff5d5d);
+}
+
+.mvp-extmgr__actions {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.mvp-extmgr__error {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--mvp-color-error, #ff5d5d);
+}
+
+.mvp-extmgr__perms {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.mvp-extmgr__perms-label {
+  font-size: 0.75rem;
+  opacity: 0.7;
+}
+
+.mvp-extmgr__perm-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.mvp-extmgr__perm {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  background: var(--mvp-color-surface, #242832);
+  font-size: 0.75rem;
+}
+
+.mvp-extmgr__perm.is-risk {
+  background: var(--mvp-color-warn-bg, rgb(255 176 0 / 12%));
+}
+
+.mvp-extmgr__risk {
+  color: var(--mvp-color-warning, #ffb000);
+}
+
+.mvp-extmgr__granted {
+  color: var(--mvp-color-accent, #00d4ff);
+}
+
+.mvp-extmgr__revoke {
+  padding: 0 0.35rem;
+  line-height: 1.2;
+}
