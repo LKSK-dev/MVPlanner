@@ -1,0 +1,154 @@
+/**
+ * Compass calibration step styles (task T5.5; spec plan/05 §5.4/§5.6). Token-
+ * driven so it tracks every theme; no hard-coded colors. Imported by the step
+ * module; mounted inside the wizard pane.
+ */
+
+.mvp-compass {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mvp-gap);
+  color: var(--mvp-text);
+}
+
+.mvp-compass__intro {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--mvp-text-dim);
+}
+
+.mvp-compass__controls {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.mvp-compass__btn {
+  padding: 0.45rem 1rem;
+  border-radius: var(--mvp-radius);
+  border: 1px solid var(--mvp-border);
+  background: var(--mvp-surface);
+  color: var(--mvp-text);
+  cursor: pointer;
+}
+
+.mvp-compass__btn:focus-visible {
+  outline: 2px solid var(--mvp-accent);
+  outline-offset: 1px;
+}
+
+.mvp-compass__btn--start {
+  border-color: var(--mvp-accent);
+  color: var(--mvp-accent);
+}
+
+.mvp-compass__btn--cancel {
+  border-color: var(--mvp-warn);
+  color: var(--mvp-warn);
+}
+
+.mvp-compass__status {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+/* ---- Progress meter ----------------------------------------------------- */
+
+.mvp-compass__progress {
+  position: relative;
+  block-size: 0.75rem;
+  inline-size: 100%;
+  border-radius: 999px;
+  border: 1px solid var(--mvp-border);
+  background: var(--mvp-surface);
+  overflow: hidden;
+}
+
+.mvp-compass__progressfill {
+  block-size: 100%;
+  inline-size: 0;
+  background: var(--mvp-accent);
+  transition: inline-size 0.15s ease-out;
+}
+
+.mvp-compass[data-flow='done'] .mvp-compass__progressfill {
+  background: var(--mvp-ok);
+}
+
+.mvp-compass[data-flow='warning'] .mvp-compass__progressfill {
+  background: var(--mvp-warn);
+}
+
+/* ---- Fitness ------------------------------------------------------------ */
+
+.mvp-compass__fitness {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.mvp-compass__fitnesslabel {
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-size: 0.7rem;
+  color: var(--mvp-text-dim);
+}
+
+.mvp-compass__fitness.is-poor .mvp-compass__fitnessvalue {
+  color: var(--mvp-warn);
+}
+
+.mvp-compass__fitnesshint {
+  color: var(--mvp-warn);
+}
+
+.mvp-compass__error {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--mvp-warn);
+}
+
+/* ---- Offsets ------------------------------------------------------------ */
+
+.mvp-compass__offsets {
+  border: 1px solid var(--mvp-border);
+  border-radius: var(--mvp-radius);
+  padding: 0.5rem 0.75rem;
+  background: var(--mvp-surface);
+}
+
+.mvp-compass__offsetstitle {
+  margin: 0 0 0.35rem;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--mvp-text-dim);
+}
+
+.mvp-compass__offsetslist {
+  display: flex;
+  gap: 1rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Declination / orientation hints ------------------------------------ */
+
+.mvp-compass__hints {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.2rem 0.75rem;
+  margin: 0;
+  font-size: 0.8rem;
+}
+
+.mvp-compass__hintterm {
+  color: var(--mvp-text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-size: 0.7rem;
+}
+
+.mvp-compass__hintval {
+  margin: 0;
+}

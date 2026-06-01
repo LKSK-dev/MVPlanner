@@ -1,0 +1,76 @@
+/* Battery monitor setup step (T5.9). Scoped to this step. */
+
+.mvp-setup-battery {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mvp-gap);
+  max-inline-size: 44rem;
+}
+
+.mvp-setup-battery__intro,
+.mvp-setup-battery__status {
+  margin: 0;
+  color: var(--mvp-text-dim);
+}
+
+.mvp-setup-battery__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 0.75rem;
+}
+
+.mvp-setup-battery__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.mvp-setup-battery__label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--mvp-text-dim);
+}
+
+.mvp-setup-battery__select,
+.mvp-setup-battery__input {
+  min-block-size: 2rem;
+  padding: 0.35rem 0.45rem;
+  border: 1px solid var(--mvp-border);
+  border-radius: var(--mvp-radius);
+  background: var(--mvp-surface);
+  color: var(--mvp-text);
+}
+
+.mvp-setup-battery__select:focus-visible,
+.mvp-setup-battery__input:focus-visible,
+.mvp-setup-battery__button:focus-visible {
+  outline: 2px solid var(--mvp-accent);
+  outline-offset: 1px;
+}
+
+.mvp-setup-battery__preset {
+  display: grid;
+  grid-template-columns: minmax(12rem, 1fr) auto;
+  align-items: end;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid var(--mvp-border);
+  border-radius: var(--mvp-radius);
+  background: var(--mvp-surface);
+}
+
+.mvp-setup-battery__button {
+  min-block-size: 2rem;
+  padding: 0.35rem 0.8rem;
+  border: 1px solid var(--mvp-accent);
+  border-radius: var(--mvp-radius);
+  background: transparent;
+  color: var(--mvp-accent);
+  cursor: pointer;
+}
+
+.mvp-setup-battery__button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
