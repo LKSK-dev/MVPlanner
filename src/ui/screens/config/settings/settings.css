@@ -1,0 +1,148 @@
+/**
+ * App Settings screen layout (task T3.7; spec plan/05 §5.4 Settings, §5.8 a11y).
+ *
+ * A simple, scrollable stack of labelled sections (general / map / telemetry /
+ * preview / storage). Tokens come from `core/theme`; controls inherit the shared
+ * surface/border/text tokens so every theme renders correctly.
+ */
+
+.mvp-settings {
+  box-sizing: border-box;
+  height: 100%;
+  min-height: 0;
+  overflow: auto;
+  padding: var(--mvp-gap);
+  display: flex;
+  flex-direction: column;
+  gap: var(--mvp-gap);
+  background: var(--mvp-bg);
+  color: var(--mvp-text);
+}
+
+.mvp-settings__section {
+  border: 1px solid var(--mvp-border);
+  border-radius: var(--mvp-radius);
+  background: var(--mvp-surface);
+  padding: var(--mvp-gap);
+  display: flex;
+  flex-direction: column;
+  gap: calc(var(--mvp-gap) * 0.75);
+}
+
+.mvp-settings__heading {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.mvp-settings__subheading {
+  margin: calc(var(--mvp-gap) * 0.5) 0 0;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--mvp-text-dim);
+}
+
+.mvp-settings__field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 36rem;
+}
+
+.mvp-settings__check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mvp-settings__label {
+  font-size: 0.85rem;
+  color: var(--mvp-text-dim);
+}
+
+.mvp-settings__hint {
+  font-size: 0.75rem;
+  color: var(--mvp-text-dim);
+}
+
+.mvp-settings__select,
+.mvp-settings__input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--mvp-border);
+  border-radius: var(--mvp-radius);
+  background: var(--mvp-surface-2);
+  color: var(--mvp-text);
+  font: inherit;
+}
+
+.mvp-settings__preview {
+  margin: 0;
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 4px 12px;
+}
+
+.mvp-settings__preview dt {
+  color: var(--mvp-text-dim);
+  font-size: 0.85rem;
+}
+
+.mvp-settings__preview dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.mvp-settings__namespaces {
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.mvp-settings__namespace {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.85rem;
+}
+
+.mvp-settings__namespace-detail {
+  color: var(--mvp-text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.mvp-settings__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: calc(var(--mvp-gap) * 0.5);
+}
+
+.mvp-settings__btn {
+  padding: 6px 12px;
+  border: 1px solid var(--mvp-border);
+  border-radius: var(--mvp-radius);
+  background: var(--mvp-surface-2);
+  color: var(--mvp-text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.mvp-settings__btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.mvp-settings__btn--danger {
+  border-color: var(--mvp-error);
+  color: var(--mvp-error);
+}
+
+.mvp-settings__usage {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}

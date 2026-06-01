@@ -10,8 +10,10 @@
  * - 1.0.0: initial frozen seams (T0.3).
  * - 1.1.0: add `Rpc.handleStream` (server counterpart to `Rpc.stream`).
  * - 1.2.0: add optional `VehicleState.throttlePct`/`rcIn`/`rcOut` (HUD/RC).
+ * - 1.3.0: add optional `AppSettings.mapSource` + `AppSettings.telemetryRateHz`
+ *   and the `MapSourceSetting` type for the Settings screen (T3.7). Additive.
  */
-export const CONTRACTS_VERSION = '1.2.0';
+export const CONTRACTS_VERSION = '1.3.0';
 
 export type * from './bus';
 export type * from './transport';

@@ -1,0 +1,227 @@
+/**
+ * Parameter grid styles (task T3.4). Token-driven (spec plan/05 §5.6); modified
+ * and out-of-range cues are non-color (icon + label) as well as color, per a11y
+ * (spec plan/05 §5.8). Class names mirror `paramgrid.tsx`.
+ */
+
+.mvp-paramgrid {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  font-size: var(--font-size-sm, 0.875rem);
+}
+
+.mvp-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.mvp-paramgrid__toolbar {
+  display: flex;
+  align-items: end;
+  gap: var(--space-3, 0.75rem);
+  padding: var(--space-2, 0.5rem);
+  flex-wrap: wrap;
+}
+
+.mvp-paramgrid__searchbox {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1, 0.25rem);
+  flex: 1 1 16rem;
+}
+
+.mvp-paramgrid__label {
+  font-size: var(--font-size-xs, 0.75rem);
+  color: var(--color-text-muted, #8a94a6);
+}
+
+.mvp-paramgrid__search {
+  width: 100%;
+  padding: var(--space-1, 0.25rem) var(--space-2, 0.5rem);
+  background: var(--color-surface-2, #1b2230);
+  color: var(--color-text, #e6ebf2);
+  border: 1px solid var(--color-border, #2c3444);
+  border-radius: var(--radius-sm, 4px);
+}
+
+.mvp-paramgrid__viewtoggle {
+  display: inline-flex;
+  border: 1px solid var(--color-border, #2c3444);
+  border-radius: var(--radius-sm, 4px);
+  overflow: hidden;
+}
+
+.mvp-paramgrid__viewbtn {
+  padding: var(--space-1, 0.25rem) var(--space-3, 0.75rem);
+  background: var(--color-surface-2, #1b2230);
+  color: var(--color-text, #e6ebf2);
+  border: 0;
+  cursor: pointer;
+}
+
+.mvp-paramgrid__viewbtn.is-active {
+  background: var(--color-accent, #3d7eff);
+  color: var(--color-on-accent, #fff);
+}
+
+.mvp-paramgrid__count {
+  margin-inline-start: auto;
+  color: var(--color-text-muted, #8a94a6);
+  font-size: var(--font-size-xs, 0.75rem);
+}
+
+.mvp-paramgrid__empty {
+  padding: var(--space-4, 1rem);
+  color: var(--color-text-muted, #8a94a6);
+}
+
+.mvp-paramgrid__table {
+  width: 100%;
+  border-collapse: collapse;
+  overflow: auto;
+}
+
+.mvp-paramgrid__table thead th {
+  position: sticky;
+  top: 0;
+  text-align: start;
+  background: var(--color-surface-1, #141a24);
+  border-bottom: 1px solid var(--color-border, #2c3444);
+  padding: var(--space-1, 0.25rem) var(--space-2, 0.5rem);
+  white-space: nowrap;
+}
+
+.mvp-paramgrid__sort {
+  background: none;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0;
+}
+
+.mvp-paramgrid__cell {
+  padding: var(--space-1, 0.25rem) var(--space-2, 0.5rem);
+  border-bottom: 1px solid var(--color-border-subtle, #222a38);
+  vertical-align: middle;
+}
+
+.mvp-paramgrid__name {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  white-space: nowrap;
+  text-align: start;
+  font-weight: 500;
+}
+
+.mvp-paramgrid__row.is-modified .mvp-paramgrid__pname {
+  color: var(--color-warning, #e0a800);
+  font-weight: 700;
+}
+
+.mvp-paramgrid__row.is-oor .mvp-paramgrid__num {
+  outline: 2px solid var(--color-danger, #e5484d);
+}
+
+.mvp-paramgrid__flag {
+  margin-inline-start: var(--space-1, 0.25rem);
+  font-size: var(--font-size-xs, 0.75rem);
+}
+
+.mvp-paramgrid__flag--mod {
+  color: var(--color-warning, #e0a800);
+}
+
+.mvp-paramgrid__flag--oor {
+  color: var(--color-danger, #e5484d);
+}
+
+.mvp-paramgrid__flag--reboot {
+  color: var(--color-info, #3d7eff);
+}
+
+.mvp-paramgrid__num,
+.mvp-paramgrid__enum {
+  width: 100%;
+  min-width: 6rem;
+  padding: var(--space-1, 0.2rem) var(--space-1, 0.25rem);
+  background: var(--color-surface-2, #1b2230);
+  color: var(--color-text, #e6ebf2);
+  border: 1px solid var(--color-border, #2c3444);
+  border-radius: var(--radius-sm, 4px);
+  font-family: var(--font-mono, ui-monospace, monospace);
+}
+
+.mvp-paramgrid__bitmask {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2, 0.5rem);
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+.mvp-paramgrid__bitval {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  color: var(--color-text-muted, #8a94a6);
+}
+
+.mvp-paramgrid__bit {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1, 0.25rem);
+  font-size: var(--font-size-xs, 0.75rem);
+}
+
+.mvp-paramgrid__units,
+.mvp-paramgrid__rangecell {
+  color: var(--color-text-muted, #8a94a6);
+  white-space: nowrap;
+}
+
+.mvp-paramgrid__info-toggle,
+.mvp-paramgrid__group-toggle {
+  background: none;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+}
+
+.mvp-paramgrid__group-cell {
+  background: var(--color-surface-1, #141a24);
+  padding: 0;
+}
+
+.mvp-paramgrid__group-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 0.5rem);
+  width: 100%;
+  padding: var(--space-1, 0.25rem) var(--space-2, 0.5rem);
+  font-weight: 600;
+}
+
+.mvp-paramgrid__group-badge {
+  color: var(--color-warning, #e0a800);
+}
+
+.mvp-paramgrid__group-badge--oor {
+  color: var(--color-danger, #e5484d);
+}
+
+.mvp-paramgrid__desc {
+  padding: var(--space-1, 0.25rem) var(--space-4, 1rem);
+  color: var(--color-text-muted, #8a94a6);
+  font-size: var(--font-size-xs, 0.75rem);
+  background: var(--color-surface-1, #141a24);
+}

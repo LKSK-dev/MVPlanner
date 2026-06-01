@@ -35,8 +35,9 @@ worktrees, disjoint file ownership) against stable types.
 
 ## Changelog
 
-| Version | Change                                                                                                                                                 | Approved by  |
-| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------ |
-| 1.0.0   | Initial frozen seams (T0.3).                                                                                                                           | orchestrator |
-| 1.1.0   | Add `Rpc.handleStream` (server counterpart to `Rpc.stream`; `stream` is non-functional without it). Surfaced during T0.4.                              | orchestrator |
-| 1.2.0   | Add optional `VehicleState.throttlePct` (VFR_HUD), `rcIn` (RC_CHANNELS), `rcOut` (SERVO_OUTPUT_RAW) so HUD/gauges can surface throttle + RC. Additive. | orchestrator |
+| Version | Change                                                                                                                                                                                | Approved by  |
+| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------ |
+| 1.0.0   | Initial frozen seams (T0.3).                                                                                                                                                          | orchestrator |
+| 1.1.0   | Add `Rpc.handleStream` (server counterpart to `Rpc.stream`; `stream` is non-functional without it). Surfaced during T0.4.                                                             | orchestrator |
+| 1.2.0   | Add optional `VehicleState.throttlePct` (VFR_HUD), `rcIn` (RC_CHANNELS), `rcOut` (SERVO_OUTPUT_RAW) so HUD/gauges can surface throttle + RC. Additive.                                | orchestrator |
+| 1.3.0   | Add optional `AppSettings.mapSource` (`MapSourceSetting`: url template + optional key) and `AppSettings.telemetryRateHz` for the Settings screen (T3.7, spec plan/04 §4.5). Additive. | orchestrator |

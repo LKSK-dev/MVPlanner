@@ -1,0 +1,127 @@
+/**
+ * Parameter workbench styles (task T3.4). Token-driven (spec plan/05 §5.6).
+ * Class names mirror `workbench.tsx`; the grid brings its own `paramgrid.css`.
+ */
+
+.mvp-paramwb {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+}
+
+.mvp-paramwb__toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2, 0.5rem);
+  padding: var(--space-2, 0.5rem);
+  border-bottom: 1px solid var(--color-border, #2c3444);
+}
+
+.mvp-paramwb__btn {
+  padding: var(--space-1, 0.25rem) var(--space-3, 0.75rem);
+  background: var(--color-surface-2, #1b2230);
+  color: var(--color-text, #e6ebf2);
+  border: 1px solid var(--color-border, #2c3444);
+  border-radius: var(--radius-sm, 4px);
+  cursor: pointer;
+}
+
+.mvp-paramwb__btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.mvp-paramwb__changed {
+  margin-inline-start: auto;
+  color: var(--color-warning, #e0a800);
+  font-weight: 600;
+  font-size: var(--font-size-sm, 0.875rem);
+}
+
+.mvp-paramwb__progress {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1, 0.25rem);
+  padding: var(--space-2, 0.5rem);
+}
+
+.mvp-paramwb__bar {
+  width: 100%;
+  height: 0.5rem;
+}
+
+.mvp-paramwb__status {
+  padding: var(--space-1, 0.25rem) var(--space-2, 0.5rem);
+  color: var(--color-text-muted, #8a94a6);
+  font-size: var(--font-size-sm, 0.875rem);
+}
+
+.mvp-paramwb__body {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+}
+
+.mvp-paramwb__grid {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: auto;
+}
+
+.mvp-paramwb__diff {
+  flex: 0 0 22rem;
+  display: flex;
+  flex-direction: column;
+  border-inline-start: 1px solid var(--color-border, #2c3444);
+  overflow: auto;
+}
+
+.mvp-paramwb__diff-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2, 0.5rem);
+  padding: var(--space-2, 0.5rem);
+  border-bottom: 1px solid var(--color-border, #2c3444);
+}
+
+.mvp-paramwb__diff-head h3 {
+  margin: 0;
+  font-size: var(--font-size-sm, 0.875rem);
+}
+
+.mvp-paramwb__diff-close {
+  margin-inline-start: auto;
+  background: none;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+}
+
+.mvp-paramwb__diff-empty {
+  padding: var(--space-4, 1rem);
+  color: var(--color-text-muted, #8a94a6);
+}
+
+.mvp-paramwb__diff-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-xs, 0.75rem);
+}
+
+.mvp-paramwb__diff-table th,
+.mvp-paramwb__diff-table td {
+  padding: var(--space-1, 0.25rem) var(--space-2, 0.5rem);
+  border-bottom: 1px solid var(--color-border-subtle, #222a38);
+  text-align: start;
+}
+
+.mvp-paramwb__diff-name {
+  font-family: var(--font-mono, ui-monospace, monospace);
+}
+
+.mvp-paramwb__diff-delta {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  color: var(--color-warning, #e0a800);
+}

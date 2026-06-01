@@ -1,6 +1,13 @@
 import { describe, it, expect } from 'vitest';
 import { CONTRACTS_VERSION } from '../../src/contracts';
-import type { Transport, ConnState, Mission, AppState } from '../../src/contracts';
+import type {
+  Transport,
+  ConnState,
+  Mission,
+  AppState,
+  AppSettings,
+  MapSourceSetting,
+} from '../../src/contracts';
 
 describe('contracts', () => {
   it('exposes a frozen contract version', () => {
@@ -48,7 +55,23 @@ const _state: AppState = {
   layout: { activeScreen: 'flight', workspaces: {} },
 };
 
+// T3.7 additive AppSettings fields (contracts 1.3.0): optional `mapSource`
+// (`MapSourceSetting`) + `telemetryRateHz`. They are optional, so omitting them
+// (as in `_state` above) still type-checks; here we prove they are accepted.
+const _mapSource: MapSourceSetting = { urlTemplate: '{z}/{x}/{y}', apiKey: 'k' };
+const _extendedSettings: AppSettings = {
+  units: 'imperial',
+  coordinateFormat: 'mgrs',
+  theme: 'field',
+  language: 'en',
+  audioAlerts: false,
+  confirmDestructive: true,
+  mapSource: _mapSource,
+  telemetryRateHz: 10,
+};
+
 void _conn;
 void _mission;
 void _transport;
 void _state;
+void _extendedSettings;

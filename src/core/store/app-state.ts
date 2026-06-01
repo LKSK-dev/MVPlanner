@@ -6,7 +6,16 @@
  */
 import type { AppSettings, AppState, LayoutState } from '../../contracts';
 
-/** Default {@link AppSettings} (spec plan/04 §4.5; finalized/extended at T3.7). */
+/**
+ * Default {@link AppSettings} (spec plan/04 §4.5; finalized/extended at T3.7).
+ *
+ * The T3.7 additive fields (`mapSource`, `telemetryRateHz`) are deliberately
+ * omitted (left `undefined`) rather than given concrete defaults: they are inert
+ * when unset, and omitting them keeps the default state equal to the pre-T3.7
+ * shape so existing persistence + equality tests still pass. A sensible UI
+ * placeholder for the telemetry rate lives alongside the Settings screen
+ * (`DEFAULT_TELEMETRY_RATE_HZ`).
+ */
 const DEFAULT_APP_SETTINGS: AppSettings = {
   units: 'metric',
   coordinateFormat: 'dd',
