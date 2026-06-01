@@ -1,0 +1,152 @@
+/**
+ * Waypoint table styles (task T4.3; spec plan/05 §5.4 Plan). Themed via the
+ * shared CSS custom properties (core/theme); no hard-coded brand colours.
+ */
+.mvp-wptable {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  overflow: auto;
+  color: var(--mvp-fg, #e6e6e6);
+  font: inherit;
+}
+
+.mvp-wptable__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+}
+
+.mvp-wptable__group {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.mvp-wptable__defalt span {
+  font-size: 0.85rem;
+  color: var(--mvp-fg-muted, #a0a0a0);
+}
+
+.mvp-wptable__totals {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem 1rem;
+  margin: 0 0 0 auto;
+  flex-wrap: wrap;
+}
+
+.mvp-wptable__totals dt {
+  display: inline;
+  color: var(--mvp-fg-muted, #a0a0a0);
+  font-size: 0.85rem;
+}
+
+.mvp-wptable__totals dd {
+  display: inline;
+  margin: 0 0.75rem 0 0.25rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.mvp-wptable__table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.85rem;
+}
+
+.mvp-wptable__caption {
+  text-align: left;
+  font-weight: 600;
+  padding-bottom: 0.4rem;
+  color: var(--mvp-fg-muted, #a0a0a0);
+}
+
+.mvp-wptable__table th,
+.mvp-wptable__table td {
+  border: 1px solid var(--mvp-border, #444);
+  padding: 0.2rem 0.35rem;
+  text-align: left;
+}
+
+.mvp-wptable__table thead th {
+  position: sticky;
+  top: 0;
+  background: var(--mvp-bg-elevated, #1c1c1c);
+  color: var(--mvp-fg-muted, #a0a0a0);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.mvp-wptable__seq {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--mvp-fg-muted, #a0a0a0);
+}
+
+.mvp-wptable__row--current {
+  outline: 2px solid var(--mvp-accent, #2d6cdf);
+  outline-offset: -2px;
+}
+
+.mvp-wptable__input,
+.mvp-wptable__select {
+  width: 100%;
+  min-width: 5rem;
+  padding: 0.2rem 0.3rem;
+  border: 1px solid var(--mvp-border, #444);
+  border-radius: 4px;
+  background: var(--mvp-bg-elevated, #1c1c1c);
+  color: inherit;
+  font: inherit;
+}
+
+.mvp-wptable__cell--num .mvp-wptable__input {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.mvp-wptable__input:disabled {
+  opacity: 0.4;
+}
+
+.mvp-wptable__cell--actions {
+  white-space: nowrap;
+}
+
+.mvp-wptable__btn {
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--mvp-border, #444);
+  border-radius: 4px;
+  background: var(--mvp-bg-elevated, #1c1c1c);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.mvp-wptable__btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.mvp-wptable__btn--primary {
+  background: var(--mvp-accent, #2d6cdf);
+  color: var(--mvp-accent-fg, #fff);
+}
+
+.mvp-wptable__btn--danger {
+  border-color: var(--mvp-danger, #c0392b);
+  color: var(--mvp-danger, #c0392b);
+}
+
+.mvp-wptable__editor-cell {
+  background: var(--mvp-bg, #141414);
+  padding: 0.6rem;
+}
+
+.mvp-wptable__empty {
+  text-align: center;
+  color: var(--mvp-fg-muted, #a0a0a0);
+  padding: 1rem;
+}

@@ -1,0 +1,135 @@
+/**
+ * Geofence editor styles (task T4.6; spec plan/05 §5.3 Plan). Themed via the
+ * shared CSS custom properties (core/theme); no hard-coded colours.
+ */
+.mvp-fence {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 0.75rem;
+  overflow: auto;
+  color: var(--mvp-fg, #e6e6e6);
+  font: inherit;
+}
+
+.mvp-fence__section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.mvp-fence__heading {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--mvp-fg-muted, #a0a0a0);
+}
+
+.mvp-fence__shapes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mvp-fence__shape {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.4rem;
+  border: 1px solid var(--mvp-border, #444);
+  border-radius: 4px;
+  background: var(--mvp-bg-elevated, #1c1c1c);
+}
+
+.mvp-fence__shape-label {
+  flex: 1 1 auto;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.mvp-fence__shape-detail {
+  font-size: 0.8rem;
+  color: var(--mvp-fg-muted, #a0a0a0);
+}
+
+.mvp-fence__radius {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.mvp-fence__field {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.mvp-fence__label {
+  font-size: 0.85rem;
+}
+
+.mvp-fence__input {
+  width: 6rem;
+  padding: 0.25rem 0.4rem;
+  border: 1px solid var(--mvp-border, #444);
+  border-radius: 4px;
+  background: var(--mvp-bg-elevated, #1c1c1c);
+  color: inherit;
+  font: inherit;
+  text-align: right;
+}
+
+.mvp-fence__select {
+  padding: 0.25rem 0.4rem;
+  border: 1px solid var(--mvp-border, #444);
+  border-radius: 4px;
+  background: var(--mvp-bg-elevated, #1c1c1c);
+  color: inherit;
+  font: inherit;
+}
+
+.mvp-fence__remove {
+  padding: 0.2rem 0.45rem;
+  border: 1px solid var(--mvp-border, #444);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--mvp-fg-muted, #a0a0a0);
+  font: inherit;
+  cursor: pointer;
+}
+
+.mvp-fence__remove:hover {
+  color: var(--mvp-danger, #e0564b);
+}
+
+.mvp-fence__add {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.mvp-fence__btn {
+  padding: 0.35rem 0.7rem;
+  border: 1px solid var(--mvp-border, #444);
+  border-radius: 4px;
+  background: var(--mvp-bg-elevated, #1c1c1c);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.mvp-fence__btn:hover {
+  border-color: var(--mvp-accent, #2d6cdf);
+}
+
+.mvp-fence__hint {
+  margin: 0;
+  color: var(--mvp-fg-muted, #a0a0a0);
+  font-size: 0.85rem;
+}
