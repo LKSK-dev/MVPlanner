@@ -33,7 +33,12 @@ import type {
 import type { ParamMetaResolver, TFn } from '../../widgets/paramgrid';
 import { createParamWorkbenchPanel } from './params';
 import { createTuningPanel, type TuningVehicle } from './tuning';
-import { createSettingsPanel, type ConfirmFn, type StorageManagerDeps } from './settings';
+import {
+  createSettingsPanel,
+  type ConfirmFn,
+  type NetworkSectionDeps,
+  type StorageManagerDeps,
+} from './settings';
 import { loadParamFile, saveParamFile } from '../../../data/paramfile';
 import './messages';
 
@@ -61,6 +66,8 @@ export interface ConfigScreenProps {
   storageManager: StorageManagerDeps;
   /** Safety-confirm seam for the Settings factory reset (the shell `confirm`). */
   confirm?: ConfirmFn;
+  /** Settings → Network egress-transparency sources (spec plan/07 §7.7); optional. */
+  network?: NetworkSectionDeps;
   /** The host panel's {@link PanelApi} (threaded to the sub-panel mounts). */
   api: PanelApi;
   /** i18n translate function. */
@@ -128,6 +135,7 @@ export const ConfigScreen: Component<ConfigScreenProps> = (props) => {
         store: props.store,
         storage: props.storageManager,
         ...(props.confirm !== undefined ? { confirm: props.confirm } : {}),
+        ...(props.network !== undefined ? { network: props.network } : {}),
       }),
     },
   ];

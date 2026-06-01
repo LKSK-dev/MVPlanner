@@ -146,3 +146,11 @@
   margin: 0;
   font-variant-numeric: tabular-nums;
 }
+
+/* Settings → Network (egress transparency; T8.12). */
+.mvp-settings__subheading-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}

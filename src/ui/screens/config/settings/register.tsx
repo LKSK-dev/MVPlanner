@@ -14,6 +14,7 @@ import { render } from 'solid-js/web';
 import type { AppState, PanelApi, PanelDef, Store } from '../../../../contracts';
 import { SettingsScreen, type ConfirmFn } from './settings-screen';
 import type { StorageManagerDeps } from './storage-manager';
+import type { NetworkSectionDeps } from './network';
 import './messages';
 
 /** Stable panel id (workspaces/extensions may dock Settings by this id). */
@@ -27,6 +28,8 @@ export interface SettingsPanelDeps {
   readonly storage?: StorageManagerDeps;
   /** Safety-confirm seam for the factory reset (the shell `confirm`). */
   readonly confirm?: ConfirmFn;
+  /** Settings → Network egress-transparency sources (spec plan/07 §7.7); optional. */
+  readonly network?: NetworkSectionDeps;
 }
 
 /** Build the dockable `config.settings` {@link PanelDef} bound to its deps. */
@@ -43,6 +46,7 @@ export function createSettingsPanel(deps: SettingsPanelDeps): PanelDef {
             t: api.t,
             ...(deps.storage !== undefined ? { storage: deps.storage } : {}),
             ...(deps.confirm !== undefined ? { confirm: deps.confirm } : {}),
+            ...(deps.network !== undefined ? { network: deps.network } : {}),
           }),
         el,
       );

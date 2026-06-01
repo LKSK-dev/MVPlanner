@@ -1,9 +1,15 @@
-import { onCleanup, type Component } from 'solid-js';
+import { createEffect, onCleanup, type Component } from 'solid-js';
 import type { Capabilities } from './core/capabilities';
 import { detectRealCapabilities } from './core/capabilities';
 import { createAppStore } from './core/store';
 import { t } from './core/i18n';
 import { createStorage } from './data/storage';
+import {
+  createSecretStore,
+  SECRET_MAP_API_KEY,
+  SecretsCryptoUnavailableError,
+  type SecretStore,
+} from './core/secrets';
 import { Shell, createUiRegistry, setScreenPanel, type ShellContextValue } from './ui/shell';
 import { ConnectionProvider } from './ui/shell/connection';
 import { MavlinkHost } from './mavlink/host';
@@ -16,7 +22,15 @@ import {
   wireAudioAlerts,
   type FlightHost,
 } from './ui/screens/flight';
-import { createConfigScreenPanel } from './ui/screens/config';
+import {
+  createConfigScreenPanel,
+  createEgressLog,
+  type EgressLog,
+  type LinkDestination,
+  type NetGrantRow,
+  type NetworkSectionDeps,
+} from './ui/screens/config';
+import type { AppState, KvStore, Store } from './contracts';
 import { createPlanScreenPanel } from './ui/screens/plan';
 import { createSetupScreenPanel, wireTracker } from './ui/screens/setup';
 import { createForwardController, type ForwardController } from './ui/shell/connection';
@@ -29,7 +43,7 @@ import {
   InstallPromptHost,
   type InstallPromptController,
 } from './ui/screens/sim';
-import { createEventsBus, createExtensionSystem } from './ext/api';
+import { createEventsBus, createExtensionSystem, type ExtensionSystem } from './ext/api';
 import { examples } from '../extensions/index.js';
 import './ui/shell/shell.css';
 import './ui/shell/connection/connection.css';
@@ -90,6 +104,12 @@ export const App: Component<AppProps> = (props) => {
     // M3 keystone: install the real Config screen (Parameters | Tuning |
     // Settings) over its placeholder, sharing the app-scoped ParamClient /
     // ParamMetaStore + the CommandClient (autotune) from the same services.
+    // T8.12 security: the encrypted-at-rest secret store (WebCrypto), the egress
+    // log (the broker `recordEgress` sink) and the Settings -> Network sources.
+    const secrets = createAppSecretStore(storage.kv);
+    const egressLog = createEgressLog();
+    const networkDeps = buildNetworkDeps({ store, egress: egressLog, getSystem: () => extSystem });
+
     const disposeConfigPanel = setScreenPanel(
       'config',
       createConfigScreenPanel({
@@ -99,6 +119,7 @@ export const App: Component<AppProps> = (props) => {
         store,
         storage,
         registry,
+        network: networkDeps,
         t,
       }),
     );
@@ -166,6 +187,8 @@ export const App: Component<AppProps> = (props) => {
       confirm: (opts) => registry.confirm(opts),
       audit: flight.services.audit,
       events: extEvents,
+      // T8.12: record every brokered extension egress for Settings -> Network.
+      recordEgress: (info) => egressLog.record(info),
     });
     const simTools = createSimDevTools({
       system: extSystem,
@@ -190,6 +213,10 @@ export const App: Component<AppProps> = (props) => {
 
     // T8.9 antenna tracker: reachable as a dockable panel + ⌘K command, bound to
     // the host send/onMessage taps, the active vehicle and the shared ParamClient.
+    // T8.12: route the map/tile provider API key through the encrypted secret
+    // store (write-through on change; hydrate the in-memory store on startup).
+    const disposeMapKeySecret = wireMapApiKeySecret({ store, secrets });
+
     const disposeTracker = wireTracker({
       host,
       getActiveVehicle: () => {
@@ -206,6 +233,7 @@ export const App: Component<AppProps> = (props) => {
     forwarder = createForwardController({ host });
 
     onCleanup(() => {
+      disposeMapKeySecret();
       disposeAudio();
       disposeTracker();
       forwarder?.dispose();
@@ -249,4 +277,92 @@ export const App: Component<AppProps> = (props) => {
 function isFlightHost(host: MavlinkHostLike): host is MavlinkHostLike & FlightHost {
   const candidate = host as Partial<FlightHost>;
   return typeof candidate.onMessage === 'function' && typeof candidate.onRawFrame === 'function';
+}
+
+/**
+ * Build the app's encrypted-at-rest {@link SecretStore} over the storage KV and
+ * kick off a best-effort default (empty-passphrase) unlock (T8.12; spec plan/07
+ * §7.7). Returns `undefined` when WebCrypto is unavailable (non-secure context),
+ * so the wiring degrades to a no-op rather than ever storing plaintext.
+ */
+function createAppSecretStore(kv: KvStore): SecretStore | undefined {
+  try {
+    const secrets = createSecretStore({ storage: kv });
+    void secrets.unlock().catch(() => undefined);
+    return secrets;
+  } catch (err) {
+    if (err instanceof SecretsCryptoUnavailableError) return undefined;
+    throw err;
+  }
+}
+
+/**
+ * Route the map/tile provider API key through the encrypted {@link SecretStore}
+ * (T8.12). On startup the encrypted key hydrates the in-memory store (when the
+ * plaintext field is empty); a reactive effect write-through-persists every
+ * later change. The in-memory `settings.mapSource.apiKey` (consumed by the map)
+ * stays as-is. A no-op dispose is returned (the effect is owned by the App root).
+ */
+function wireMapApiKeySecret(deps: {
+  store: Store<AppState>;
+  secrets: SecretStore | undefined;
+}): () => void {
+  const secrets = deps.secrets;
+  const noop = (): void => undefined;
+  if (secrets === undefined) return noop;
+
+  void (async (): Promise<void> => {
+    if (secrets.isLocked()) return;
+    const current = deps.store.get().settings.mapSource?.apiKey;
+    if (current !== undefined && current !== '') return;
+    const stored = await secrets.getString(SECRET_MAP_API_KEY).catch(() => undefined);
+    if (stored === undefined || stored === '') return;
+    deps.store.patch((draft) => {
+      const url = draft.settings.mapSource?.urlTemplate ?? '';
+      draft.settings.mapSource = { urlTemplate: url, apiKey: stored };
+    });
+  })();
+
+  const apiKey = deps.store.select((s) => s.settings.mapSource?.apiKey);
+  createEffect(() => {
+    const key = apiKey();
+    if (secrets.isLocked()) return;
+    if (key === undefined || key === '') {
+      void secrets.clear(SECRET_MAP_API_KEY).catch(() => undefined);
+    } else {
+      void secrets.set(SECRET_MAP_API_KEY, key).catch(() => undefined);
+    }
+  });
+  return noop;
+}
+
+/**
+ * Assemble the Settings -> Network egress-transparency sources (T8.12; spec
+ * plan/07 §7.7): the live egress log, the active-link presence (reactive from
+ * the connection state) and the extension `net:<host>` grants (read lazily from
+ * the extension system).
+ */
+function buildNetworkDeps(deps: {
+  store: Store<AppState>;
+  egress: EgressLog;
+  getSystem: () => ExtensionSystem;
+}): NetworkSectionDeps {
+  const connection = deps.store.select((s) => s.connection);
+  const links = (): readonly LinkDestination[] =>
+    connection().kind === 'open'
+      ? [{ kind: 'mavlink', label: t('settings.network.links.active') }]
+      : [];
+  const netGrants = async (): Promise<readonly NetGrantRow[]> => {
+    const system = deps.getSystem();
+    const rows: NetGrantRow[] = [];
+    for (const state of system.host.list()) {
+      const perms = await system.grants.list(state.id);
+      for (const perm of perms) {
+        if (perm.startsWith('net:'))
+          rows.push({ extId: state.id, host: perm.slice('net:'.length) });
+      }
+    }
+    return rows;
+  };
+  return { egress: deps.egress, links, netGrants };
 }

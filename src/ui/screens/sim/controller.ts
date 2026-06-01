@@ -132,6 +132,8 @@ export function createExtensionsController(deps: ExtensionsControllerDeps): Exte
         module: mod,
         manifest: mod.manifest,
         enabled: existing?.enabled ?? false,
+        // Bundled first-party examples are trusted: in-process runtime (T8.12).
+        trusted: true,
       });
     }
     // Lazily activate any enabled (previously-granted) example.
@@ -186,6 +188,8 @@ export function createExtensionsController(deps: ExtensionsControllerDeps): Exte
         manifest: bundle.manifest as ExtManifest,
         ...(bundle.code !== undefined ? { code: bundle.code } : {}),
         enabled: false,
+        // Imported extensions are untrusted: sandbox runtime when available (T8.12).
+        trusted: false,
       });
       await refresh();
     } catch (err) {

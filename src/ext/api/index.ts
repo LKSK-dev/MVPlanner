@@ -23,7 +23,7 @@ export type { RegisterExtApiDeps } from './register';
 export { assembleExtContext } from './context';
 export type { AssembleExtContextDeps } from './context';
 export { createExtensionSystem } from './system';
-export type { ExtensionSystem, ExtensionSystemDeps } from './system';
+export type { ExtensionSystem, ExtensionSystemDeps, InstallRequest } from './system';
 export { createEventsBus, makeLogSink } from './locals';
 export type { EventsBus, ExtLogSink, ConsoleLike } from './locals';
 export { buildExtApiDts, EXT_API_DTS } from './dts';

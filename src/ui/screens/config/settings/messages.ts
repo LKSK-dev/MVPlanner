@@ -71,6 +71,23 @@ export const SETTINGS_MESSAGES: Readonly<Record<string, string>> = {
   'settings.storage.clearAll.confirm.body':
     'This factory reset permanently deletes all locally stored data (settings, layouts, missions, parameters, logs and cached tiles). This cannot be undone.',
   'settings.storage.unavailable': 'Storage management is unavailable in this context.',
+
+  // Network (egress transparency; spec plan/07 §7.7, plan/08 §8.3).
+  'settings.network.label': 'Network',
+  'settings.network.noPhoneHome':
+    'No analytics, no telemetry, no phone-home. Every network destination below is user-configured.',
+  'settings.network.map.label': 'Map tile source',
+  'settings.network.map.default': 'Built-in / offline tiles only (no custom source configured).',
+  'settings.network.links.label': 'Active links',
+  'settings.network.links.none': 'No active network link.',
+  'settings.network.links.active': 'Active MAVLink link',
+  'settings.network.grants.label': 'Extension network grants',
+  'settings.network.grants.none': 'No extension has been granted network access.',
+  'settings.network.grants.by': 'granted to {ext}',
+  'settings.network.egress.label': 'Egress log',
+  'settings.network.egress.empty': 'No network egress recorded.',
+  'settings.network.egress.row': '{ext} · {time}',
+  'settings.network.egress.clear': 'Clear egress log',
 };
 
 let registered = false;

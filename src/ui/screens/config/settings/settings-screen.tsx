@@ -35,6 +35,7 @@ import {
   type StorageManagerDeps,
   type StorageReport,
 } from './storage-manager';
+import { NetworkSection, type NetworkSectionDeps } from './network';
 import './messages';
 import './settings.css';
 
@@ -70,6 +71,11 @@ export interface SettingsScreenProps {
   storage?: StorageManagerDeps;
   /** Safety-confirm seam for the factory reset (default `window.confirm`). */
   confirm?: ConfirmFn;
+  /**
+   * Injected Settings → Network egress-transparency sources (spec plan/07 §7.7).
+   * When omitted the Network section is not rendered.
+   */
+  network?: NetworkSectionDeps;
 }
 
 /** Format a byte count as a compact binary human-readable size. */
@@ -466,6 +472,11 @@ export const SettingsScreen: Component<SettingsScreenProps> = (props) => {
           </div>
         </Show>
       </section>
+
+      {/* Network (egress transparency) ------------------------------------ */}
+      <Show when={props.network !== undefined}>
+        <NetworkSection store={props.store} deps={props.network as NetworkSectionDeps} t={t} />
+      </Show>
     </section>
   );
 };

@@ -32,3 +32,15 @@ export {
   type StorageReport,
 } from './storage-manager';
 export { SETTINGS_MESSAGES, registerSettingsMessages } from './messages';
+export {
+  NetworkSection,
+  createEgressLog,
+  DEFAULT_EGRESS_MAX,
+  type NetworkSectionProps,
+  type NetworkSectionDeps,
+  type LinkDestination,
+  type NetGrantRow,
+  type EgressLog,
+  type EgressEntry,
+  type EgressLogOptions,
+} from './network';

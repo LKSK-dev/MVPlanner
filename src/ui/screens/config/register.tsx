@@ -27,7 +27,11 @@ import { screenPanelId, type ShellRegistry } from '../../shell';
 import { createTileCache } from '../../widgets/map';
 import type { ParamMetaResolver, TFn } from '../../widgets/paramgrid';
 import { type AppStorage, DB_NAME } from '../../../data/storage';
-import { browserStorageEstimate, type StorageManagerDeps } from './settings';
+import {
+  browserStorageEstimate,
+  type NetworkSectionDeps,
+  type StorageManagerDeps,
+} from './settings';
 import { ConfigScreen } from './config-screen';
 import './messages';
 
@@ -48,6 +52,8 @@ export interface ConfigScreenPanelDeps {
   readonly storage: AppStorage;
   /** The shell registry (for the `confirm` seam). */
   readonly registry: ShellRegistry;
+  /** Settings → Network egress-transparency sources (spec plan/07 §7.7); optional. */
+  readonly network?: NetworkSectionDeps;
   /** i18n translate function. */
   readonly t: TFn;
 }
@@ -107,6 +113,7 @@ export function createConfigScreenPanel(deps: ConfigScreenPanelDeps): PanelDef {
             api,
             t: api.t,
             ...(deps.command !== undefined ? { command: deps.command } : {}),
+            ...(deps.network !== undefined ? { network: deps.network } : {}),
           }),
         el,
       );

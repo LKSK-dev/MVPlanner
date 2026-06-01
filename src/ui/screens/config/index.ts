@@ -24,3 +24,12 @@ export { CONFIG_MESSAGES, registerConfigMessages } from './messages';
 export { ParamWorkbench, createParamWorkbenchPanel, PARAM_WORKBENCH_PANEL_ID } from './params';
 export { TuningPanel, createTuningPanel, TUNING_PANEL_ID } from './tuning';
 export { SettingsScreen, createSettingsPanel, SETTINGS_PANEL_ID } from './settings';
+export {
+  NetworkSection,
+  createEgressLog,
+  type NetworkSectionDeps,
+  type LinkDestination,
+  type NetGrantRow,
+  type EgressLog,
+  type EgressEntry,
+} from './settings';

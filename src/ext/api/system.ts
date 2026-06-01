@@ -22,10 +22,12 @@ import {
   type ActivationEvent,
   type ContextFactory,
   type DisposeRegistry,
+  type ExtLoadRecord,
   type ExtState,
   ExtensionHost,
   type ExtensionRuntime,
   type InstallSource,
+  type LoadedExtension,
   createInProcessRuntime,
 } from '../host';
 import {
@@ -74,6 +76,19 @@ export interface ExtensionSystemDeps {
   now?: () => number;
 }
 
+/**
+ * Install request: the host {@link InstallSource} plus an additive,
+ * session-scoped `trusted` flag (T8.12). `trusted: true` runs the extension in
+ * the TRUSTED in-process runtime (bundled first-party examples carry a module);
+ * the default (`false`) runs imported/untrusted extensions through the SANDBOX
+ * runtime when a {@link GuestSpawner} is provided. The flag is not persisted, so
+ * a restored extension defaults to untrusted (fail-safe) until re-installed.
+ */
+export interface InstallRequest extends InstallSource {
+  /** Run in the trusted in-process runtime (default `false` => sandbox if available). */
+  trusted?: boolean;
+}
+
 /** The wired extension system App drives. */
 export interface ExtensionSystem {
   /** The underlying host (lifecycle + persistence). */
@@ -84,8 +99,8 @@ export interface ExtensionSystem {
   readonly grants: GrantStore;
   /** Hydrate host state from storage (call once at startup). */
   restore(): Promise<void>;
-  /** Install (or replace) an extension. */
-  install(source: InstallSource): Promise<ExtState>;
+  /** Install (or replace) an extension (additive `trusted` selects the runtime). */
+  install(source: InstallRequest): Promise<ExtState>;
   /** Replace an extension's granted permission set (and refresh the snapshot). */
   setGrants(id: string, permissions: readonly Permission[]): Promise<void>;
   /** Enable an extension (activation stays lazy). */
@@ -139,14 +154,28 @@ export function createExtensionSystem(deps: ExtensionSystemDeps): ExtensionSyste
     });
   };
 
-  const runtime: ExtensionRuntime = deps.spawn
+  // Per-extension runtime selector (T8.12). Trusted extensions (bundled examples)
+  // load in-process; untrusted/imported extensions load through the sandbox when
+  // a `spawn` is provided. Without `spawn`, everything falls back to in-process
+  // (the real-Worker browser spawner is the deferred path; see ext/sandbox).
+  const trustedById = new Map<string, boolean>();
+  const inProcess = createInProcessRuntime();
+  const sandbox: ExtensionRuntime | undefined = deps.spawn
     ? createSandboxRuntime({
         broker,
         spawn: deps.spawn,
         ...(deps.watchdog ? { watchdog: deps.watchdog } : {}),
         ...(deps.onTerminated ? { onTerminated: deps.onTerminated } : {}),
       })
-    : createInProcessRuntime();
+    : undefined;
+
+  const runtime: ExtensionRuntime = {
+    load(record: ExtLoadRecord): Promise<LoadedExtension> {
+      const trusted = trustedById.get(record.id) ?? false;
+      if (trusted || sandbox === undefined) return inProcess.load(record);
+      return sandbox.load(record);
+    },
+  };
 
   const host = new ExtensionHost({
     storage: deps.storage,
@@ -171,7 +200,11 @@ export function createExtensionSystem(deps: ExtensionSystemDeps): ExtensionSyste
     broker,
     grants,
     restore: () => host.restore(),
-    install: (source) => host.install(source),
+    install(source): Promise<ExtState> {
+      const manifest = source.manifest ?? source.module?.manifest;
+      if (manifest !== undefined) trustedById.set(manifest.id, source.trusted ?? false);
+      return host.install(source);
+    },
     async setGrants(id, permissions): Promise<void> {
       await grants.set(id, permissions);
       grantSnapshot.set(id, new Set<Permission>(permissions));
@@ -182,6 +215,7 @@ export function createExtensionSystem(deps: ExtensionSystemDeps): ExtensionSyste
       await host.uninstall(id);
       await grants.clear(id);
       grantSnapshot.delete(id);
+      trustedById.delete(id);
     },
     reload: (id, source) => host.reload(id, source),
     async activate(id): Promise<ExtState> {

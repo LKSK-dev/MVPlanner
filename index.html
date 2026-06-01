@@ -2,6 +2,23 @@
 <html lang="en">
   <head>
     <meta charset="utf-8" />
+    <!--
+      Strict Content-Security-Policy for the single-file inline model (T8.12;
+      spec plan/08 §8.3). Rationale per directive is documented in SECURITY.md.
+      - object-src/base-uri/frame-ancestors 'none': no plugins, no <base> hijack,
+        no embedding (clickjacking).
+      - script-src 'unsafe-inline' (the bundle is inlined into this file) +
+        'unsafe-eval' (REQUIRED by the first-party scripting console's
+        AsyncFunction; tradeoff documented in SECURITY.md).
+      - worker-src blob: 'self': inlined workers + sandboxed-extension workers.
+      - img-src https: data: blob: 'self': map tiles + generated imagery.
+      - connect-src http(s)/ws(s)/'self': user-configured vehicle/tile/bridge
+        endpoints; egress is user-driven and surfaced in Settings → Network.
+    -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; worker-src blob: 'self'; img-src 'self' data: blob: https:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; connect-src 'self' https: http: ws: wss: data: blob:"
+    />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="color-scheme" content="dark light" />
     <title>MVPlanner</title>
