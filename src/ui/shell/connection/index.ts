@@ -9,6 +9,24 @@ export { ConnectionProvider, type ConnectionProviderProps } from './provider';
 export { ConnectionDrawer } from './drawer';
 export { ConnectionContext, useConnection, type ConnectionContextValue } from './context';
 export {
+  ForwardControl,
+  createForwardController,
+  type ForwardController,
+  type ForwardControllerOptions,
+  type ForwardControlProps,
+  type ForwardSourceHost,
+} from './forward-control';
+export {
+  GatedManualControlService,
+  createGamepadSource,
+  transportSuitability,
+  wireManualControl,
+  JOYSTICK_COMMAND_ID,
+  type ManualWiringDeps,
+  type ManualWiringHost,
+  type TransportSuitability,
+} from './manual-wiring';
+export {
   normalizeConfigSchema,
   type FormField,
   type SelectField,

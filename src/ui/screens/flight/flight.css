@@ -231,3 +231,44 @@
       'quickwatch';
   }
 }
+
+/* ADS-B traffic details popover (T8.8 integration; display-only). */
+.mvp-flight__adsb {
+  position: absolute;
+  top: var(--mvp-space-2, 0.5rem);
+  right: var(--mvp-space-2, 0.5rem);
+  z-index: 3;
+  min-width: 12rem;
+  max-width: 18rem;
+  padding: var(--mvp-space-2, 0.5rem);
+  border-radius: var(--mvp-radius, 6px);
+  background: var(--mvp-surface, rgba(20, 24, 30, 0.92));
+  color: var(--mvp-text, #f5f7fa);
+  border: 1px solid var(--mvp-border, rgba(255, 255, 255, 0.15));
+  font-size: 0.8rem;
+}
+
+.mvp-flight__adsb-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--mvp-space-2, 0.5rem);
+  font-weight: 600;
+}
+
+.mvp-flight__adsb-close {
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.mvp-flight__adsb-rows {
+  margin: var(--mvp-space-1, 0.25rem) 0 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.1rem;
+}

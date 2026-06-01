@@ -24,6 +24,7 @@ import type {
 import type { ElevationProvider } from '../../src/geo/terrain';
 import { createAppStore } from '../../src/core/store';
 import { createRasterMapEngine, type RasterMapEngine } from '../../src/ui/widgets/map';
+import { TrafficStore } from '../../src/ui/widgets/map/layers/adsb';
 import type { TileCache } from '../../src/geo/tiles';
 import type { StatusMessage } from '../../src/ui/widgets/messages';
 import type { QuickWatchSource } from '../../src/ui/widgets/quickwatch';
@@ -169,6 +170,7 @@ function makeServices(mission: MissionSpy): FlightServices {
     files: fakeFiles(),
     terrainProvider: stubElevationProvider(),
     quickWatchSource: emptyWatchSource(),
+    traffic: new TrafficStore(),
   };
 }
 

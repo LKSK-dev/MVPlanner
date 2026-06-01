@@ -30,6 +30,8 @@ import { createConnectionManager, type MavlinkHostLike } from '../../../transpor
 import { t } from '../../../core/i18n';
 import { ConnectionContext, type ConnectionContextValue } from './context';
 import { ConnectionDrawer } from './drawer';
+import { wireManualControl } from './manual-wiring';
+import type { ForwardController } from './forward-control';
 
 /** A fresh zeroed {@link LinkStats} for the pre-connection diagnostics state. */
 function zeroLink(): LinkStats {
@@ -44,6 +46,11 @@ export interface ConnectionProviderProps {
   readonly registry: UiRegistry;
   /** The MAVLink host the manager drives (real worker host, or a mock in tests). */
   readonly host: MavlinkHostLike;
+  /**
+   * Optional MAVLink forwarding controller (T8.5). Built by {@link App} over the
+   * raw-frame-capable host and surfaced through the connection context + drawer.
+   */
+  readonly forwarder?: ForwardController;
   /** The shell subtree this provider wraps. */
   readonly children: JSX.Element;
 }
@@ -88,10 +95,22 @@ export const ConnectionProvider: Component<ConnectionProviderProps> = (props) =>
     },
   });
 
+  // --- joystick / manual control (T8.6) — gated by the ACTIVE transport ------
+  // Wired here (not in the Flight screen) because the gate depends on the
+  // active transport id, which only the connection manager knows.
+  const offManual = wireManualControl({
+    host: { sendMessage: (name, fields) => manager.sendMessage(name, fields) },
+    store: props.store,
+    registry: props.registry,
+    getFactoryId: () => manager.factoryId(),
+    t,
+  });
+
   onCleanup(() => {
     offState();
     offTelemetry();
     offCommand();
+    offManual();
     void manager.dispose();
   });
 
@@ -104,6 +123,7 @@ export const ConnectionProvider: Component<ConnectionProviderProps> = (props) =>
     drawerOpen,
     openDrawer: () => setDrawerOpen(true),
     closeDrawer: () => setDrawerOpen(false),
+    ...(props.forwarder !== undefined ? { forwarder: props.forwarder } : {}),
   };
 
   return (

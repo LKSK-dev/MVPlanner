@@ -13,11 +13,14 @@ import type { InspectorSource } from './ui/widgets/inspector/types';
 import {
   createFlightServices,
   createFlightScreenPanel,
+  wireAudioAlerts,
   type FlightHost,
 } from './ui/screens/flight';
 import { createConfigScreenPanel } from './ui/screens/config';
 import { createPlanScreenPanel } from './ui/screens/plan';
-import { createSetupScreenPanel } from './ui/screens/setup';
+import { createSetupScreenPanel, wireTracker } from './ui/screens/setup';
+import { createForwardController, type ForwardController } from './ui/shell/connection';
+import { createAudioAlertService } from './core/audio';
 import { createLogsScreenPanel } from './ui/screens/logs';
 import {
   createExtServices,
@@ -77,6 +80,7 @@ export const App: Component<AppProps> = (props) => {
   // Guarded so a test mock host (a bare `MavlinkHostLike` without the selective
   // `onMessage`/`onRawFrame` taps) simply leaves the Flight placeholder in place.
   let installPrompt: InstallPromptController | undefined;
+  let forwarder: ForwardController | undefined;
   if (isFlightHost(host)) {
     const flight = createFlightServices({ host, store, storage });
     const disposeFlightPanel = setScreenPanel(
@@ -177,7 +181,34 @@ export const App: Component<AppProps> = (props) => {
     });
     void simTools.ready();
 
+    // T8.7 voice/audio alerts: one app/connection-scoped service driven by
+    // active-vehicle telemetry transitions + STATUSTEXT; settings persist to the
+    // storage KV and the app-wide `settings.audioAlerts` toggle gates output.
+    const audioService = createAudioAlertService({ store: storage.kv });
+    void audioService.loadSettings();
+    const disposeAudio = wireAudioAlerts({ service: audioService, host, store });
+
+    // T8.9 antenna tracker: reachable as a dockable panel + ⌘K command, bound to
+    // the host send/onMessage taps, the active vehicle and the shared ParamClient.
+    const disposeTracker = wireTracker({
+      host,
+      getActiveVehicle: () => {
+        const s = store.get();
+        return s.activeSysid === undefined ? undefined : s.vehicles[s.activeSysid];
+      },
+      param: flight.services.param,
+      registry,
+      t,
+    });
+
+    // T8.5 MAVLink forwarding: a controller over the host raw-frame tap, surfaced
+    // through the connection drawer's forwarding control.
+    forwarder = createForwardController({ host });
+
     onCleanup(() => {
+      disposeAudio();
+      disposeTracker();
+      forwarder?.dispose();
       disposeFlightPanel();
       disposeConfigPanel();
       disposePlanPanel();
@@ -198,7 +229,12 @@ export const App: Component<AppProps> = (props) => {
   };
 
   return (
-    <ConnectionProvider store={store} registry={registry} host={host}>
+    <ConnectionProvider
+      store={store}
+      registry={registry}
+      host={host}
+      {...(forwarder !== undefined ? { forwarder } : {})}
+    >
       <Shell ctx={ctx} />
       {installPrompt !== undefined ? <InstallPromptHost controller={installPrompt} t={t} /> : null}
     </ConnectionProvider>

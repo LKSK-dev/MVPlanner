@@ -62,6 +62,7 @@ import type { RawFrameLike } from '../../../data/tlog';
 import type { AppStorage } from '../../../data/storage';
 import { statusMessageFromDecoded, type StatusMessage } from '../../../ui/widgets/messages';
 import type { QuickWatchField, QuickWatchSource } from '../../../ui/widgets/quickwatch';
+import { TrafficStore, connectTrafficStore } from '../../../ui/widgets/map/layers/adsb';
 
 /** One on-demand inspector row the quick-watch adapter reads (host projection). */
 interface InspectorRowLike {
@@ -140,6 +141,12 @@ export interface FlightServices {
   readonly terrainProvider: ElevationProvider;
   /** Live numeric-field source for the quick-watch widget. */
   readonly quickWatchSource: QuickWatchSource;
+  /**
+   * Display-only ADS-B traffic store (T8.8), fed from the host `ADSB_VEHICLE`
+   * stream. The Flight map adds a layer over `traffic.all()` + evicts stale
+   * entries on a timer.
+   */
+  readonly traffic: TrafficStore;
 }
 
 /** Construction dependencies for {@link createFlightServices}. */
@@ -313,6 +320,10 @@ export function createFlightServices(deps: FlightServicesDeps): FlightServicesHa
 
   const quickWatchSource = createInspectorWatchSource(host);
 
+  // T8.8: display-only ADS-B traffic, fed from the host ADSB_VEHICLE stream.
+  const traffic = new TrafficStore();
+  const offTraffic = connectTrafficStore(host, traffic);
+
   const services: FlightServices = {
     command,
     calibration,
@@ -327,10 +338,12 @@ export function createFlightServices(deps: FlightServicesDeps): FlightServicesHa
     files: storage.files,
     terrainProvider,
     quickWatchSource,
+    traffic,
   };
 
   const dispose = async (): Promise<void> => {
     offStatus();
+    offTraffic();
     command.dispose();
     calibration.dispose();
     mission.dispose();

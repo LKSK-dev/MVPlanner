@@ -31,6 +31,7 @@ import { BUILTIN_TRANSPORT_FACTORIES } from '../../../transport';
 import { formatDecimal, formatInteger, t } from '../../../core/i18n';
 import { useConnection } from './context';
 import { normalizeConfigSchema, type FormField } from './config-form';
+import { ForwardControl } from './forward-control';
 
 /** A form control value while editing. */
 type FormValue = string | number | File;
@@ -363,6 +364,10 @@ export const ConnectionDrawer: Component = () => {
               </select>
             </Show>
           </section>
+
+          <Show when={conn.forwarder}>
+            {(controller) => <ForwardControl controller={controller()} />}
+          </Show>
 
           <section class="mvp-conn__diag" aria-label={t('conn.diagnostics')}>
             <h3>{t('conn.diagnostics')}</h3>

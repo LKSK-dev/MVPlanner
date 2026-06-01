@@ -44,6 +44,10 @@ export const FLIGHT_MESSAGES: Readonly<Record<string, string>> = {
 
   // Audit log section.
   'flight.audit.toggle': 'Action audit log',
+
+  // ADS-B traffic (display-only).
+  'flight.adsb.label': 'ADS-B traffic',
+  'flight.adsb.close': 'Close traffic details',
 };
 
 let registered = false;

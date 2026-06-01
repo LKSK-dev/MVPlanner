@@ -15,6 +15,7 @@ import type {
   BlobStore,
   CalibrationClient,
   CommandClient,
+  DecodedMessage,
   FileIo,
   MissionClient,
   Param,
@@ -30,6 +31,7 @@ import { createAppStore } from '../../src/core/store';
 import { createAuditLog, type AuditLog } from '../../src/core/audit';
 import { TlogRecorder } from '../../src/data/tlog';
 import { createRasterMapEngine, type RasterMapEngine } from '../../src/ui/widgets/map';
+import { TrafficStore } from '../../src/ui/widgets/map/layers/adsb';
 import type { TileCache } from '../../src/geo/tiles';
 import type { StatusMessage } from '../../src/ui/widgets/messages';
 import type { QuickWatchSource } from '../../src/ui/widgets/quickwatch';
@@ -192,6 +194,45 @@ function offlineEngine(): RasterMapEngine {
   });
 }
 
+/** An offline engine that records the ids of every added layer. */
+function recordingEngine(layerIds: string[]): RasterMapEngine {
+  const base = offlineEngine();
+  return {
+    ...base,
+    addLayer(layer) {
+      layerIds.push(layer.id);
+      return base.addLayer(layer);
+    },
+  };
+}
+
+/** Build a decoded `ADSB_VEHICLE` message for the traffic store. */
+function adsbMessage(over: { lat: number; lon: number; callsign?: string }): DecodedMessage {
+  return {
+    name: 'ADSB_VEHICLE',
+    msgId: 246,
+    sysid: 1,
+    compid: 1,
+    seq: 0,
+    crcOk: true,
+    signed: false,
+    rxTimeUs: 0,
+    raw: new Uint8Array(0),
+    fields: {
+      ICAO_address: 0xabcdef,
+      lat: Math.round(over.lat * 1e7),
+      lon: Math.round(over.lon * 1e7),
+      altitude: 120_000,
+      heading: 9000,
+      hor_velocity: 12_000,
+      callsign: over.callsign ?? 'TEST123',
+      emitter_type: 1,
+      tslc: 0,
+      flags: 0,
+    },
+  };
+}
+
 interface Harness {
   services: FlightServices;
   store: Store<AppState>;
@@ -226,6 +267,7 @@ function makeHarness(): Harness {
     files: fakeFiles(saved),
     terrainProvider: stubElevationProvider(),
     quickWatchSource: emptyWatchSource(),
+    traffic: new TrafficStore(),
   };
   return {
     services,
@@ -418,6 +460,54 @@ function makeCaps(): Capabilities {
     gamepad: false,
   };
 }
+
+describe('FlightScreen — ADS-B traffic layer (T8.8)', () => {
+  it('mounts the display-only ADS-B traffic layer on the map engine', async () => {
+    const h = makeHarness();
+    const layerIds: string[] = [];
+    render(() =>
+      createComponent(FlightScreen, {
+        services: h.services,
+        store: h.store,
+        confirm: () => Promise.resolve(true),
+        t,
+        createEngine: () => recordingEngine(layerIds),
+      }),
+    );
+    await settle();
+    expect(layerIds).toContain('adsb.traffic');
+  });
+
+  it('selects an aircraft on a map click and shows its details', async () => {
+    const h = makeHarness();
+    h.services.traffic.ingestMessage(adsbMessage({ lat: 10, lon: 20, callsign: 'ABC123' }));
+
+    let engine: RasterMapEngine | undefined;
+    const { container } = render(() =>
+      createComponent(FlightScreen, {
+        services: h.services,
+        store: h.store,
+        confirm: () => Promise.resolve(true),
+        t,
+        createEngine: () => {
+          engine = offlineEngine();
+          return engine;
+        },
+      }),
+    );
+    await settle();
+    expect(engine).toBeDefined();
+    // Centre the view on the aircraft and click at its projected pixel.
+    engine!.setView({ lat: 10, lon: 20, zoom: 10 });
+    const [px, py] = engine!.project(10, 20);
+    engine!.clickAt(px, py);
+    await settle();
+
+    const details = container.querySelector('[data-testid="flight-adsb-details"]');
+    expect(details).toBeTruthy();
+    expect(details?.textContent).toContain('ABC123');
+  });
+});
 
 describe('FlightScreen — shell registration', () => {
   it('replaces the Flight placeholder so the dock mounts the real screen', async () => {

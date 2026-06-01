@@ -20,3 +20,10 @@ export {
   type SetupScreenPanelDeps,
 } from './register';
 export { SETUP_SCREEN_MESSAGES, registerSetupScreenMessages } from './messages';
+export {
+  wireTracker,
+  TRACKER_PANEL_ID,
+  TRACKER_COMMAND_ID,
+  type TrackerWiringDeps,
+  type TrackerWiringHost,
+} from './tracker-register';

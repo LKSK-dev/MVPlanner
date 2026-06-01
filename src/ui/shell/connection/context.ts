@@ -11,6 +11,7 @@
 import { createContext, useContext, type Accessor } from 'solid-js';
 import type { ConnState, LinkStats, VehicleState } from '../../../contracts';
 import type { ConnectionManager } from '../../../transport/manager';
+import type { ForwardController } from './forward-control';
 
 /** Everything the connection drawer + top-bar chip read from the provider. */
 export interface ConnectionContextValue {
@@ -26,6 +27,11 @@ export interface ConnectionContextValue {
   readonly stats: Accessor<LinkStats>;
   /** Whether the connection drawer is open. */
   readonly drawerOpen: Accessor<boolean>;
+  /**
+   * Optional MAVLink forwarding controller (T8.5). Present when the app wires a
+   * raw-frame-capable host; the drawer shows the forwarding control when set.
+   */
+  readonly forwarder?: ForwardController;
   /** Open the connection drawer. */
   openDrawer(): void;
   /** Close the connection drawer. */

@@ -24,6 +24,11 @@ export {
   type FlightScreenPanelDeps,
 } from './register';
 export { FLIGHT_MESSAGES, registerFlightMessages } from './messages';
+export {
+  wireAudioAlerts,
+  type AudioAlertWiringDeps,
+  type AudioAlertHostSlice,
+} from './audio-alerts';
 
 // Re-export the actions surface (already a side-effecting barrel) for one import
 // site, mirroring the other screen barrels.

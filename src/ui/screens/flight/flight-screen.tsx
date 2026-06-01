@@ -24,6 +24,7 @@
  * command client and an offline engine seam (`createEngine`).
  */
 import {
+  Show,
   createEffect,
   createMemo,
   createSignal,
@@ -51,6 +52,13 @@ import {
   type VehicleOverlay,
 } from '../../../ui/widgets/map/layers';
 import { createMapTools, type MapTools, type ToolMode } from '../../../ui/widgets/map/tools';
+import {
+  createAdsbTrafficLayer,
+  pickTrafficTarget,
+  projectTrafficTargets,
+  trafficDetails,
+  type TrafficDetails,
+} from '../../../ui/widgets/map/layers/adsb';
 import { MessagesConsole } from '../../../ui/widgets/messages';
 import { QuickWatch } from '../../../ui/widgets/quickwatch';
 import { ActionsBar, AuditPanel, runAction, type ActionsDeps, type ConfirmFn } from './actions';
@@ -75,6 +83,8 @@ const TRACK_CAPACITY = 600;
 const TRACK_MIN_SPACING_M = 2;
 /** Record-stats poll cadence (ms). */
 const STATS_POLL_MS = 500;
+/** ADS-B stale-eviction + repaint cadence (ms). */
+const ADSB_POLL_MS = 1000;
 
 /** What a map click in `none` mode commands (shared confirm + audit path). */
 type GuidedMode = 'goto' | 'roi';
@@ -171,10 +181,17 @@ export const FlightScreen: Component<FlightScreenProps> = (props) => {
     return home === undefined ? undefined : { lat: home.lat, lon: home.lon };
   };
 
+  // --- ADS-B traffic (T8.8): display-only layer + click-to-select ------------
+  const [selectedIcao, setSelectedIcao] = createSignal<number | undefined>(undefined);
+  const adsbLayer = createAdsbTrafficLayer(() => services.traffic.all(), {
+    selectedIcaoAddress: () => selectedIcao(),
+  });
+
   const layerDisposers = [
     engine.addLayer(createTrackLayer(() => trackRing.points())),
     engine.addLayer(createHomeLayer(homeOverlay, { label: t('mapoverlay.home.label') })),
     engine.addLayer(createVehicleLayer(vehicleOverlay)),
+    engine.addLayer(adsbLayer),
   ];
   const tools: MapTools = createMapTools(engine, { t });
   onCleanup(() => {
@@ -200,11 +217,31 @@ export const FlightScreen: Component<FlightScreenProps> = (props) => {
     origin: 'map',
   });
   const offIntent = tools.onClickIntent((e) => {
+    // A click that lands on an ADS-B aircraft SELECTS it (display-only) and does
+    // NOT issue a guided command; this gives traffic inspection priority over
+    // the guided fly-here / ROI path on the same click.
+    const projectFor = (lat: number, lon: number): [number, number] => engine.project(lat, lon);
+    const targets = projectTrafficTargets(services.traffic.all(), projectFor);
+    const hit = pickTrafficTarget(targets, engine.project(e.lat, e.lon));
+    if (hit !== undefined) {
+      setSelectedIcao(hit.aircraft.icaoAddress);
+      return;
+    }
+    setSelectedIcao(undefined);
     const altM = activeVehicle()?.position?.altRelM ?? DEFAULT_GUIDED_ALT_M;
     const action = guidedMode() === 'roi' ? 'setRoi' : 'guidedGoto';
     void runAction(actionDeps(), action, { lat: e.lat, lon: e.lon, altM });
   });
   onCleanup(offIntent);
+
+  // Selected-aircraft details popover (display-only).
+  const adsbNow = props.now ?? ((): number => Date.now());
+  const selectedDetails = createMemo<TrafficDetails | undefined>(() => {
+    const icao = selectedIcao();
+    if (icao === undefined) return undefined;
+    const aircraft = services.traffic.get(icao);
+    return aircraft === undefined ? undefined : trafficDetails(aircraft, adsbNow());
+  });
 
   const [toolMode, setToolMode] = createSignal<ToolMode>('none');
   const onToolChange = (mode: ToolMode): void => {
@@ -223,11 +260,18 @@ export const FlightScreen: Component<FlightScreenProps> = (props) => {
   };
 
   let statsTimer: ReturnType<typeof setInterval> | undefined;
+  let adsbTimer: ReturnType<typeof setInterval> | undefined;
   onMount(() => {
     statsTimer = setInterval(refreshStats, STATS_POLL_MS);
+    // Evict stale ADS-B traffic + repaint so faded aircraft drop off the map.
+    adsbTimer = setInterval(() => {
+      services.traffic.evictStale();
+      engine.requestRedraw();
+    }, ADSB_POLL_MS);
   });
   onCleanup(() => {
     if (statsTimer !== undefined) clearInterval(statsTimer);
+    if (adsbTimer !== undefined) clearInterval(adsbTimer);
   });
 
   const toggleRecord = (): void => {
@@ -300,6 +344,34 @@ export const FlightScreen: Component<FlightScreenProps> = (props) => {
               {t('flight.swap')}
             </button>
           </div>
+
+          <Show when={selectedDetails()}>
+            {(details) => (
+              <aside
+                class="mvp-flight__adsb"
+                role="status"
+                aria-label={t('flight.adsb.label')}
+                data-testid="flight-adsb-details"
+              >
+                <div class="mvp-flight__adsb-head">
+                  <span class="mvp-flight__adsb-title">{details().title}</span>
+                  <button
+                    type="button"
+                    class="mvp-flight__adsb-close"
+                    aria-label={t('flight.adsb.close')}
+                    onClick={() => setSelectedIcao(undefined)}
+                  >
+                    ×
+                  </button>
+                </div>
+                <ul class="mvp-flight__adsb-rows">
+                  {details().rows.map((row) => (
+                    <li class="mvp-flight__adsb-row">{row}</li>
+                  ))}
+                </ul>
+              </aside>
+            )}
+          </Show>
         </div>
 
         <div class="mvp-flight__hud" aria-label={t('flight.hud.label')}>
