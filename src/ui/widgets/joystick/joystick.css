@@ -1,0 +1,195 @@
+/**
+ * Joystick / gamepad control-panel styling (task T8.6; spec plan/05
+ * §5.4/§5.5/§5.6). Token-driven (design tokens from `core/theme`); the component
+ * ships no inline colours. Mounting the widget requires importing this
+ * stylesheet (integration step, owned by the Flight screen assembly).
+ *
+ * The "MANUAL CONTROL ACTIVE" banner is deliberately LOUD: it is the safety cue
+ * that live RC commands are being sent to the vehicle.
+ */
+.mvp-joystick {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mvp-space-2, 0.5rem);
+  padding: var(--mvp-space-2, 0.5rem);
+  color: var(--mvp-color-fg, currentColor);
+  font: inherit;
+}
+
+.mvp-joystick__status {
+  margin: 0;
+  padding: var(--mvp-space-2, 0.5rem);
+  border-radius: var(--mvp-radius-2, 0.5rem);
+  text-align: center;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.mvp-joystick__status--off {
+  background: var(--mvp-color-surface, #8881);
+  opacity: 0.7;
+}
+
+.mvp-joystick__status--active {
+  background: var(--mvp-color-danger, #b00020);
+  color: var(--mvp-color-on-danger, #fff);
+  text-transform: uppercase;
+  box-shadow: 0 0 0 2px var(--mvp-color-danger, #b00020);
+  animation: mvp-joystick-pulse 1s ease-in-out infinite;
+}
+
+@keyframes mvp-joystick-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mvp-joystick__status--active {
+    animation: none;
+  }
+}
+
+.mvp-joystick__warning,
+.mvp-joystick__failsafe-note {
+  margin: 0;
+  font-size: var(--mvp-font-size-sm, 0.875rem);
+  opacity: 0.8;
+}
+
+.mvp-joystick__controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--mvp-space-2, 0.5rem);
+}
+
+.mvp-joystick__toggle {
+  padding: var(--mvp-space-1, 0.25rem) var(--mvp-space-3, 0.75rem);
+  border: 1px solid var(--mvp-color-border, #5557);
+  border-radius: var(--mvp-radius-1, 0.25rem);
+  background: var(--mvp-color-surface, transparent);
+  color: inherit;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.mvp-joystick__toggle--active {
+  background: var(--mvp-color-danger, #b00020);
+  color: var(--mvp-color-on-danger, #fff);
+  border-color: var(--mvp-color-danger, #b00020);
+}
+
+.mvp-joystick__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mvp-space-1, 0.25rem);
+  font-size: var(--mvp-font-size-xs, 0.75rem);
+}
+
+.mvp-joystick__field--check {
+  flex-direction: row;
+  align-items: center;
+}
+
+.mvp-joystick__field input[type='number'],
+.mvp-joystick__mode {
+  width: 5rem;
+  padding: var(--mvp-space-1, 0.25rem);
+  border: 1px solid var(--mvp-color-border, #5557);
+  border-radius: var(--mvp-radius-1, 0.25rem);
+  background: var(--mvp-color-surface, transparent);
+  color: inherit;
+  font: inherit;
+}
+
+.mvp-joystick__heading {
+  margin: 0;
+  font-size: var(--mvp-font-size-sm, 0.875rem);
+  opacity: 0.85;
+}
+
+.mvp-joystick__axes,
+.mvp-joystick__buttons,
+.mvp-joystick__map-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--mvp-space-1, 0.25rem);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mvp-joystick__map-list {
+  flex-direction: column;
+}
+
+.mvp-joystick__axis {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--mvp-space-1, 0.25rem);
+  padding: var(--mvp-space-1, 0.25rem) var(--mvp-space-2, 0.5rem);
+  border: 1px solid var(--mvp-color-border, #5557);
+  border-radius: var(--mvp-radius-1, 0.25rem);
+  font-family: var(--mvp-font-mono, ui-monospace, monospace);
+  font-size: var(--mvp-font-size-xs, 0.75rem);
+}
+
+.mvp-joystick__axis-value {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.mvp-joystick__axis-bar {
+  display: inline-block;
+  width: 3rem;
+  height: 0.5rem;
+  border-radius: 0.25rem;
+  background: linear-gradient(
+    to right,
+    var(--mvp-color-accent, currentColor) 0,
+    var(--mvp-color-accent, currentColor) calc((var(--mvp-joystick-axis, 0) * 50% + 50%)),
+    var(--mvp-color-surface, #8881) 0
+  );
+}
+
+.mvp-joystick__button {
+  padding: var(--mvp-space-1, 0.25rem) var(--mvp-space-2, 0.5rem);
+  border: 1px solid var(--mvp-color-border, #5557);
+  border-radius: var(--mvp-radius-1, 0.25rem);
+  font-size: var(--mvp-font-size-xs, 0.75rem);
+  opacity: 0.6;
+}
+
+.mvp-joystick__button--pressed {
+  opacity: 1;
+  background: var(--mvp-color-accent, currentColor);
+  color: var(--mvp-color-on-accent, #fff);
+  border-color: var(--mvp-color-accent, currentColor);
+}
+
+.mvp-joystick__map-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--mvp-space-2, 0.5rem);
+  padding: var(--mvp-space-1, 0.25rem) 0;
+  border-bottom: 1px solid var(--mvp-color-border, #5557);
+}
+
+.mvp-joystick__map-name {
+  align-self: center;
+  font-weight: 600;
+}
+
+.mvp-joystick__no-gamepad,
+.mvp-joystick__no-mappings {
+  margin: 0;
+  font-size: var(--mvp-font-size-sm, 0.875rem);
+  opacity: 0.7;
+}

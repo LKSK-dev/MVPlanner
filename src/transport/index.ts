@@ -33,14 +33,25 @@ export type { WebSocketConfig } from './websocket';
 export { ReplayTransport, replayTransportFactory, parseTlog, TlogParseError } from './replay';
 export type { ReplayConfig, TlogFrame } from './replay';
 
+// Web Bluetooth (T8.3)
+export { createBluetoothTransportFactory, bluetoothTransportFactory } from './bluetooth';
+// WebRTC DataChannel (T8.4)
+export { createWebRtcTransportFactory, webRtcTransportFactory } from './webrtc';
+// MAVLink forwarding/proxy (T8.5)
+export { createForwarder } from './forward';
+
 import { serialTransportFactory } from './serial';
 import { websocketTransportFactory } from './websocket';
 import { replayTransportFactory } from './replay';
+import { bluetoothTransportFactory } from './bluetooth';
+import { webRtcTransportFactory } from './webrtc';
 import type { TransportFactory } from '../contracts';
 
-/** All built-in transport factories, keyed by id (for the connection manager). */
+/** All built-in transport factories (for the connection manager / drawer). */
 export const BUILTIN_TRANSPORT_FACTORIES: readonly TransportFactory[] = [
   serialTransportFactory,
   websocketTransportFactory,
+  bluetoothTransportFactory,
+  webRtcTransportFactory,
   replayTransportFactory,
 ];
