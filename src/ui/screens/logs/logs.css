@@ -1,0 +1,192 @@
+/**
+ * Logs & analysis screen layout (task T6.8; spec plan/05 §5.4 Logs).
+ *
+ * A source toolbar, a plotter-dominant stage (plotter + series sidebar + map
+ * track), a playback/preset bar, and an inspector + message-sender tool row.
+ * Tokens come from `core/theme`; widget chrome lives in each widget's own CSS.
+ */
+
+.mvp-logs {
+  display: grid;
+  grid-template-rows: auto minmax(280px, 1fr) auto minmax(160px, 280px);
+  gap: var(--mvp-gap);
+  box-sizing: border-box;
+  height: 100%;
+  min-height: 0;
+  padding: var(--mvp-gap);
+  background: var(--mvp-bg);
+  color: var(--mvp-text);
+  overflow: auto;
+}
+
+/* --- source toolbar ------------------------------------------------------- */
+
+.mvp-logs__source {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--mvp-gap);
+}
+
+.mvp-logs__status {
+  color: var(--mvp-text-muted, var(--mvp-text));
+  font-size: 0.85em;
+}
+
+/* --- plotter-dominant stage ----------------------------------------------- */
+
+.mvp-logs__stage {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(220px, 22vw, 320px) clamp(220px, 28vw, 440px);
+  grid-template-areas: 'plot sidebar map';
+  gap: var(--mvp-gap);
+  min-height: 0;
+}
+
+.mvp-logs__plot {
+  grid-area: plot;
+  min-width: 0;
+  min-height: 0;
+  border: 1px solid var(--mvp-border);
+  border-radius: var(--mvp-radius);
+  overflow: hidden;
+}
+
+.mvp-logs__sidebar {
+  grid-area: sidebar;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  border: 1px solid var(--mvp-border);
+  border-radius: var(--mvp-radius);
+  padding: var(--mvp-gap);
+}
+
+.mvp-logs__map {
+  grid-area: map;
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  border: 1px solid var(--mvp-border);
+  border-radius: var(--mvp-radius);
+  overflow: hidden;
+}
+
+/* --- playback + tools ----------------------------------------------------- */
+
+.mvp-logs__playback {
+  min-height: 0;
+}
+
+.mvp-logs__tools {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--mvp-gap);
+  min-height: 0;
+}
+
+.mvp-logs__inspector,
+.mvp-logs__sender {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  border: 1px solid var(--mvp-border);
+  border-radius: var(--mvp-radius);
+}
+
+/* --- series picker -------------------------------------------------------- */
+
+.mvp-logs__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: var(--mvp-gap);
+}
+
+.mvp-logs__field-label {
+  font-size: 0.8em;
+  color: var(--mvp-text-muted, var(--mvp-text));
+}
+
+.mvp-logs__input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.3rem 0.4rem;
+  background: var(--mvp-surface, var(--mvp-bg));
+  color: var(--mvp-text);
+  border: 1px solid var(--mvp-border);
+  border-radius: var(--mvp-radius);
+}
+
+.mvp-logs__btn {
+  padding: 0.35rem 0.7rem;
+  background: var(--mvp-surface, var(--mvp-bg));
+  color: var(--mvp-text);
+  border: 1px solid var(--mvp-border);
+  border-radius: var(--mvp-radius);
+  cursor: pointer;
+}
+
+.mvp-logs__btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.mvp-logs__series-tree {
+  max-height: 40vh;
+  overflow: auto;
+}
+
+.mvp-logs__series-message {
+  margin: 0.4rem 0 0.2rem;
+  font-size: 0.85em;
+  color: var(--mvp-accent, var(--mvp-text));
+}
+
+.mvp-logs__series-fields {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.mvp-logs__series-add,
+.mvp-logs__series-remove {
+  padding: 0.15rem 0.4rem;
+  background: var(--mvp-surface, var(--mvp-bg));
+  color: var(--mvp-text);
+  border: 1px solid var(--mvp-border);
+  border-radius: var(--mvp-radius);
+  cursor: pointer;
+  font-size: 0.8em;
+}
+
+.mvp-logs__series-unit {
+  color: var(--mvp-text-muted, var(--mvp-text));
+}
+
+.mvp-logs__selected-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.mvp-logs__selected-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.15rem 0;
+}
+
+.mvp-logs__hint,
+.mvp-logs__error {
+  font-size: 0.85em;
+  color: var(--mvp-text-muted, var(--mvp-text));
+}
+
+.mvp-logs__error {
+  color: var(--mvp-danger, #c0392b);
+}

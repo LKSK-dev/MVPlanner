@@ -18,6 +18,7 @@ import {
 import { createConfigScreenPanel } from './ui/screens/config';
 import { createPlanScreenPanel } from './ui/screens/plan';
 import { createSetupScreenPanel } from './ui/screens/setup';
+import { createLogsScreenPanel } from './ui/screens/logs';
 import './ui/shell/shell.css';
 import './ui/shell/connection/connection.css';
 import './ui/widgets/inspector/inspector.css';
@@ -110,11 +111,29 @@ export const App: Component<AppProps> = (props) => {
         t,
       }),
     );
+    // M6 keystone: install the real Logs screen (source picker + plotter +
+    // map track + inspector + message sender + tlog playback + CSV export)
+    // over its placeholder. The DataFlash decode runs OFF the main thread in
+    // the inlined log worker; the message sender binds to the host send seam
+    // and the inspector to the same on-demand inspector stream.
+    const disposeLogsPanel = setScreenPanel(
+      'logs',
+      createLogsScreenPanel({
+        files: storage.files,
+        blobs: storage.blobs,
+        send: (name, fields) => host.sendMessage(name, fields),
+        t,
+        ...(typeof inspectorSource.subscribeInspector === 'function'
+          ? { inspectorSource: inspectorSource as InspectorSource }
+          : {}),
+      }),
+    );
     onCleanup(() => {
       disposeFlightPanel();
       disposeConfigPanel();
       disposePlanPanel();
       disposeSetupPanel();
+      disposeLogsPanel();
       void flight.dispose();
     });
   }
