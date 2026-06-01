@@ -19,10 +19,12 @@
  * pixels. The component scales by `canvas.width / rect.width` before calling the
  * engine so projection matches what is drawn.
  */
-import { createSignal, onCleanup, onMount, type Component } from 'solid-js';
+import { Show, createMemo, createSignal, onCleanup, onMount, type Component } from 'solid-js';
 import { t as defaultT } from '../../../core/i18n';
+import type { UnitSystem } from '../../../contracts';
 import './messages';
 import type { LatLon, MapView, RasterMapEngine } from './engine';
+import { groundResolution, niceScale, type ScaleBar } from './scale';
 
 /** The i18n translate function (matches `core/i18n` `t`). */
 export type TFn = (key: string, vars?: Record<string, string | number>) => string;
@@ -40,7 +42,15 @@ export interface MapWidgetProps {
   panStep?: number;
   /** Keyboard zoom step (default 0.5). */
   zoomStep?: number;
+  /**
+   * Unit system for the scale-bar label (default `'metric'`). Screens may pass
+   * the app's configured {@link UnitSystem} to show feet/miles instead.
+   */
+  units?: UnitSystem;
 }
+
+/** Maximum scale-bar length in CSS pixels; the bar picks a round fit below this. */
+const SCALE_MAX_PX = 120;
 
 /** Distance (CSS px) a pointer may move before a press counts as a drag, not a click. */
 const CLICK_SLOP = 4;
@@ -57,6 +67,14 @@ export const MapWidget: Component<MapWidgetProps> = (props) => {
   const zoomStep = (): number => props.zoomStep ?? 0.5;
 
   const [viewState, setViewState] = createSignal<MapView>(props.engine.getView());
+  const [dpr, setDpr] = createSignal(1);
+
+  /** The live scale bar for the current camera (metres-per-CSS-pixel = res × dpr). */
+  const scaleBar = createMemo<ScaleBar>(() => {
+    const v = viewState();
+    const metersPerCssPx = groundResolution(v.lat, v.zoom) * dpr();
+    return niceScale(metersPerCssPx, SCALE_MAX_PX, props.units ?? 'metric');
+  });
 
   let container!: HTMLDivElement;
   let canvas!: HTMLCanvasElement;
@@ -65,6 +83,7 @@ export const MapWidget: Component<MapWidgetProps> = (props) => {
     const engine = props.engine;
     const view = container.ownerDocument.defaultView;
     const dpr = view?.devicePixelRatio && view.devicePixelRatio > 0 ? view.devicePixelRatio : 1;
+    setDpr(dpr);
 
     const resize = (): void => {
       const rect = container.getBoundingClientRect();
@@ -268,6 +287,18 @@ export const MapWidget: Component<MapWidgetProps> = (props) => {
       <p class="mvp-map__readout" aria-live="polite">
         {readout()}
       </p>
+      <Show when={scaleBar().pixels >= 1}>
+        <div
+          class="mvp-map__scale"
+          role="img"
+          aria-label={tFn()('map.scale.a11y', { distance: scaleBar().label })}
+          style={{ width: `${Math.round(scaleBar().pixels)}px` }}
+        >
+          <span class="mvp-map__scale-label" aria-hidden="true">
+            {scaleBar().label}
+          </span>
+        </div>
+      </Show>
       <span class="mvp-map__attribution">{tFn()('map.attribution')}</span>
     </div>
   );

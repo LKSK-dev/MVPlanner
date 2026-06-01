@@ -8,7 +8,7 @@
 
 .mvp-logs {
   display: grid;
-  grid-template-rows: auto minmax(280px, 1fr) auto minmax(160px, 280px);
+  grid-template-rows: auto minmax(440px, 1fr) auto minmax(160px, 280px);
   gap: var(--mvp-gap);
   box-sizing: border-box;
   height: 100%;
@@ -36,9 +36,20 @@
 /* --- plotter-dominant stage ----------------------------------------------- */
 
 .mvp-logs__stage {
+  /*
+   * Plotter-dominant top row (plot + series sidebar) over a full-width
+   * LANDSCAPE map-track strip. Previously the map sat in a narrow right column
+   * (`clamp(220px, 28vw, 440px)`) while the stage row stretched tall, so the
+   * track pane rendered portrait/tall and the canvas (sized to its container)
+   * followed. Spanning the map across both columns with a bounded height gives
+   * it a wide box that matches the Flight/Plan map panes.
+   */
   display: grid;
-  grid-template-columns: minmax(0, 1fr) clamp(220px, 22vw, 320px) clamp(220px, 28vw, 440px);
-  grid-template-areas: 'plot sidebar map';
+  grid-template-columns: minmax(0, 1fr) clamp(220px, 22vw, 320px);
+  grid-template-rows: minmax(220px, 1fr) clamp(180px, 24vh, 300px);
+  grid-template-areas:
+    'plot sidebar'
+    'map map';
   gap: var(--mvp-gap);
   min-height: 0;
 }

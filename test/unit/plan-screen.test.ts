@@ -289,6 +289,58 @@ describe('PlanScreen — map ⇄ table sync via the shared signal', () => {
   });
 });
 
+describe('PlanScreen — survey generate wiring', () => {
+  it('drawing a polygon enables Generate and applies the survey mission to the plan', async () => {
+    // End-to-end: map editor polygon → live grid → Generate → onGenerate →
+    // shared mission signal → waypoint table. (High zoom keeps the grid small.)
+    const engine = offlineEngine();
+    engine.setView({ lat: -35.36, lon: 149.16, zoom: 18 });
+    const c = mount(makeHarness(), engine);
+    await settle();
+    engine.setView({ lat: -35.36, lon: 149.16, zoom: 18 });
+
+    // Draw a 4-vertex polygon with the survey draw tool.
+    fireEvent.click(
+      c.querySelector('[data-testid="plan-tool-draw-survey-polygon"]') as HTMLButtonElement,
+    );
+    engine.clickAt(50, 50);
+    engine.clickAt(200, 50);
+    engine.clickAt(200, 200);
+    engine.clickAt(50, 200);
+    await settle();
+
+    // Open the survey tab: the polygon reached the panel → Generate is enabled.
+    fireEvent.click(c.querySelector('[data-testid="plan-tab-survey"]') as HTMLButtonElement);
+    await settle();
+    const generate = c.querySelector('[data-testid="survey-generate"]') as HTMLButtonElement;
+    expect(generate.disabled).toBe(false);
+
+    // Generate applies the survey mission to the shared signal → table rows.
+    fireEvent.click(generate);
+    await settle();
+    expect(c.querySelector('[data-seq="0"]')).toBeTruthy();
+    expect(c.querySelector('[data-testid="wp-empty"]')).toBeNull();
+  });
+});
+
+describe('PlanScreen — measure status visibility', () => {
+  it('hides the measure prompt outside measure mode and shows it while measuring', async () => {
+    const c = mount(makeHarness());
+    await settle();
+    const measure = c.querySelector('[data-testid="plan-measure"]') as HTMLElement;
+
+    // Default tool is select → no lingering "Click the map to measure" prompt.
+    expect(measure.textContent).toBe('');
+
+    fireEvent.click(c.querySelector('[data-testid="plan-tool-measure"]') as HTMLButtonElement);
+    expect(measure.textContent?.trim()).not.toBe('');
+
+    // Switching back to a non-measure tool clears the live region again.
+    fireEvent.click(c.querySelector('[data-testid="plan-tool-select"]') as HTMLButtonElement);
+    expect(measure.textContent).toBe('');
+  });
+});
+
 // --------------------------------------------------------------------------
 // Shell integration: navigating to Plan mounts the real screen
 // --------------------------------------------------------------------------

@@ -7,12 +7,10 @@ node_modules/
 .pnp.js
 
 # Build output
-dist/
+# Note: dist/ is intentionally tracked so the built single-file artifact
+# (dist/MVPlanner.html) is published to the remote / GitHub Pages.
 build/
 *.tsbuildinfo
-
-# Single-file release artifact (built, not tracked)
-MVPlanner.html
 
 # Editor / OS
 .DS_Store

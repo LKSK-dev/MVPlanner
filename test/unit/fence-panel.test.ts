@@ -4,10 +4,10 @@
  * asserts add/remove/edit of shapes and the limits/breach-action controls.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { createComponent } from 'solid-js';
+import { createComponent, createSignal } from 'solid-js';
 import { cleanup, fireEvent, render } from '@solidjs/testing-library';
 import { FencePanel } from '../../src/ui/screens/plan/fence';
-import { FenceBreachAction, type Fence } from '../../src/geo/fence';
+import { FenceBreachAction, addCircle, createFence, type Fence } from '../../src/geo/fence';
 
 afterEach(() => cleanup());
 
@@ -41,6 +41,29 @@ describe('FencePanel', () => {
     expect(circle?.kind).toBe('circle');
     expect(circle?.kind === 'circle' && circle.radiusM).toBe(250);
     expect(circle?.inclusion).toBe('exclusion');
+  });
+
+  it('keeps the radius input element across keystrokes (controlled, no focus-stealing recreation)', () => {
+    // Regression: editing the radius replaces the shape object; the shapes list
+    // must update the row in place (Index, not For) so the focused <input> is
+    // not torn down + remounted after each keystroke (the one-char-at-a-time bug).
+    const [value, setValue] = createSignal<Fence>(
+      addCircle(createFence(), 'exclusion', { lat: 0, lon: 0 }, 5),
+    );
+    const onChange = vi.fn<(f: Fence) => void>((f) => setValue(f));
+    const { getByTestId } = render(() => createComponent(FencePanel, { value, onChange }));
+
+    const before = getByTestId('fence-shape-radius') as HTMLInputElement;
+    fireEvent.input(before, { target: { value: '52' } });
+    fireEvent.input(before, { target: { value: '525' } });
+    const after = getByTestId('fence-shape-radius') as HTMLInputElement;
+
+    expect(after).toBe(before);
+    expect(after.value).toBe('525');
+    expect(onChange.mock.calls.at(-1)?.[0]?.shapes[0]).toMatchObject({
+      kind: 'circle',
+      radiusM: 525,
+    });
   });
 
   it('removes a shape', () => {

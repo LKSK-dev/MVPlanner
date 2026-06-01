@@ -169,8 +169,61 @@ describe('prefetch + basemap', () => {
 
   it('swaps the basemap source', () => {
     const { engine } = makeEngine();
-    expect(engine.getBasemap().id).toBe('osm');
+    expect(engine.getBasemap().id).toBe('carto-dark');
     engine.setBasemap({ id: 'custom', kind: 'xyz', url: 'https://c/{z}/{x}/{y}.png' });
     expect(engine.getBasemap().id).toBe('custom');
+  });
+});
+
+describe('tile fallback (anti-flash)', () => {
+  it('draws a scaled crop of a cached parent tile while the exact tile loads', async () => {
+    const drawCalls: unknown[][] = [];
+    const ctx2d = {
+      clearRect: (): void => undefined,
+      drawImage: (...args: unknown[]): void => {
+        drawCalls.push(args);
+      },
+    };
+    const canvas = {
+      width: 512,
+      height: 512,
+      getContext: (): unknown => ctx2d,
+    } as unknown as HTMLCanvasElement;
+
+    // The cache yields a blob only for parent tiles (z <= 4); deeper tiles miss.
+    const cache: GeoTileCache = {
+      get: async (_source, tile) => (tile.z <= 4 ? new Blob(['x']) : undefined),
+      getCached: async () => undefined,
+      put: async () => undefined,
+      has: async () => false,
+      prefetch: async () => ({ requested: 0, fetched: 0, cached: 0, failed: 0 }),
+      evict: async () => 0,
+      clear: async () => undefined,
+    };
+    let seq = 0;
+    const engine = createRasterMapEngine({
+      cache,
+      view: { lat: 0, lon: 0, zoom: 4 },
+      requestFrame: (cb) => {
+        cb();
+        return 0;
+      },
+      cancelFrame: () => undefined,
+      isOnline: () => false,
+      createBitmap: async () =>
+        ({ width: 256, height: 256, id: seq++ }) as unknown as CanvasImageSource,
+    });
+    engine.attach(canvas);
+    // Let the z4 parent tiles load + repaint.
+    await new Promise((r) => setTimeout(r, 0));
+    await new Promise((r) => setTimeout(r, 0));
+
+    drawCalls.length = 0;
+    // Zoom to 5: the exact z5 tiles miss, but their z4 parents are cached, so
+    // the engine must draw scaled 9-arg crops (no blank flash).
+    engine.setView({ zoom: 5 });
+    engine.redrawNow();
+    const cropDraws = drawCalls.filter((a) => a.length === 9);
+    expect(cropDraws.length).toBeGreaterThan(0);
   });
 });

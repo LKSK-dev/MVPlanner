@@ -65,12 +65,24 @@ function selectValue(param: FrameParamSelection | undefined): string {
   return param?.value === undefined ? '' : String(param.value);
 }
 
+/** Derive the settled status for a frame selection (fixed-wing planes are N/A). */
+function frameStatus(selection: FrameSelection): SettledStatus {
+  if (selection.mode === 'fixedWing') return 'na';
+  return selection.validFrameClass ? 'done' : 'todo';
+}
+
+/** i18n key for the inline status line, keyed off the settled status. */
+function frameStatusMessageKey(status: SettledStatus): string {
+  if (status === 'na') return 'setup.frame.na';
+  return status === 'done' ? 'setup.frame.done' : 'setup.frame.todo';
+}
+
 function canRenderOptionValue(param: FrameParamSelection | undefined): boolean {
   if (param?.value === undefined) return false;
   return param.options.length === 0 || param.option !== undefined;
 }
 
-/** Select UI for one known copter frame parameter. */
+/** Select UI for one known frame parameter (copter `FRAME_*` or QuadPlane `Q_FRAME_*`). */
 function FrameSelect(props: {
   readonly api: SetupStepApi;
   readonly param: FrameParamSelection;
@@ -188,24 +200,34 @@ function FrameStepPanel(props: FrameStepPanelProps): JSX.Element {
       <Show
         when={selection().mode === 'selectable'}
         fallback={
-          <div class="mvp-setup-frame__parameters-only">
-            <h3>{props.api.t('setup.frame.parametersOnly.title')}</h3>
-            <p>
-              {selection().mode === 'unsupported'
-                ? props.api.t('setup.frame.unsupported')
-                : props.api.t('setup.frame.parametersOnly.body')}
-            </p>
-            <Show when={selection().params.length > 0}>
-              <dl class="mvp-setup-frame__params">
-                <For each={selection().params}>
-                  {(param) => (
-                    <>
-                      <dt>{props.api.t(param.labelKey)}</dt>
-                      <dd>{valueText(props.api, param)}</dd>
-                    </>
-                  )}
-                </For>
-              </dl>
+          <div class="mvp-setup-frame__parameters-only" data-mode={selection().mode}>
+            <Show
+              when={selection().mode === 'fixedWing'}
+              fallback={
+                <>
+                  <h3>{props.api.t('setup.frame.parametersOnly.title')}</h3>
+                  <p>
+                    {selection().mode === 'unsupported'
+                      ? props.api.t('setup.frame.unsupported')
+                      : props.api.t('setup.frame.parametersOnly.body')}
+                  </p>
+                  <Show when={selection().params.length > 0}>
+                    <dl class="mvp-setup-frame__params">
+                      <For each={selection().params}>
+                        {(param) => (
+                          <>
+                            <dt>{props.api.t(param.labelKey)}</dt>
+                            <dd>{valueText(props.api, param)}</dd>
+                          </>
+                        )}
+                      </For>
+                    </dl>
+                  </Show>
+                </>
+              }
+            >
+              <h3>{props.api.t('setup.frame.fixedWing.title')}</h3>
+              <p class="mvp-setup-frame__fixed-wing">{props.api.t('setup.frame.fixedWing.body')}</p>
             </Show>
           </div>
         }
@@ -238,12 +260,8 @@ function FrameStepPanel(props: FrameStepPanelProps): JSX.Element {
         </div>
       </Show>
 
-      <p
-        class="mvp-setup-frame__status"
-        data-status={selection().validFrameClass ? 'done' : 'todo'}
-        role="status"
-      >
-        {props.api.t(selection().validFrameClass ? 'setup.frame.done' : 'setup.frame.todo')}
+      <p class="mvp-setup-frame__status" data-status={frameStatus(selection())} role="status">
+        {props.api.t(frameStatusMessageKey(frameStatus(selection())))}
       </p>
     </section>
   );
@@ -259,7 +277,7 @@ export function createFrameStep(deps: FrameStepDeps): SetupStep {
     setRevision((value) => value + 1);
   };
   const selection = (): FrameSelection => readSelection(deps, revision);
-  const status = (): SettledStatus => (selection().validFrameClass ? 'done' : 'todo');
+  const status = (): SettledStatus => frameStatus(selection());
 
   return {
     id: 'frame',

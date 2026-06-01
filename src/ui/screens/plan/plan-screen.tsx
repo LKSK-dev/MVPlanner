@@ -413,8 +413,15 @@ export const PlanScreen: Component<PlanScreenProps> = (props) => {
           <p class="mvp-plan__hint" data-testid="plan-hint">
             {t(hintKey())}
           </p>
+          {/*
+           * Only surface the measure summary/hint while the measure tool is
+           * active; in select / edit / draw modes the bottom-left status would
+           * otherwise linger with a stale "Click the map to measure" prompt.
+           * The <p> stays mounted as an empty `aria-live` region so entering
+           * and leaving measure mode is announced (and cleared) correctly.
+           */}
           <p class="mvp-plan__measure" data-testid="plan-measure" aria-live="polite">
-            {t('plan.toolbar.measure', { value: measureSummary() })}
+            {toolMode() === 'measure' ? t('plan.toolbar.measure', { value: measureSummary() }) : ''}
           </p>
         </div>
 

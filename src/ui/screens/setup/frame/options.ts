@@ -10,6 +10,7 @@ import type { VehicleClass } from '../../../../contracts';
 export const FRAME_PARAM_NAMES = [
   'FRAME_CLASS',
   'FRAME_TYPE',
+  'Q_ENABLE',
   'Q_FRAME_CLASS',
   'Q_FRAME_TYPE',
   'FRAME_CONFIG',
@@ -21,8 +22,16 @@ export type FrameParamName = (typeof FRAME_PARAM_NAMES)[number];
 /** Semantic role a parameter plays in frame setup. */
 export type FrameParamRole = 'class' | 'type' | 'config';
 
-/** Rendering mode for the detected vehicle class. */
-export type FrameSelectionMode = 'selectable' | 'parameters' | 'unsupported';
+/**
+ * Rendering mode for the detected vehicle class.
+ *
+ * - `selectable` — editable class/type selectors are offered.
+ * - `parameters` — read-only current values are displayed (no safe selector).
+ * - `fixedWing`  — an ArduPlane with `Q_ENABLE` off: no multirotor frame exists,
+ *   so the step points at servo-function setup instead of an empty selector.
+ * - `unsupported` — no simple frame selector is known for this vehicle class.
+ */
+export type FrameSelectionMode = 'selectable' | 'parameters' | 'fixedWing' | 'unsupported';
 
 /** One selectable numeric value for a frame parameter. */
 export interface FrameOption {
@@ -86,6 +95,31 @@ export const COPTER_FRAME_CLASS_OPTIONS: readonly FrameOption[] = [
   { value: 17, labelKey: 'setup.frame.copter.class.heliQuad17' },
 ];
 
+/**
+ * ArduPlane QuadPlane `Q_FRAME_CLASS` values.
+ *
+ * Source: ArduPilot ArduPlane parameter `Q_FRAME_CLASS` `@Values`
+ * (https://ardupilot.org/plane/docs/parameters.html#q-frame-class):
+ *   0:Undefined, 1:Quad, 2:Hexa, 3:Octa, 4:OctaQuad, 5:Y6, 7:Tri,
+ *   10:Tailsitter, 12:DodecaHexa, 14:Deca, 15:Scripting Matrix,
+ *   17:Dynamic Scripting Matrix.
+ * Only concrete multirotor airframes are exposed as selectable options; the
+ * `0:Undefined` unconfigured value and the scripting matrices (15, 17) are
+ * intentionally omitted from the simplified selector so a chosen value always
+ * maps to a real frame (a present-but-unknown value still surfaces a warning).
+ */
+export const QUADPLANE_FRAME_CLASS_OPTIONS: readonly FrameOption[] = [
+  { value: 1, labelKey: 'setup.frame.quadplane.class.quad' },
+  { value: 2, labelKey: 'setup.frame.quadplane.class.hexa' },
+  { value: 3, labelKey: 'setup.frame.quadplane.class.octa' },
+  { value: 4, labelKey: 'setup.frame.quadplane.class.octaQuad' },
+  { value: 5, labelKey: 'setup.frame.quadplane.class.y6' },
+  { value: 7, labelKey: 'setup.frame.quadplane.class.tri' },
+  { value: 10, labelKey: 'setup.frame.quadplane.class.tailsitter' },
+  { value: 12, labelKey: 'setup.frame.quadplane.class.dodecaHexa' },
+  { value: 14, labelKey: 'setup.frame.quadplane.class.deca' },
+];
+
 /** Copter `FRAME_TYPE` values supported by ArduPilot. */
 export const COPTER_FRAME_TYPE_OPTIONS: readonly FrameOption[] = [
   { value: 0, labelKey: 'setup.frame.copter.type.plus' },
@@ -127,22 +161,37 @@ const COPTER_DEFINITION: VehicleFrameDefinition = {
   ],
 };
 
-const PLANE_DEFINITION: VehicleFrameDefinition = {
-  mode: 'parameters',
+/**
+ * QuadPlane / VTOL frame selectors (ArduPlane with `Q_ENABLE = 1`). ArduPlane
+ * shares the AP_Motors frame-type enum with Copter, so `Q_FRAME_TYPE` reuses
+ * {@link COPTER_FRAME_TYPE_OPTIONS} (0:Plus, 1:X, 2:V, 3:H, …).
+ */
+const QUADPLANE_DEFINITION: VehicleFrameDefinition = {
+  mode: 'selectable',
   params: [
     {
       name: 'Q_FRAME_CLASS',
       role: 'class',
       labelKey: 'setup.frame.param.qFrameClass',
-      options: [],
+      options: QUADPLANE_FRAME_CLASS_OPTIONS,
     },
     {
       name: 'Q_FRAME_TYPE',
       role: 'type',
       labelKey: 'setup.frame.param.qFrameType',
-      options: [],
+      options: COPTER_FRAME_TYPE_OPTIONS,
     },
   ],
+};
+
+/**
+ * Fixed-wing ArduPlane (`Q_ENABLE` off/absent): there is no multirotor frame to
+ * configure, so no frame parameters are surfaced — the UI points the user at
+ * servo-function setup instead.
+ */
+const FIXED_WING_DEFINITION: VehicleFrameDefinition = {
+  mode: 'fixedWing',
+  params: [],
 };
 
 const ROVER_DEFINITION: VehicleFrameDefinition = {
@@ -174,6 +223,18 @@ const UNSUPPORTED_DEFINITION: VehicleFrameDefinition = {
   params: [],
 };
 
+/** `Q_ENABLE` value that activates the ArduPlane QuadPlane/VTOL stack. */
+const Q_ENABLE_ON = 1;
+
+/**
+ * True when `Q_ENABLE` indicates an active QuadPlane/VTOL configuration. A plane
+ * is only a QuadPlane (and thus has a `Q_FRAME_CLASS`/`Q_FRAME_TYPE`) when this
+ * is on; otherwise it is a pure fixed-wing airframe.
+ */
+export function isQuadPlaneEnabled(qEnable: number | undefined): boolean {
+  return qEnable === Q_ENABLE_ON;
+}
+
 /** Returns true when `name` is one of the frame parameters observed by this step. */
 export function isFrameParamName(name: string): name is FrameParamName {
   return (FRAME_PARAM_NAMES as readonly string[]).includes(name);
@@ -188,13 +249,24 @@ export function findFrameOption(
   return options.find((option) => option.value === value);
 }
 
-/** The frame parameter definition for a detected vehicle class. */
-export function definitionForVehicleClass(vehicleClass: VehicleClass): VehicleFrameDefinition {
+/**
+ * The frame parameter definition for a detected vehicle class. For `plane` the
+ * definition depends on `Q_ENABLE`: an enabled QuadPlane gets editable
+ * `Q_FRAME_CLASS`/`Q_FRAME_TYPE` selectors, while a pure fixed-wing (no/absent
+ * `Q_ENABLE`) resolves to the {@link FIXED_WING_DEFINITION}. When no `readValue`
+ * is supplied a plane is treated as fixed-wing.
+ */
+export function definitionForVehicleClass(
+  vehicleClass: VehicleClass,
+  readValue?: FrameParamValueReader,
+): VehicleFrameDefinition {
   switch (vehicleClass) {
     case 'copter':
       return COPTER_DEFINITION;
     case 'plane':
-      return PLANE_DEFINITION;
+      return isQuadPlaneEnabled(readValue?.('Q_ENABLE'))
+        ? QUADPLANE_DEFINITION
+        : FIXED_WING_DEFINITION;
     case 'rover':
     case 'boat':
       return ROVER_DEFINITION;
@@ -219,7 +291,7 @@ export function deriveFrameSelection(
   vehicleClass: VehicleClass,
   readValue: FrameParamValueReader,
 ): FrameSelection {
-  const definition = definitionForVehicleClass(vehicleClass);
+  const definition = definitionForVehicleClass(vehicleClass, readValue);
   const params = definition.params.map((param): FrameParamSelection => {
     const raw = readValue(param.name);
     const value = raw !== undefined && Number.isFinite(raw) ? raw : undefined;

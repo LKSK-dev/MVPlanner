@@ -218,6 +218,23 @@ export function createRasterMapEngine(options: RasterMapEngineOptions): RasterMa
       });
   }
 
+  /**
+   * Find the nearest cached ancestor tile (lower zoom) for a target tile, so a
+   * scaled crop of it can stand in while the exact tile is still loading. This
+   * is what prevents the canvas from flashing to blank during loads and when
+   * the integer tile zoom switches mid-zoom.
+   */
+  function bestAncestor(tile: TileCoord, tz: number): { img: TileImage; k: number } | undefined {
+    for (let k = 1; tz - k >= minZoom; k++) {
+      const frac = 2 ** k;
+      const ax = Math.floor(tile.x / frac);
+      const ay = Math.floor(tile.y / frac);
+      const img = bitmaps.get(tileCacheKey(source.id, { z: tz - k, x: ax, y: ay }));
+      if (img) return { img, k };
+    }
+    return undefined;
+  }
+
   function draw(): void {
     if (!canvas) return;
     const vp = viewport();
@@ -232,6 +249,31 @@ export function createRasterMapEngine(options: RasterMapEngineOptions): RasterMa
         if (img) {
           ctx2d.drawImage(img, rect.x, rect.y, rect.size, rect.size);
         } else {
+          // Draw a scaled crop of the nearest cached parent tile as a stand-in
+          // so coverage stays continuous (no blank flash) until `key` loads.
+          const anc = bestAncestor(tile, tz);
+          if (anc) {
+            const frac = 2 ** anc.k;
+            const tilePx = (anc.img as { width?: number }).width ?? 256;
+            const srcSize = tilePx / frac;
+            const srcX = (((tile.x % frac) + frac) % frac) * srcSize;
+            const srcY = (((tile.y % frac) + frac) % frac) * srcSize;
+            try {
+              ctx2d.drawImage(
+                anc.img,
+                srcX,
+                srcY,
+                srcSize,
+                srcSize,
+                rect.x,
+                rect.y,
+                rect.size,
+                rect.size,
+              );
+            } catch {
+              /* happy-dom / partial canvas: skip the fallback draw this frame */
+            }
+          }
           ensureTile(tile, key);
         }
       }

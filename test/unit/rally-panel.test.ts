@@ -5,7 +5,7 @@
  * extra) flow through the pure model.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { createComponent } from 'solid-js';
+import { createComponent, createSignal } from 'solid-js';
 import { cleanup, fireEvent, render } from '@solidjs/testing-library';
 import { RallyPanel } from '../../src/ui/screens/plan/rally';
 import { createRally, addRallyPoint, type Rally } from '../../src/geo/rally';
@@ -58,6 +58,24 @@ describe('RallyPanel', () => {
     fireEvent.input(getByTestId('rally-break-alt-0'), { target: { value: '' } });
     const point = last(onChange).points[0];
     expect(point && 'breakAlt' in point).toBe(false);
+  });
+
+  it('keeps a field input element across keystrokes (controlled, no focus-stealing recreation)', () => {
+    // Regression: editing a field replaces the point object; the points list
+    // must update the row in place (Index, not For) so the focused <input> is
+    // not torn down + remounted after each keystroke (the one-char-at-a-time bug).
+    const [model, setModel] = createSignal<Rally>(addRallyPoint(createRally(), { lat: 0, lon: 0 }));
+    const onChange = vi.fn<(r: Rally) => void>((r) => setModel(r));
+    const { getByTestId } = render(() => createComponent(RallyPanel, { model, onChange }));
+
+    const before = getByTestId('rally-lat-0') as HTMLInputElement;
+    fireEvent.input(before, { target: { value: '-3' } });
+    fireEvent.input(before, { target: { value: '-35' } });
+    const after = getByTestId('rally-lat-0') as HTMLInputElement;
+
+    expect(after).toBe(before);
+    expect(after.value).toBe('-35');
+    expect(last(onChange).points[0]?.lat).toBe(-35);
   });
 
   it('removes a rally point', () => {

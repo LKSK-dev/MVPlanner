@@ -13,6 +13,101 @@
   --mvp-font: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --mvp-font-mono: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, monospace;
   --mvp-motion-duration: 150ms;
+
+  /*
+   * On-color foreground text (text drawn on an accent/error fill). White by
+   * default across dark/light/field/auto; the high-contrast and
+   * prefers-contrast token sets (themes.css) override these to black so filled
+   * buttons stay legible under high contrast.
+   */
+  --mvp-on-accent: #ffffff;
+  --mvp-on-error: #ffffff;
+
+  /*
+   * Token aliases (T-fix): several components reference color variables under
+   * legacy/parallel names (`--mvp-color-*`, `--color-*`, bare `--surface`/
+   * `--text`/…). Those names were never defined, so those components silently
+   * fell back to hard-coded hex and never picked up the high-contrast (or any)
+   * theme. Mapping the alias names onto the canonical per-theme tokens routes
+   * every such component through the active theme — including high-contrast —
+   * without editing each component stylesheet. Canonical tokens (themes.css):
+   * --mvp-bg/-surface/-surface-2/-border/-text/-text-dim/-accent/-ok/-warn/-error.
+   */
+
+  /* Base / panel surfaces. */
+  --mvp-color-surface: var(--mvp-surface);
+  --mvp-color-panel: var(--mvp-surface);
+  --mvp-panel: var(--mvp-surface);
+  --color-surface: var(--mvp-surface);
+  --color-surface-1: var(--mvp-surface);
+  --surface-1: var(--mvp-surface);
+  --mvp-bg-elevated: var(--mvp-surface);
+  --color-bg-elevated: var(--mvp-surface);
+  --mvp-code-bg: var(--mvp-surface-2);
+
+  /* Raised / secondary surfaces + hover. */
+  --mvp-surface-3: var(--mvp-surface-2);
+  --surface-2: var(--mvp-surface-2);
+  --surface-3: var(--mvp-surface-2);
+  --color-surface-2: var(--mvp-surface-2);
+  --mvp-color-surface-hover: var(--mvp-surface-2);
+  --mvp-hover: var(--mvp-surface-2);
+
+  /* Primary text / foreground. */
+  --mvp-color-text: var(--mvp-text);
+  --mvp-color-fg: var(--mvp-text);
+  --mvp-fg: var(--mvp-text);
+  --color-text: var(--mvp-text);
+  --color-fg: var(--mvp-text);
+  --text: var(--mvp-text);
+  --text-1: var(--mvp-text);
+
+  /* Muted / dimmed text. */
+  --mvp-text-muted: var(--mvp-text-dim);
+  --mvp-color-muted: var(--mvp-text-dim);
+  --mvp-muted: var(--mvp-text-dim);
+  --mvp-fg-muted: var(--mvp-text-dim);
+  --color-text-muted: var(--mvp-text-dim);
+  --color-fg-muted: var(--mvp-text-dim);
+  --text-dim: var(--mvp-text-dim);
+  --text-2: var(--mvp-text-dim);
+
+  /* Borders. */
+  --mvp-color-border: var(--mvp-border);
+  --mvp-border-subtle: var(--mvp-border);
+  --color-border: var(--mvp-border);
+  --color-border-subtle: var(--mvp-border);
+  --border: var(--mvp-border);
+  --border-1: var(--mvp-border);
+
+  /* Accent / info / focus. */
+  --mvp-color-accent: var(--mvp-accent);
+  --mvp-accent-muted: color-mix(in srgb, var(--mvp-accent) 18%, var(--mvp-surface));
+  --mvp-focus: var(--mvp-accent);
+  --color-accent: var(--mvp-accent);
+  --color-info: var(--mvp-accent);
+  --mvp-color-info: var(--mvp-accent);
+  --accent: var(--mvp-accent);
+
+  /* On-accent foreground aliases. */
+  --mvp-color-on-accent: var(--mvp-on-accent);
+  --mvp-accent-fg: var(--mvp-on-accent);
+  --mvp-accent-contrast: var(--mvp-on-accent);
+  --color-on-accent: var(--mvp-on-accent);
+
+  /* Danger / error + its on-color foreground. */
+  --mvp-color-danger: var(--mvp-error);
+  --mvp-danger: var(--mvp-error);
+  --mvp-color-error: var(--mvp-error);
+  --color-danger: var(--mvp-error);
+  --error: var(--mvp-error);
+  --mvp-color-on-danger: var(--mvp-on-error);
+
+  /* Warning + subtle warning background. */
+  --mvp-color-warning: var(--mvp-warn);
+  --color-warning: var(--mvp-warn);
+  --warn: var(--mvp-warn);
+  --mvp-color-warn-bg: color-mix(in srgb, var(--mvp-warn) 14%, var(--mvp-surface));
 }
 
 * {

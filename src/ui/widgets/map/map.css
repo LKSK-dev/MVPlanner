@@ -71,6 +71,32 @@
   pointer-events: none;
 }
 
+.mvp-map__scale {
+  position: absolute;
+  right: 8px;
+  bottom: 22px;
+  box-sizing: border-box;
+  height: 9px;
+  min-width: 24px;
+  border: 2px solid var(--mvp-text-dim, #9da7b3);
+  border-top: none;
+  background: color-mix(in srgb, var(--mvp-surface, #0d1117) 55%, transparent);
+  pointer-events: none;
+}
+
+.mvp-map__scale-label {
+  position: absolute;
+  right: 0;
+  bottom: 100%;
+  margin-bottom: 2px;
+  padding: 0 3px;
+  font: 11px/1.3 var(--mvp-font-mono, monospace);
+  color: var(--mvp-text-dim, #9da7b3);
+  white-space: nowrap;
+  background: color-mix(in srgb, var(--mvp-surface, #0d1117) 70%, transparent);
+  border-radius: var(--mvp-radius, 3px);
+}
+
 .mvp-map__attribution {
   position: absolute;
   right: 6px;

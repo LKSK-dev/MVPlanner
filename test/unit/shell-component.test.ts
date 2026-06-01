@@ -77,6 +77,13 @@ function key(target: EventTarget, init: KeyboardEventInit): void {
 afterEach(() => {
   cleanup();
   document.documentElement.removeAttribute('data-theme');
+  // The capability notice records its dismissal in sessionStorage (session
+  // scope); reset between tests so cases don't leak the dismissed flag.
+  try {
+    sessionStorage.clear();
+  } catch {
+    /* sessionStorage unavailable in this environment */
+  }
 });
 
 // ---------------------------------------------------------------------------
@@ -402,5 +409,42 @@ describe('Shell — capabilities notice', () => {
     const { ctx } = makeCtx(makeCaps({ webSerial: true }));
     const container = mount(ctx);
     expect(container.querySelector('[data-testid="cap-notice"]')).toBeNull();
+  });
+
+  it('dismisses the notice via an accessible close control', () => {
+    const { ctx } = makeCtx(makeCaps({ webSerial: false }));
+    const container = mount(ctx);
+
+    const dismiss = container.querySelector<HTMLButtonElement>(
+      '[data-testid="cap-notice-dismiss"]',
+    );
+    expect(dismiss).toBeTruthy();
+    // Accessible: a focusable <button> with an aria-label.
+    expect(dismiss!.tagName).toBe('BUTTON');
+    expect(dismiss!.getAttribute('aria-label')).toBe(t('cap.dismiss'));
+
+    dismiss!.click();
+    expect(container.querySelector('[data-testid="cap-notice"]')).toBeNull();
+  });
+
+  it('stays dismissed across an in-session remount, then returns next session', () => {
+    // Dismiss in the first mounted shell.
+    const first = makeCtx(makeCaps({ webSerial: false }));
+    const firstContainer = mount(first.ctx);
+    firstContainer.querySelector<HTMLButtonElement>('[data-testid="cap-notice-dismiss"]')!.click();
+    expect(firstContainer.querySelector('[data-testid="cap-notice"]')).toBeNull();
+    cleanup();
+
+    // A fresh shell in the SAME session (e.g. an in-session reload) stays hidden.
+    const second = makeCtx(makeCaps({ webSerial: false }));
+    const secondContainer = mount(second.ctx);
+    expect(secondContainer.querySelector('[data-testid="cap-notice"]')).toBeNull();
+    cleanup();
+
+    // Next session (sessionStorage cleared on app launch) the notice returns.
+    sessionStorage.clear();
+    const third = makeCtx(makeCaps({ webSerial: false }));
+    const thirdContainer = mount(third.ctx);
+    expect(thirdContainer.querySelector('[data-testid="cap-notice"]')).toBeTruthy();
   });
 });

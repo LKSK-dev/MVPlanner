@@ -7,6 +7,7 @@ import { createComponent } from 'solid-js';
 import { cleanup, fireEvent, render } from '@solidjs/testing-library';
 import { t } from '../../src/core/i18n';
 import type { Param, ParamClient } from '../../src/contracts';
+import type { VehicleClass } from '../../src/contracts';
 import { WizardShell } from '../../src/ui/screens/setup/framework';
 import { createFrameStep, type FrameParamName } from '../../src/ui/screens/setup/frame';
 
@@ -56,10 +57,19 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-function mountFrameStep(params: MockParamClient): HTMLElement {
-  const step = createFrameStep({ params, getVehicleClass: () => 'copter' });
+function mountFrameStep(
+  params: MockParamClient,
+  vehicleClass: VehicleClass = 'copter',
+): HTMLElement {
+  const step = createFrameStep({ params, getVehicleClass: () => vehicleClass });
   const { container } = render(() => createComponent(WizardShell, { steps: [step], t }));
   return container;
+}
+
+function selectByParam(container: HTMLElement, param: FrameParamName): HTMLSelectElement {
+  const select = container.querySelector<HTMLSelectElement>(`[data-param="${param}"] select`);
+  if (select === null) throw new Error(`missing select for ${param}`);
+  return select;
 }
 
 function selectByLabel(container: HTMLElement, label: string): HTMLSelectElement {
@@ -116,6 +126,58 @@ describe('createFrameStep widget', () => {
     expect(typeSelect.value).toBe('14');
     expect(container.querySelector('.mvp-setup-frame__status')?.getAttribute('data-status')).toBe(
       'done',
+    );
+  });
+
+  it('renders editable QuadPlane Q_FRAME_CLASS/Q_FRAME_TYPE selectors when Q_ENABLE is on', async () => {
+    const params = new MockParamClient({ Q_ENABLE: 1, Q_FRAME_CLASS: 1, Q_FRAME_TYPE: 1 });
+    const container = mountFrameStep(params, 'plane');
+    await settle();
+
+    const classSelect = selectByParam(container, 'Q_FRAME_CLASS');
+    const typeSelect = selectByParam(container, 'Q_FRAME_TYPE');
+
+    expect(classSelect.value).toBe('1');
+    expect(classSelect.selectedOptions[0]?.textContent).toBe(t('setup.frame.quadplane.class.quad'));
+    expect(typeSelect.value).toBe('1');
+    expect(typeSelect.selectedOptions[0]?.textContent).toBe(t('setup.frame.copter.type.x'));
+    expect(container.querySelector('.mvp-setup-frame__status')?.getAttribute('data-status')).toBe(
+      'done',
+    );
+  });
+
+  it('writes Q_FRAME_CLASS and Q_FRAME_TYPE through the param client', async () => {
+    const params = new MockParamClient({ Q_ENABLE: 1, Q_FRAME_CLASS: 1, Q_FRAME_TYPE: 0 });
+    const container = mountFrameStep(params, 'plane');
+    await settle();
+
+    fireEvent.change(selectByParam(container, 'Q_FRAME_CLASS'), { target: { value: '3' } });
+    await settle();
+    fireEvent.change(selectByParam(container, 'Q_FRAME_TYPE'), { target: { value: '2' } });
+    await settle();
+
+    expect(params.setCalls).toEqual([
+      { name: 'Q_FRAME_CLASS', value: 3 },
+      { name: 'Q_FRAME_TYPE', value: 2 },
+    ]);
+    expect(selectByParam(container, 'Q_FRAME_CLASS').value).toBe('3');
+    expect(selectByParam(container, 'Q_FRAME_TYPE').value).toBe('2');
+  });
+
+  it('shows the fixed-wing state (no Q frame) when Q_ENABLE is off', async () => {
+    const params = new MockParamClient({ Q_ENABLE: 0 });
+    const container = mountFrameStep(params, 'plane');
+    await settle();
+
+    expect(container.querySelector('[data-param="Q_FRAME_CLASS"]')).toBeNull();
+    expect(container.querySelector('.mvp-setup-frame__fixed-wing')?.textContent).toBe(
+      t('setup.frame.fixedWing.body'),
+    );
+    expect(
+      container.querySelector('.mvp-setup-frame__parameters-only')?.getAttribute('data-mode'),
+    ).toBe('fixedWing');
+    expect(container.querySelector('.mvp-setup-frame__status')?.getAttribute('data-status')).toBe(
+      'na',
     );
   });
 });

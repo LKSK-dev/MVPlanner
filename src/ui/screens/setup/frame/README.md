@@ -24,14 +24,27 @@ const step = createFrameStep({
     DodecaHexa=16, HeliQuad=17.
   - `FRAME_TYPE`: Plus=0, X=1, V=2, H=3, V-Tail=4, A-Tail=5, Y6B=10,
     Y6F=11, BetaFlightX=12, DJIX=13, ClockwiseX=14.
-- Plane: displays current `Q_FRAME_CLASS` / `Q_FRAME_TYPE` when present and
-  points the user to the parameter editor instead of inventing a simplified UI.
+- Plane: depends on `Q_ENABLE` (the ArduPlane QuadPlane/VTOL master switch).
+  - QuadPlane (`Q_ENABLE = 1`): editable selectors for `Q_FRAME_CLASS` and
+    `Q_FRAME_TYPE` (same UX as Copter).
+    - `Q_FRAME_CLASS` (ArduPlane `@Values`): Quad=1, Hexa=2, Octa=3,
+      OctaQuad=4, Y6=5, Tri=7, Tailsitter=10, DodecaHexa=12, Deca=14.
+      `0:Undefined` and the scripting matrices (15, 17) are intentionally not
+      offered as selectable values.
+    - `Q_FRAME_TYPE` shares the AP_Motors geometry enum with Copter
+      `FRAME_TYPE` (Plus=0, X=1, V=2, H=3, …).
+  - Fixed-wing (`Q_ENABLE` off/absent): no multirotor frame exists; the step
+    reports `na` and points the user at servo-function setup
+    (`SERVOn_FUNCTION`) rather than showing an empty selector. Enable the
+    QuadPlane stack (`Q_ENABLE = 1`) in the parameter editor to configure a
+    VTOL frame.
 - Rover/Boat: displays current `FRAME_CLASS` when present and points to params.
 - Sub: displays current `FRAME_CONFIG` when present and points to params.
 
 The step status accessor returns `done` when the current class-like parameter is
-present and valid for the known table (for Copter, a known `FRAME_CLASS` value),
-otherwise `todo`.
+present and valid for the known table (for Copter, a known `FRAME_CLASS` value;
+for a QuadPlane, a known `Q_FRAME_CLASS` value), `na` for a fixed-wing plane
+(`Q_ENABLE` off — nothing to configure here), otherwise `todo`.
 
 ## Tests
 

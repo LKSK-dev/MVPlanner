@@ -60,6 +60,7 @@ export const EN_MESSAGES: MessageCatalog = {
   'cap.serialUnsupported': 'Web Serial is not supported in this browser.',
   'cap.serialUnsupportedDetail':
     'Serial connections to a board or radio are unavailable. Use a supported browser (Chrome/Edge) or the WebSocket bridge.',
+  'cap.dismiss': 'Dismiss this notice',
   'dock.resizePanels': 'Resize panels',
   'workspace.default': 'Default',
 

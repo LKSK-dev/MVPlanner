@@ -12,7 +12,7 @@
  * is reported through {@link FencePanelProps.onChange} so the Plan assembly
  * (T4.10) can convert it (`fenceToMission` + `fenceParams`) and upload it.
  */
-import { For, Show, createSignal, type Component } from 'solid-js';
+import { For, Index, Show, createMemo, createSignal, type Component } from 'solid-js';
 import { t as defaultT } from '../../../../core/i18n';
 import {
   FENCE_BREACH_ACTIONS,
@@ -26,6 +26,7 @@ import {
   setMaxAlt,
   setMinAlt,
   type Fence,
+  type FenceCircle,
   type FenceInclusion,
 } from '../../../../geo/fence';
 import './messages';
@@ -88,72 +89,85 @@ export const FencePanel: Component<FencePanelProps> = (props) => {
           }
         >
           <ul class="mvp-fence__shapes" data-testid="fence-shapes">
-            <For each={fence().shapes}>
-              {(shape, index) => (
-                <li class="mvp-fence__shape" data-testid="fence-shape">
-                  <span class="mvp-fence__shape-label">
-                    {t('fence.shape.label', {
-                      inclusion: t(`fence.inclusion.${shape.inclusion}`),
-                      kind: t(`fence.kind.${shape.kind}`),
-                    })}
-                  </span>
+            {/*
+             * `Index` (not `For`) keys rows by position, so editing a shape —
+             * which replaces the shape object at the same index — updates the
+             * existing row in place instead of recreating it. Recreating the
+             * row would tear down + remount the radius <input>, dropping focus
+             * after every keystroke (the "one character at a time" bug).
+             */}
+            <Index each={fence().shapes}>
+              {(shape, index) => {
+                const circle = createMemo<FenceCircle | undefined>(() => {
+                  const sh = shape();
+                  return sh.kind === 'circle' ? sh : undefined;
+                });
+                const vertexCount = (): number => {
+                  const sh = shape();
+                  return sh.kind === 'polygon' ? sh.vertices.length : 0;
+                };
+                return (
+                  <li class="mvp-fence__shape" data-testid="fence-shape">
+                    <span class="mvp-fence__shape-label">
+                      {t('fence.shape.label', {
+                        inclusion: t(`fence.inclusion.${shape().inclusion}`),
+                        kind: t(`fence.kind.${shape().kind}`),
+                      })}
+                    </span>
 
-                  <select
-                    class="mvp-fence__select"
-                    data-testid="fence-shape-inclusion"
-                    value={shape.inclusion}
-                    onChange={(e) =>
-                      edit((f) =>
-                        setInclusion(f, index(), e.currentTarget.value as FenceInclusion),
-                      )
-                    }
-                  >
-                    <option value="inclusion">{t('fence.inclusion.inclusion')}</option>
-                    <option value="exclusion">{t('fence.inclusion.exclusion')}</option>
-                  </select>
+                    <select
+                      class="mvp-fence__select"
+                      data-testid="fence-shape-inclusion"
+                      value={shape().inclusion}
+                      onChange={(e) =>
+                        edit((f) => setInclusion(f, index, e.currentTarget.value as FenceInclusion))
+                      }
+                    >
+                      <option value="inclusion">{t('fence.inclusion.inclusion')}</option>
+                      <option value="exclusion">{t('fence.inclusion.exclusion')}</option>
+                    </select>
 
-                  <Show
-                    when={shape.kind === 'circle' ? shape : undefined}
-                    fallback={
-                      <span class="mvp-fence__shape-detail" data-testid="fence-shape-vertices">
-                        {t('fence.shape.vertices', {
-                          n: shape.kind === 'polygon' ? shape.vertices.length : 0,
-                        })}
-                      </span>
-                    }
-                  >
-                    {(circle) => (
-                      <label class="mvp-fence__radius">
-                        <span class="mvp-fence__shape-detail">{t('fence.shape.radius')}</span>
-                        <input
-                          type="number"
-                          min="0"
-                          step="1"
-                          class="mvp-fence__input"
-                          data-testid="fence-shape-radius"
-                          value={circle().radiusM}
-                          onInput={(e) =>
-                            edit((f) =>
-                              setCircleRadius(f, index(), num(e.currentTarget.value, circle().radiusM)),
-                            )
-                          }
-                        />
-                      </label>
-                    )}
-                  </Show>
+                    <Show
+                      when={circle()}
+                      fallback={
+                        <span class="mvp-fence__shape-detail" data-testid="fence-shape-vertices">
+                          {t('fence.shape.vertices', { n: vertexCount() })}
+                        </span>
+                      }
+                    >
+                      {(c) => (
+                        <label class="mvp-fence__radius">
+                          <span class="mvp-fence__shape-detail">{t('fence.shape.radius')}</span>
+                          <input
+                            type="number"
+                            min="0"
+                            step="1"
+                            class="mvp-fence__input"
+                            data-testid="fence-shape-radius"
+                            value={c().radiusM}
+                            onInput={(e) =>
+                              edit((f) =>
+                                setCircleRadius(f, index, num(e.currentTarget.value, c().radiusM)),
+                              )
+                            }
+                          />
+                        </label>
+                      )}
+                    </Show>
 
-                  <button
-                    type="button"
-                    class="mvp-fence__remove"
-                    data-testid="fence-shape-remove"
-                    aria-label={t('fence.shape.remove')}
-                    onClick={() => edit((f) => removeShape(f, index()))}
-                  >
-                    ✕
-                  </button>
-                </li>
-              )}
-            </For>
+                    <button
+                      type="button"
+                      class="mvp-fence__remove"
+                      data-testid="fence-shape-remove"
+                      aria-label={t('fence.shape.remove')}
+                      onClick={() => edit((f) => removeShape(f, index))}
+                    >
+                      ✕
+                    </button>
+                  </li>
+                );
+              }}
+            </Index>
           </ul>
         </Show>
 

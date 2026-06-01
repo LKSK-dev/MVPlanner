@@ -11,7 +11,7 @@
  * (`geo/rally` `rallyToMission`) and upload it via the `MissionClient`. The
  * value is injected so the panel unit-tests without a map or mission service.
  */
-import { For, Show, createSignal, type Component } from 'solid-js';
+import { Index, Show, createSignal, type Component } from 'solid-js';
 import { t as defaultT } from '../../../../core/i18n';
 import {
   addRallyPoint,
@@ -117,19 +117,26 @@ export const RallyPanel: Component<RallyPanelProps> = (props) => {
         }
       >
         <ol class="mvp-rally__list" data-testid="rally-list">
-          <For each={rally().points}>
+          {/*
+           * `Index` (not `For`) keys rows by position. Editing a field replaces
+           * the point object at the same index; `Index` updates the existing
+           * row in place rather than recreating it, so the focused <input> is
+           * not torn down + remounted after each keystroke (the "one character
+           * at a time" bug).
+           */}
+          <Index each={rally().points}>
             {(point, index) => (
-              <li class="mvp-rally__row" data-testid={`rally-row-${index()}`}>
-                <span class="mvp-rally__row-label">{t('rally.point', { n: index() + 1 })}</span>
+              <li class="mvp-rally__row" data-testid={`rally-row-${index}`}>
+                <span class="mvp-rally__row-label">{t('rally.point', { n: index + 1 })}</span>
                 <label class="mvp-rally__cell">
                   <span class="mvp-rally__label">{t('rally.field.lat')}</span>
                   <input
                     type="number"
                     step="0.0000001"
                     class="mvp-rally__input"
-                    data-testid={`rally-lat-${index()}`}
-                    value={point.lat}
-                    onInput={(e) => onEdit(index(), { lat: num(e.currentTarget.value, point.lat) })}
+                    data-testid={`rally-lat-${index}`}
+                    value={point().lat}
+                    onInput={(e) => onEdit(index, { lat: num(e.currentTarget.value, point().lat) })}
                   />
                 </label>
                 <label class="mvp-rally__cell">
@@ -138,9 +145,9 @@ export const RallyPanel: Component<RallyPanelProps> = (props) => {
                     type="number"
                     step="0.0000001"
                     class="mvp-rally__input"
-                    data-testid={`rally-lon-${index()}`}
-                    value={point.lon}
-                    onInput={(e) => onEdit(index(), { lon: num(e.currentTarget.value, point.lon) })}
+                    data-testid={`rally-lon-${index}`}
+                    value={point().lon}
+                    onInput={(e) => onEdit(index, { lon: num(e.currentTarget.value, point().lon) })}
                   />
                 </label>
                 <label class="mvp-rally__cell">
@@ -149,9 +156,9 @@ export const RallyPanel: Component<RallyPanelProps> = (props) => {
                     type="number"
                     step="1"
                     class="mvp-rally__input"
-                    data-testid={`rally-alt-${index()}`}
-                    value={point.alt}
-                    onInput={(e) => onEdit(index(), { alt: num(e.currentTarget.value, point.alt) })}
+                    data-testid={`rally-alt-${index}`}
+                    value={point().alt}
+                    onInput={(e) => onEdit(index, { alt: num(e.currentTarget.value, point().alt) })}
                   />
                 </label>
                 <label class="mvp-rally__cell">
@@ -160,9 +167,9 @@ export const RallyPanel: Component<RallyPanelProps> = (props) => {
                     type="number"
                     step="1"
                     class="mvp-rally__input"
-                    data-testid={`rally-break-alt-${index()}`}
-                    value={point.breakAlt ?? ''}
-                    onInput={(e) => onEdit(index(), { breakAlt: optNum(e.currentTarget.value, point.breakAlt) })}
+                    data-testid={`rally-break-alt-${index}`}
+                    value={point().breakAlt ?? ''}
+                    onInput={(e) => onEdit(index, { breakAlt: optNum(e.currentTarget.value, point().breakAlt) })}
                   />
                 </label>
                 <label class="mvp-rally__cell">
@@ -171,23 +178,23 @@ export const RallyPanel: Component<RallyPanelProps> = (props) => {
                     type="number"
                     step="1"
                     class="mvp-rally__input"
-                    data-testid={`rally-land-dir-${index()}`}
-                    value={point.landDir ?? ''}
-                    onInput={(e) => onEdit(index(), { landDir: optNum(e.currentTarget.value, point.landDir) })}
+                    data-testid={`rally-land-dir-${index}`}
+                    value={point().landDir ?? ''}
+                    onInput={(e) => onEdit(index, { landDir: optNum(e.currentTarget.value, point().landDir) })}
                   />
                 </label>
                 <button
                   type="button"
                   class="mvp-rally__remove"
-                  data-testid={`rally-remove-${index()}`}
-                  aria-label={t('rally.remove', { n: index() + 1 })}
-                  onClick={() => onRemove(index())}
+                  data-testid={`rally-remove-${index}`}
+                  aria-label={t('rally.remove', { n: index + 1 })}
+                  onClick={() => onRemove(index)}
                 >
                   ×
                 </button>
               </li>
             )}
-          </For>
+          </Index>
         </ol>
       </Show>
 

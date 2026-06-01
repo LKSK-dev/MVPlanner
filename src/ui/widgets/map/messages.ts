@@ -14,6 +14,7 @@ export const MAP_MESSAGES: Readonly<Record<string, string>> = {
   'map.zoomIn': 'Zoom in',
   'map.zoomOut': 'Zoom out',
   'map.readout': 'Center {lat}, {lon} \u00b7 zoom {zoom}',
+  'map.scale.a11y': 'Map scale: {distance}',
   'map.offline': 'Offline \u2014 showing cached tiles',
   'map.attribution': '\u00a9 OpenStreetMap contributors',
 };

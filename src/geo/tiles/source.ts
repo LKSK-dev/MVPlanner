@@ -9,8 +9,11 @@
  * - WMS: `{bbox-epsg-3857}` / `{bbox}` (tile extent in metres), `{width}`,
  *   `{height}`. Build a ready-made template with {@link wmsSource}.
  *
- * The default source ({@link DEFAULT_XYZ_SOURCE}) is OSM-style and is meant to
- * be overridden by the user in Settings (T3.7) — it is documented, not hard-wired.
+ * The default source ({@link DEFAULT_XYZ_SOURCE}) is a CARTO dark basemap and is
+ * meant to be overridden by the user in Settings (T3.7) — it is documented, not
+ * hard-wired. We deliberately do NOT default to the main OpenStreetMap tile
+ * server: it blocks browser apps that don't follow its tile-usage policy
+ * (osm.org/blocked), and its light cartography clashes with the dark UI.
  */
 import { TILE_SIZE, tileExtent3857, wrapTileX } from './mercator';
 import type { BasemapSource } from '../../contracts';
@@ -20,14 +23,18 @@ import type { TileCoord } from './types';
 export const DEFAULT_SUBDOMAINS: readonly string[] = ['a', 'b', 'c'];
 
 /**
- * A sensible default raster basemap (OSM-style XYZ). User-configurable: the app
- * Settings (T3.7) can replace this with any XYZ/WMS template + API key. Shipped
- * as the fallback so the map renders something out of the box when online.
+ * A sensible default raster basemap: CARTO's free "dark_all" XYZ basemap
+ * (© OpenStreetMap contributors © CARTO). Chosen because it does not block
+ * browser/`file://` clients the way the OSM volunteer servers do, and its dark
+ * cartography matches the application's dark theme. User-configurable: the app
+ * Settings (T3.7) can replace this with any XYZ/WMS template + API key (e.g. an
+ * Esri World Imagery satellite layer). Shipped as the fallback so the map
+ * renders something out of the box when online.
  */
 export const DEFAULT_XYZ_SOURCE: BasemapSource = {
-  id: 'osm',
+  id: 'carto-dark',
   kind: 'xyz',
-  url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+  url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
 };
 
 /** Options for {@link tileUrl}. */

@@ -5,9 +5,11 @@ import { describe, expect, it } from 'vitest';
 import {
   COPTER_FRAME_CLASS_OPTIONS,
   COPTER_FRAME_TYPE_OPTIONS,
+  QUADPLANE_FRAME_CLASS_OPTIONS,
   deriveFrameSelection,
   findFrameOption,
   hasValidFrameClass,
+  isQuadPlaneEnabled,
   type FrameParamName,
 } from '../../src/ui/screens/setup/frame';
 
@@ -63,20 +65,62 @@ describe('deriveFrameSelection', () => {
   });
 
   it('uses parameter-only definitions for non-copter vehicles without inventing labels', () => {
-    const plane = deriveFrameSelection('plane', reader({ Q_FRAME_CLASS: 3, Q_FRAME_TYPE: 1 }));
     const rover = deriveFrameSelection('rover', reader({ FRAME_CLASS: 2 }));
     const sub = deriveFrameSelection('sub', reader({ FRAME_CONFIG: 0 }));
-
-    expect(plane.mode).toBe('parameters');
-    expect(plane.params.map((param) => param.name)).toEqual(['Q_FRAME_CLASS', 'Q_FRAME_TYPE']);
-    expect(plane.frameClass?.options).toEqual([]);
-    expect(plane.validFrameClass).toBe(true);
 
     expect(rover.params.map((param) => param.name)).toEqual(['FRAME_CLASS']);
     expect(rover.validFrameClass).toBe(true);
 
     expect(sub.params.map((param) => param.name)).toEqual(['FRAME_CONFIG']);
     expect(sub.validFrameClass).toBe(false);
+  });
+
+  it('exposes editable QuadPlane selectors when Q_ENABLE is on', () => {
+    const selection = deriveFrameSelection(
+      'plane',
+      reader({ Q_ENABLE: 1, Q_FRAME_CLASS: 3, Q_FRAME_TYPE: 1 }),
+    );
+
+    expect(selection.mode).toBe('selectable');
+    expect(selection.params.map((param) => param.name)).toEqual(['Q_FRAME_CLASS', 'Q_FRAME_TYPE']);
+    expect(selection.frameClass?.name).toBe('Q_FRAME_CLASS');
+    expect(selection.frameClass?.options).toBe(QUADPLANE_FRAME_CLASS_OPTIONS);
+    expect(selection.frameClass?.option?.labelKey).toBe('setup.frame.quadplane.class.octa');
+    expect(selection.frameType?.name).toBe('Q_FRAME_TYPE');
+    expect(selection.frameType?.options).toBe(COPTER_FRAME_TYPE_OPTIONS);
+    expect(selection.frameType?.option?.labelKey).toBe('setup.frame.copter.type.x');
+    expect(selection.validFrameClass).toBe(true);
+  });
+
+  it('marks an unknown QuadPlane frame class invalid', () => {
+    const selection = deriveFrameSelection('plane', reader({ Q_ENABLE: 1, Q_FRAME_CLASS: 99 }));
+
+    expect(selection.mode).toBe('selectable');
+    expect(selection.frameClass?.value).toBe(99);
+    expect(selection.frameClass?.option).toBeUndefined();
+    expect(selection.validFrameClass).toBe(false);
+  });
+
+  it('treats a plane without Q_ENABLE as a fixed-wing with no Q frame', () => {
+    const disabled = deriveFrameSelection('plane', reader({ Q_ENABLE: 0, Q_FRAME_CLASS: 1 }));
+    const absent = deriveFrameSelection('plane', reader({ Q_FRAME_CLASS: 1 }));
+
+    expect(disabled.mode).toBe('fixedWing');
+    expect(disabled.params).toEqual([]);
+    expect(disabled.frameClass).toBeUndefined();
+    expect(disabled.validFrameClass).toBe(false);
+
+    expect(absent.mode).toBe('fixedWing');
+    expect(absent.params).toEqual([]);
+  });
+
+  it('encodes the documented QuadPlane Q_FRAME_CLASS enumeration', () => {
+    expect(QUADPLANE_FRAME_CLASS_OPTIONS.map((option) => option.value)).toEqual([
+      1, 2, 3, 4, 5, 7, 10, 12, 14,
+    ]);
+    expect(isQuadPlaneEnabled(1)).toBe(true);
+    expect(isQuadPlaneEnabled(0)).toBe(false);
+    expect(isQuadPlaneEnabled(undefined)).toBe(false);
   });
 
   it('degrades unknown classes to an unsupported note with todo status', () => {

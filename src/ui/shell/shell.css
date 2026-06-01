@@ -124,11 +124,41 @@
 
 /* --- Capability notice --------------------------------------------------- */
 .mvp-cap-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
   padding: 8px var(--mvp-gap);
   background: color-mix(in srgb, var(--mvp-warn) 18%, var(--mvp-surface));
   border-bottom: 1px solid var(--mvp-border);
   color: var(--mvp-text);
   font-size: 13px;
+}
+
+.mvp-cap-notice__text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.mvp-cap-notice__close {
+  appearance: none;
+  flex: 0 0 auto;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--mvp-text-dim);
+  font-size: 16px;
+  line-height: 1;
+  padding: 0 6px;
+  border-radius: var(--mvp-radius);
+  cursor: pointer;
+}
+
+.mvp-cap-notice__close:hover {
+  color: var(--mvp-text);
+}
+
+.mvp-cap-notice__close:focus-visible {
+  outline: 2px solid var(--mvp-accent);
+  outline-offset: 1px;
 }
 
 /* --- Main / dock --------------------------------------------------------- */

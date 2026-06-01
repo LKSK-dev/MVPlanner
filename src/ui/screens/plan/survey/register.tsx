@@ -39,7 +39,12 @@ export function createSurveyPanel(deps: SurveyPanelDeps): PanelDef {
       return render(
         () =>
           createComponent(SurveyPanel, {
-            polygon: deps.polygon(),
+            // Reactive getter (not a one-time `deps.polygon()` snapshot) so the
+            // panel re-reads the map editor's polygon as vertices are drawn and
+            // Generate enables once it has >= 3 vertices.
+            get polygon() {
+              return deps.polygon();
+            },
             onGenerate: deps.onGenerate,
             t: api.t,
             ...(deps.initial !== undefined ? { initial: deps.initial } : {}),

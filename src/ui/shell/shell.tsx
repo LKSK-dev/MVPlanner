@@ -23,12 +23,57 @@ import { applySettingsEffects } from './settings-effects';
 import { TopBar } from './topbar';
 import { readShellLayout, saveWorkspaceAs, SHELL_LAYOUT_KEY } from './workspace';
 
+/**
+ * `sessionStorage` key recording that the Web Serial capability notice was
+ * dismissed. Session-scoped on purpose: the notice stays hidden across
+ * in-session reloads but returns on the next app launch (new session).
+ */
+const CAP_NOTICE_DISMISSED_KEY = 'mvp.shell.capNotice.dismissed';
+
+/**
+ * Read the session-scoped dismissed flag for the capability notice. Returns
+ * `false` when `sessionStorage` is unavailable (private mode / SSR); the
+ * in-memory signal then governs visibility for the current view.
+ */
+function readCapNoticeDismissed(): boolean {
+  try {
+    return (
+      typeof sessionStorage !== 'undefined' &&
+      sessionStorage.getItem(CAP_NOTICE_DISMISSED_KEY) === '1'
+    );
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Persist the session-scoped dismissed flag. Best-effort: a thrown
+ * `SecurityError` (private mode) is swallowed so dismissal still works
+ * in-memory for the current view without crashing the shell.
+ */
+function persistCapNoticeDismissed(): void {
+  try {
+    if (typeof sessionStorage !== 'undefined') {
+      sessionStorage.setItem(CAP_NOTICE_DISMISSED_KEY, '1');
+    }
+  } catch {
+    // sessionStorage unavailable — the in-memory signal still hides the notice.
+  }
+}
+
 /** Root shell component. All collaborators are injected via {@link ctx}. */
 export const Shell: Component<{ ctx: ShellContextValue }> = (props) => {
   const { store, registry, capabilities } = props.ctx;
   const [paletteOpen, setPaletteOpen] = createSignal(false);
   const openPalette = (): void => {
     setPaletteOpen(true);
+  };
+
+  // Web Serial capability notice: dismissible for the current session.
+  const [capNoticeDismissed, setCapNoticeDismissed] = createSignal(readCapNoticeDismissed());
+  const dismissCapNotice = (): void => {
+    persistCapNoticeDismissed();
+    setCapNoticeDismissed(true);
   };
 
   applySettingsEffects(store);
@@ -88,9 +133,20 @@ export const Shell: Component<{ ctx: ShellContextValue }> = (props) => {
       <div class="mvp-shell">
         <TopBar onOpenPalette={openPalette} />
 
-        <Show when={!capabilities.webSerial}>
+        <Show when={!capabilities.webSerial && !capNoticeDismissed()}>
           <div class="mvp-cap-notice" role="status" data-testid="cap-notice">
-            <strong>{t('cap.serialUnsupported')}</strong> {t('cap.serialUnsupportedDetail')}
+            <span class="mvp-cap-notice__text">
+              <strong>{t('cap.serialUnsupported')}</strong> {t('cap.serialUnsupportedDetail')}
+            </span>
+            <button
+              type="button"
+              class="mvp-cap-notice__close"
+              aria-label={t('cap.dismiss')}
+              data-testid="cap-notice-dismiss"
+              onClick={dismissCapNotice}
+            >
+              ×
+            </button>
           </div>
         </Show>
 

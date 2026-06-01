@@ -50,6 +50,9 @@
   --mvp-ok: #5dff7a;
   --mvp-warn: #ffd400;
   --mvp-error: #ff6d6d;
+  /* Light accent/error fills — use black ink for maximal contrast. */
+  --mvp-on-accent: #000000;
+  --mvp-on-error: #000000;
 }
 
 /* Field — sunlight-readable: bright background, bold high-contrast ink. */
@@ -98,5 +101,8 @@
     --mvp-ok: #5dff7a;
     --mvp-warn: #ffd400;
     --mvp-error: #ff6d6d;
+    /* Light accent/error fills — use black ink for maximal contrast. */
+    --mvp-on-accent: #000000;
+    --mvp-on-error: #000000;
   }
 }

@@ -23,11 +23,15 @@ export const FRAME_MESSAGES: Readonly<Record<string, string>> = {
   'setup.frame.savePending': 'Writing {name}…',
   'setup.frame.done': 'A valid frame class is configured.',
   'setup.frame.todo': 'Choose a valid frame class to complete this step.',
+  'setup.frame.na': 'No multirotor frame applies to this fixed-wing vehicle.',
   'setup.frame.parametersOnly.title': 'Configured via parameters',
   'setup.frame.parametersOnly.body':
     'This vehicle class uses firmware-specific frame parameters. Current relevant parameters are shown below; use the parameter editor for advanced frame setup.',
   'setup.frame.unsupported':
     'MVPlanner does not know a simple frame selector for this vehicle class. Configure the frame in the parameter editor.',
+  'setup.frame.fixedWing.title': 'Fixed-wing (no QuadPlane frame)',
+  'setup.frame.fixedWing.body':
+    'Q_ENABLE is off, so this plane has no multirotor (VTOL) frame to configure. Set up the airframe via the servo function parameters (SERVOn_FUNCTION) instead. To configure a QuadPlane/VTOL frame, enable the QuadPlane stack (Q_ENABLE = 1) in the parameter editor and reconnect.',
   'setup.frame.param.frameClass': 'FRAME_CLASS',
   'setup.frame.param.frameType': 'FRAME_TYPE',
   'setup.frame.param.qFrameClass': 'Q_FRAME_CLASS',
@@ -60,6 +64,16 @@ export const FRAME_MESSAGES: Readonly<Record<string, string>> = {
   'setup.frame.copter.type.betaFlightX': 'BetaFlightX',
   'setup.frame.copter.type.djiX': 'DJIX',
   'setup.frame.copter.type.clockwiseX': 'ClockwiseX',
+
+  'setup.frame.quadplane.class.quad': 'Quad',
+  'setup.frame.quadplane.class.hexa': 'Hexa',
+  'setup.frame.quadplane.class.octa': 'Octa',
+  'setup.frame.quadplane.class.octaQuad': 'OctaQuad',
+  'setup.frame.quadplane.class.y6': 'Y6',
+  'setup.frame.quadplane.class.tri': 'Tri',
+  'setup.frame.quadplane.class.tailsitter': 'Tailsitter',
+  'setup.frame.quadplane.class.dodecaHexa': 'DodecaHexa',
+  'setup.frame.quadplane.class.deca': 'Deca',
 };
 
 let registered = false;

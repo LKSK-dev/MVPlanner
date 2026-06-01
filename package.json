@@ -1,6 +1,6 @@
 {
   "name": "mvplanner",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "Modern browser-based MAVLink ground control station (single-file)",
   "type": "module",
   "private": true,

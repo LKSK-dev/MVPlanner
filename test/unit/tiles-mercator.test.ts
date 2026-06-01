@@ -136,12 +136,21 @@ describe('viewport math', () => {
 
 describe('basemap source URLs', () => {
   it('substitutes XYZ placeholders and wraps the column', () => {
-    expect(tileUrl(DEFAULT_XYZ_SOURCE, { z: 3, x: 2, y: 5 })).toBe(
-      'https://tile.openstreetmap.org/3/2/5.png',
-    );
+    // Explicit OSM-style source (decoupled from the shipped default basemap).
+    const xyz: BasemapSource = {
+      id: 'osm',
+      kind: 'xyz',
+      url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+    };
+    expect(tileUrl(xyz, { z: 3, x: 2, y: 5 })).toBe('https://tile.openstreetmap.org/3/2/5.png');
     // x = -1 at z3 wraps to 7
-    expect(tileUrl(DEFAULT_XYZ_SOURCE, { z: 3, x: -1, y: 5 })).toBe(
-      'https://tile.openstreetmap.org/3/7/5.png',
+    expect(tileUrl(xyz, { z: 3, x: -1, y: 5 })).toBe('https://tile.openstreetmap.org/3/7/5.png');
+  });
+
+  it('uses the CARTO dark basemap as the shipped default', () => {
+    expect(DEFAULT_XYZ_SOURCE.id).toBe('carto-dark');
+    expect(tileUrl(DEFAULT_XYZ_SOURCE, { z: 3, x: 2, y: 5 })).toBe(
+      'https://b.basemaps.cartocdn.com/dark_all/3/2/5.png',
     );
   });
 
