@@ -6,7 +6,7 @@ import type { ConnState, TransportFactory } from './transport';
 import type { VehicleState } from './vehicle';
 import type { DecodedMessage } from './mavlink';
 import type { CommandClient, ParamClient, MissionClient } from './microservices';
-import type { UiRegistry, PanelDef, CommandDef } from './ui';
+import type { UiRegistry } from './ui';
 import type { MapEngine } from './map';
 
 export type Permission =
@@ -24,9 +24,38 @@ export type Permission =
   | 'transport'
   | 'dialect';
 
+/**
+ * Declarative panel contribution (manifest metadata). Carries only
+ * structured-cloneable metadata so the manifest persists to IndexedDB intact;
+ * the extension registers the IMPLEMENTATION (`mount`) at `activate()` via
+ * {@link ExtContext.ui}`.registerPanel` (contracts 1.4.0; spec plan/06 §6.2).
+ */
+export interface PanelContribution {
+  id: string;
+  title: string;
+  icon?: string;
+}
+
+/**
+ * Declarative command contribution (manifest metadata). The `run` implementation
+ * is registered at `activate()` via {@link ExtContext.ui}`.registerCommand`
+ * (contracts 1.4.0; spec plan/06 §6.2).
+ */
+export interface CommandContribution {
+  id: string;
+  title: string;
+  shortcut?: string;
+}
+
+/**
+ * Static contributions declared in the manifest. `panels`/`commands` are
+ * DECLARATIVE metadata only (no functions) so the manifest survives
+ * structured-clone persistence; implementations are registered at `activate()`
+ * through {@link ExtContext.ui} (contracts 1.4.0; spec plan/06 §6.2).
+ */
 export interface ExtContributes {
-  panels?: PanelDef[];
-  commands?: CommandDef[];
+  panels?: PanelContribution[];
+  commands?: CommandContribution[];
   themes?: unknown[];
   mapLayers?: unknown[];
   transports?: unknown[];

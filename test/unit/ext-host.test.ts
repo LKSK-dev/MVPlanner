@@ -260,7 +260,7 @@ describe('activation events', () => {
     const host = makeHost();
     const activate = vi.fn();
     const manifest = baseManifest({
-      contributes: { commands: [{ id: 'do.it', title: 'Do it', run: () => undefined }] },
+      contributes: { commands: [{ id: 'do.it', title: 'Do it' }] },
     });
     await host.install({
       manifest,
@@ -285,7 +285,7 @@ describe('activation events', () => {
     const host = makeHost();
     const activate = vi.fn();
     const manifest = baseManifest({
-      contributes: { commands: [{ id: 'cmd.run', title: 'Run', run: () => undefined }] },
+      contributes: { commands: [{ id: 'cmd.run', title: 'Run' }] },
     });
     await host.install({ manifest, module: makeModule(manifest, { activate }) });
     expect(host.get('com.example.hello')?.activationEvents).toEqual(['onCommand:cmd.run']);

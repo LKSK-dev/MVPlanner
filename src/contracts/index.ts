@@ -12,8 +12,13 @@
  * - 1.2.0: add optional `VehicleState.throttlePct`/`rcIn`/`rcOut` (HUD/RC).
  * - 1.3.0: add optional `AppSettings.mapSource` + `AppSettings.telemetryRateHz`
  *   and the `MapSourceSetting` type for the Settings screen (T3.7). Additive.
+ * - 1.4.0: refine `ExtContributes` — `panels`/`commands` are now DECLARATIVE
+ *   metadata (`PanelContribution`/`CommandContribution`: id/title/icon|shortcut)
+ *   instead of full `PanelDef`/`CommandDef` carrying functions, so a manifest
+ *   survives structured-clone persistence; implementations register at
+ *   `activate()` via `ctx.ui` (T7.3, spec plan/06 §6.2). Additive.
  */
-export const CONTRACTS_VERSION = '1.3.0';
+export const CONTRACTS_VERSION = '1.4.0';
 
 export type * from './bus';
 export type * from './transport';
