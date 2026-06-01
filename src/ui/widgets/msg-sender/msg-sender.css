@@ -1,0 +1,69 @@
+.mvp-msgsender {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.75rem;
+}
+
+.mvp-msgsender__picker,
+.mvp-msgsender__options,
+.mvp-msgsender__favorites,
+.mvp-msgsender__rate,
+.mvp-msgsender__fields {
+  border: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+}
+
+.mvp-msgsender__row,
+.mvp-msgsender__field,
+.mvp-msgsender__favorite-row,
+.mvp-msgsender__rate-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: end;
+}
+
+.mvp-msgsender__label,
+.mvp-msgsender__field-label {
+  display: grid;
+  gap: 0.25rem;
+  min-width: 10rem;
+}
+
+.mvp-msgsender__search,
+.mvp-msgsender__select,
+.mvp-msgsender__input,
+.mvp-msgsender__field-input,
+.mvp-msgsender__field-select {
+  min-height: 2rem;
+}
+
+.mvp-msgsender__field-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: 0.75rem;
+}
+
+.mvp-msgsender__field-meta {
+  font-size: 0.8rem;
+  opacity: 0.75;
+}
+
+.mvp-msgsender__field--unused {
+  opacity: 0.7;
+}
+
+.mvp-msgsender__actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.mvp-msgsender__status {
+  min-height: 1.25rem;
+}
+
+.mvp-msgsender__button {
+  cursor: pointer;
+}
