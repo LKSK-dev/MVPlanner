@@ -159,7 +159,10 @@ async function step(fn: () => Promise<void>): Promise<void> {
  * command / frame / int lat,lon (x/y) exact; z + the four params within float32
  * precision (both directions quantise through float32 on the wire).
  */
-function expectItemsRoundTrip(actual: readonly MissionItem[], expected: readonly MissionItem[]): void {
+function expectItemsRoundTrip(
+  actual: readonly MissionItem[],
+  expected: readonly MissionItem[],
+): void {
   expect(actual.length).toBe(expected.length);
   for (let i = 0; i < expected.length; i++) {
     const a = actual[i]!;
@@ -276,7 +279,11 @@ describe('M4 live integration: mission/fence/rally upload + read-back over the r
         defaultAlt: 50,
         defaultFrame: MAV_FRAME_GLOBAL_RELATIVE_ALT_INT,
       });
-      model = addWaypoint(model, { lat: BASE_LAT, lon: BASE_LON }, { command: NAV_WAYPOINT, alt: 0 });
+      model = addWaypoint(
+        model,
+        { lat: BASE_LAT, lon: BASE_LON },
+        { command: NAV_WAYPOINT, alt: 0 },
+      );
       model = addWaypoint(model, { lat: BASE_LAT + 0.001, lon: BASE_LON }, { alt: 50 });
       model = addWaypoint(model, { lat: BASE_LAT + 0.001, lon: BASE_LON + 0.001 }, { alt: 60 });
       model = addWaypoint(model, { lat: BASE_LAT, lon: BASE_LON + 0.001 }, { alt: 50 });

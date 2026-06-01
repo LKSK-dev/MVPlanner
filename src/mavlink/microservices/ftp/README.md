@@ -1,10 +1,9 @@
-# MAVLink FTP microservice — list + read (T3.1)
+# MAVLink FTP microservice — list/read/write/remove (T3.1 + T5.11)
 
-`FtpClient` implements the `list` + `read` halves of the frozen `FtpClient`
-contract (`src/contracts/microservices.ts`) over `FILE_TRANSFER_PROTOCOL`
-(msg id **110**). Spec: `plan/03` §3.4 (**MAVLink FTP**). Built in M3 because the
-param-FTP fast path (`@PARAM/param.pck`) and later log/calibration paths reuse
-it. `write`/`remove` and burst-read robustness are completed in **T5.11**.
+`FtpClient` implements the frozen `FtpClient` contract
+(`src/contracts/microservices.ts`) over `FILE_TRANSFER_PROTOCOL` (msg id **110**).
+Spec: `plan/03` §3.4 (**MAVLink FTP**). The T3.1 list/read foundation is kept,
+and T5.11 adds write/remove plus robust burst reads.
 
 ## Contract
 
@@ -14,9 +13,9 @@ createFtpClient({ sendMessage, onMessage, target, clock?, timeoutMs?,
 
 list(path)                       -> Promise<FtpEntry[]>
 read(path, onProgress?, signal?) -> Promise<Uint8Array>
-write(path, data, signal?)       -> rejects FtpError('not-implemented')  // T5.11
-remove(path)                     -> rejects FtpError('not-implemented')  // T5.11
-dispose()                        -> void   // extra: unsubscribe + drop in-flight
+write(path, data, signal?)       -> Promise<void>
+remove(path, signal?)            -> Promise<void>   // optional signal on impl
+dispose()                        -> void            // extra: unsubscribe + drop in-flight
 ```
 
 - `sendMessage(name, fields)` and `onMessage(names, cb)` are **injected** (bound
@@ -48,10 +47,10 @@ dispose()                        -> void   // extra: unsubscribe + drop in-fligh
 | 12  | `data`           | u8[≤239] |
 
 Opcodes: `TerminateSession=1`, `ResetSessions=2`, `ListDirectory=3`,
-`OpenFileRO=4`, `ReadFile=5`, `BurstReadFile=15`, `Ack=128`, `Nak=129`. A NAK
-carries its error code in `data[0]`; `EndOfFile=6` is a normal terminator, not a
-failure. The codec delivers `payload` as a `number[]`; `encodePayload` /
-`decodePayload` convert to/from the typed struct.
+`OpenFileRO=4`, `ReadFile=5`, `CreateFile=6`, `WriteFile=7`, `RemoveFile=8`,
+`CreateDirectory=9`, `RemoveDirectory=10`, `BurstReadFile=15`, `Ack=128`,
+`Nak=129`. A NAK carries its error code in `data[0]`; `EndOfFile=6` is a normal
+terminator for read/list, not a failure.
 
 ## Transaction state machine
 
@@ -81,30 +80,39 @@ empty page). Skips are counted but not surfaced.
 
 ### `read(path, onProgress?, signal?)`
 
-`OpenFileRO` (`Ack.session` = the session, `Ack.data` = u32 LE file size) → a
-loop of sequential `ReadFile`s by byte `offset` (`chunkSize` bytes each),
-appending `Ack.data` until a NAK `EndOfFile` (or a short/empty chunk) →
-`TerminateSession` (best-effort, in a `finally`). `onProgress(done, total)`
-reports bytes so far against the reported file size (falling back to `done`).
-Returns the concatenated `Uint8Array`.
+`OpenFileRO` (`Ack.session` = the session, `Ack.data` = u32 LE file size) →
+prefer `BurstReadFile` pages. A burst request may receive multiple ACK frames
+with the same response sequence; the client sorts by payload `offset`, appends
+only contiguous data, and re-requests the first missing offset when frames arrive
+out of order or with a gap. If burst is unsupported (`UnknownCommand`) or stalls
+without progress, the client falls back to sequential `ReadFile` from the current
+offset. `TerminateSession` is best-effort in a `finally`.
+
+### `write(path, data, signal?)`
+
+`CreateFile` opens/truncates the path and returns a session. The client sends
+`WriteFile` chunks of up to `FTP_MAX_DATA` bytes with the correct byte offset
+until all data is acknowledged, then best-effort `TerminateSession`s. Any NAK
+rejects with `FtpError('nak')` and the server error code.
+
+### `remove(path, signal?)`
+
+One `RemoveFile` transaction carrying `utf8(path)`. ACK resolves; NAK rejects.
 
 `FtpError` carries `{ reason: 'timeout' | 'aborted' | 'nak' | 'send-failed' |
-'protocol' | 'not-implemented', nak? }`.
+'protocol', nak? }`.
 
 ## Owned files
 
 - `ftp-protocol.ts` — wire constants, opcodes/NAK codes, payload encode/decode.
-- `ftp-client.ts` — the client, injected seams, transaction machine, `FtpError`.
+- `ftp-client.ts` — the client, injected seams, transaction machines, `FtpError`.
 - `index.ts` — public exports.
 
 ## Testing
 
 `test/unit/ftp.test.ts` (mock host + fake clock): payload codec round-trip;
-multi-chunk read by offset → exact bytes; progress vs file size; short/empty
-final chunk EOF; non-EOF NAK rejects; directory listing with paging + skips;
-timeout→retry→resolve and timeout→reject; seq + system/component correlation;
-abort cancels; `write`/`remove` reject as not-implemented.
-
-> **Not in scope here (T5.11):** `write`/`remove`, burst read (`BurstReadFile`)
-> robustness, and `ResetSessions` recovery. **Not here:** SITL integration (the
-> milestone gate) and the param-FTP fast path consumer (T3.2).
+sequential fallback read; robust burst assembly/re-request; progress vs file
+size; short/empty final chunk EOF; non-EOF NAK rejects; directory listing with
+paging + skips; timeout→retry→resolve and timeout→reject; seq +
+system/component correlation; abort cancels; multi-chunk write with termination;
+remove ACK/NAK handling.

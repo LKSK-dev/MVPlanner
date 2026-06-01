@@ -1,0 +1,242 @@
+/**
+ * Setup wizard framework styles (task T5.2; spec plan/05 §5.4/§5.6). Token-
+ * driven so it tracks every theme; no hard-coded colors. Imported by the Setup
+ * screen assembly (T5.12) where the wizard is mounted.
+ */
+
+.mvp-setup-wizard {
+  display: flex;
+  flex-direction: column;
+  block-size: 100%;
+  min-block-size: 0;
+  color: var(--mvp-text);
+}
+
+.mvp-setup-wizard__layout {
+  display: flex;
+  flex: 1 1 auto;
+  min-block-size: 0;
+}
+
+/* ---- Left: step list ---------------------------------------------------- */
+
+.mvp-setup-wizard__steps {
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 16rem;
+  min-inline-size: 12rem;
+  border-inline-end: 1px solid var(--mvp-border);
+  overflow-y: auto;
+}
+
+.mvp-setup-wizard__progress {
+  margin: 0;
+  padding: var(--mvp-gap);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--mvp-text-dim);
+  border-block-end: 1px solid var(--mvp-border);
+}
+
+.mvp-setup-wizard__steplist {
+  list-style: none;
+  margin: 0;
+  padding: 0.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.mvp-setup-wizard__steptab {
+  inline-size: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.6rem;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--mvp-radius);
+  color: var(--mvp-text);
+  text-align: start;
+  cursor: pointer;
+}
+
+.mvp-setup-wizard__steptab:hover {
+  background: var(--mvp-surface);
+}
+
+.mvp-setup-wizard__steptab.is-active {
+  background: var(--mvp-surface);
+  border-color: var(--mvp-accent);
+}
+
+.mvp-setup-wizard__steptab:focus-visible {
+  outline: 2px solid var(--mvp-accent);
+  outline-offset: 1px;
+}
+
+.mvp-setup-wizard__stepicon {
+  flex: 0 0 auto;
+  font-size: 0.9rem;
+}
+
+.mvp-setup-wizard__steptitle {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mvp-setup-wizard__stepstatus {
+  flex: 0 0 auto;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  border: 1px solid var(--mvp-border);
+  color: var(--mvp-text-dim);
+}
+
+.mvp-setup-wizard__stepstatus[data-status='active'] {
+  color: var(--mvp-accent);
+  border-color: var(--mvp-accent);
+}
+
+.mvp-setup-wizard__stepstatus[data-status='done'] {
+  color: var(--mvp-ok);
+  border-color: var(--mvp-ok);
+}
+
+.mvp-setup-wizard__stepstatus[data-status='warning'] {
+  color: var(--mvp-warn);
+  border-color: var(--mvp-warn);
+}
+
+.mvp-setup-wizard__empty {
+  padding: var(--mvp-gap);
+  color: var(--mvp-text-dim);
+}
+
+/* ---- Right: guided pane ------------------------------------------------- */
+
+.mvp-setup-wizard__pane {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-inline-size: 0;
+  min-block-size: 0;
+  padding: var(--mvp-gap);
+  gap: var(--mvp-gap);
+  overflow-y: auto;
+}
+
+.mvp-setup-wizard__panehead {
+  display: flex;
+  align-items: baseline;
+}
+
+.mvp-setup-wizard__panetitle {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.mvp-setup-wizard__panebody {
+  flex: 1 1 auto;
+  min-block-size: 0;
+}
+
+.mvp-setup-wizard__paneempty {
+  margin: 0;
+  color: var(--mvp-text-dim);
+}
+
+.mvp-setup-wizard__nav {
+  display: flex;
+  gap: 0.5rem;
+  padding-block-start: var(--mvp-gap);
+  border-block-start: 1px solid var(--mvp-border);
+}
+
+.mvp-setup-wizard__navbtn {
+  padding: 0.4rem 0.9rem;
+  border-radius: var(--mvp-radius);
+  border: 1px solid var(--mvp-border);
+  background: var(--mvp-surface);
+  color: var(--mvp-text);
+  cursor: pointer;
+}
+
+.mvp-setup-wizard__navbtn:focus-visible {
+  outline: 2px solid var(--mvp-accent);
+  outline-offset: 1px;
+}
+
+.mvp-setup-wizard__navbtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.mvp-setup-wizard__navbtn--complete {
+  margin-inline-start: auto;
+  border-color: var(--mvp-accent);
+  color: var(--mvp-accent);
+}
+
+.mvp-setup-wizard__navbtn--next {
+  border-color: var(--mvp-accent);
+}
+
+/* ---- Safety / info callout --------------------------------------------- */
+
+.mvp-setup-callout {
+  display: flex;
+  gap: 0.6rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: var(--mvp-radius);
+  border: 1px solid var(--mvp-border);
+  border-inline-start-width: 3px;
+  background: var(--mvp-surface);
+}
+
+.mvp-setup-callout[data-kind='safety'] {
+  border-inline-start-color: var(--mvp-warn);
+}
+
+.mvp-setup-callout[data-kind='info'] {
+  border-inline-start-color: var(--mvp-accent);
+}
+
+.mvp-setup-callout__icon {
+  flex: 0 0 auto;
+  font-size: 1rem;
+  line-height: 1.4;
+}
+
+.mvp-setup-callout[data-kind='safety'] .mvp-setup-callout__icon {
+  color: var(--mvp-warn);
+}
+
+.mvp-setup-callout[data-kind='info'] .mvp-setup-callout__icon {
+  color: var(--mvp-accent);
+}
+
+.mvp-setup-callout__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.mvp-setup-callout__title {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--mvp-text-dim);
+}
+
+.mvp-setup-callout__note {
+  margin: 0;
+  font-size: 0.85rem;
+}

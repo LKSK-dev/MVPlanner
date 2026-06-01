@@ -113,6 +113,7 @@ class MockHost {
       data?: Uint8Array;
       sysid?: number;
       compid?: number;
+      burstComplete?: number;
     } = {},
   ): void {
     const payload = encodePayload({
@@ -122,6 +123,7 @@ class MockHost {
       offset: opts.offset ?? 0,
       data: opts.data ?? new Uint8Array(0),
     });
+    payload[6] = opts.burstComplete ?? 0;
     this.cb?.({
       sysid: opts.sysid ?? TARGET.system,
       compid: opts.compid ?? TARGET.component,
@@ -189,8 +191,12 @@ function joinRecords(...recs: Uint8Array[]): Uint8Array {
   return out;
 }
 
-/** Flush pending microtasks so an awaited `sendMessage` resolves before we reply. */
-const tick = (): Promise<void> => Promise.resolve();
+/** Flush pending microtasks so nested async continuations send their next request. */
+const tick = async (): Promise<void> => {
+  await Promise.resolve();
+  await Promise.resolve();
+  await Promise.resolve();
+};
 
 // ---------------------------------------------------------------------------
 
@@ -217,6 +223,17 @@ describe('FtpClient.read', () => {
     expect(host.last.opcode).toBe(FtpOpcode.OpenFileRO);
     host.ackLast({ session: 3, data: new Uint8Array([8, 0, 0, 0]) });
 
+    // BurstReadFile is preferred; this mock peer reports it unsupported, so the
+    // client falls back to sequential ReadFile.
+    await tick();
+    expect(host.last).toMatchObject({
+      opcode: FtpOpcode.BurstReadFile,
+      session: 3,
+      offset: 0,
+      size: 4,
+    });
+    host.nakLast(FtpNak.UnknownCommand);
+
     // Chunk 1 @0
     await tick();
     expect(host.last).toMatchObject({ opcode: FtpOpcode.ReadFile, session: 3, offset: 0, size: 4 });
@@ -227,18 +244,83 @@ describe('FtpClient.read', () => {
     expect(host.last).toMatchObject({ opcode: FtpOpcode.ReadFile, offset: 4 });
     host.ackLast({ session: 3, offset: 4, data: new Uint8Array([20, 21, 22, 23]) });
 
-    // EOF via NAK ends the read cleanly.
-    await tick();
-    expect(host.last.offset).toBe(8);
-    host.nakLast(FtpNak.EndOfFile);
-
-    // TerminateSession is issued on completion.
+    // The reported file size is satisfied, so the client terminates without an
+    // extra EOF probe.
     await tick();
     expect(host.last.opcode).toBe(FtpOpcode.TerminateSession);
     host.ackLast({ session: 3 });
 
     const bytes = await pr;
     expect([...bytes]).toEqual([10, 11, 12, 13, 20, 21, 22, 23]);
+  });
+
+  it('assembles burst-read frames by offset before terminating', async () => {
+    const { host, client } = setup({ chunkSize: 4 });
+    const pr = client.read('log.bin');
+
+    await tick();
+    host.ackLast({ session: 7, data: new Uint8Array([8, 0, 0, 0]) });
+
+    await tick();
+    expect(host.last).toMatchObject({ opcode: FtpOpcode.BurstReadFile, session: 7, offset: 0 });
+    const burstSeq = host.last.seq;
+    // Deliberately out of order; the client sorts and appends only contiguous data.
+    host.reply(burstSeq, FtpOpcode.Ack, {
+      session: 7,
+      offset: 4,
+      data: new Uint8Array([5, 6, 7, 8]),
+    });
+    host.reply(burstSeq, FtpOpcode.Ack, {
+      session: 7,
+      offset: 0,
+      data: new Uint8Array([1, 2, 3, 4]),
+      burstComplete: 1,
+    });
+
+    await tick();
+    expect(host.last.opcode).toBe(FtpOpcode.TerminateSession);
+    host.ackLast({ session: 7 });
+
+    await expect(pr).resolves.toEqual(new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]));
+  });
+
+  it('re-requests a burst-read gap before appending', async () => {
+    const { host, client } = setup({ chunkSize: 4 });
+    const pr = client.read('gap.bin');
+
+    await tick();
+    host.ackLast({ session: 8, data: new Uint8Array([8, 0, 0, 0]) });
+
+    await tick();
+    expect(host.last.opcode).toBe(FtpOpcode.BurstReadFile);
+    const firstBurstSeq = host.last.seq;
+    host.reply(firstBurstSeq, FtpOpcode.Ack, {
+      session: 8,
+      offset: 4,
+      data: new Uint8Array([5, 6, 7, 8]),
+      burstComplete: 1,
+    });
+
+    await tick();
+    expect(host.last).toMatchObject({ opcode: FtpOpcode.BurstReadFile, offset: 0 });
+    const secondBurstSeq = host.last.seq;
+    host.reply(secondBurstSeq, FtpOpcode.Ack, {
+      session: 8,
+      offset: 0,
+      data: new Uint8Array([1, 2, 3, 4]),
+    });
+    host.reply(secondBurstSeq, FtpOpcode.Ack, {
+      session: 8,
+      offset: 4,
+      data: new Uint8Array([5, 6, 7, 8]),
+      burstComplete: 1,
+    });
+
+    await tick();
+    expect(host.last.opcode).toBe(FtpOpcode.TerminateSession);
+    host.ackLast({ session: 8 });
+
+    await expect(pr).resolves.toEqual(new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]));
   });
 
   it('reports progress against the OpenFileRO file size', async () => {
@@ -248,6 +330,9 @@ describe('FtpClient.read', () => {
 
     await tick();
     host.ackLast({ session: 1, data: new Uint8Array([8, 0, 0, 0]) }); // size 8
+    await tick();
+    expect(host.last.opcode).toBe(FtpOpcode.BurstReadFile);
+    host.nakLast(FtpNak.UnknownCommand);
     await tick();
     host.ackLast({ session: 1, data: new Uint8Array([1, 2, 3, 4]) });
     await tick();
@@ -269,6 +354,9 @@ describe('FtpClient.read', () => {
     const pr = client.read('f');
     await tick();
     host.ackLast({ session: 2, data: new Uint8Array([0, 0, 0, 0]) }); // size unknown→0
+    await tick();
+    expect(host.last.opcode).toBe(FtpOpcode.BurstReadFile);
+    host.nakLast(FtpNak.UnknownCommand);
     await tick();
     host.ackLast({ session: 2, data: new Uint8Array([9, 9]) }); // short chunk
     await tick();
@@ -393,8 +481,12 @@ describe('FtpClient transaction robustness', () => {
     const openSeq = host.last.seq;
     host.ackLast({ session: 5, data: new Uint8Array([4, 0, 0, 0]) });
     await tick();
+    const burstSeq = host.last.seq;
+    expect(burstSeq).not.toBe(openSeq); // fresh seq pair per transaction
+    host.nakLast(FtpNak.UnknownCommand);
+    await tick();
     const readSeq = host.last.seq;
-    expect(readSeq).not.toBe(openSeq); // fresh seq pair per transaction
+    expect(readSeq).not.toBe(burstSeq);
     host.ackLast({ session: 5, data: new Uint8Array([1, 2, 3, 4]) });
     await tick();
     host.nakLast(FtpNak.EndOfFile);
@@ -414,12 +506,92 @@ describe('FtpClient transaction robustness', () => {
   });
 });
 
-describe('FtpClient unsupported ops (deferred to T5.11)', () => {
-  it('write and remove reject as not-implemented', async () => {
-    const { client } = setup();
-    await expect(client.write('/f', new Uint8Array())).rejects.toMatchObject({
-      reason: 'not-implemented',
+describe('FtpClient.write and remove', () => {
+  it('writes a multi-chunk file then terminates the session', async () => {
+    const { host, client } = setup({ chunkSize: 3 });
+    const data = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]);
+    const pr = client.write('/APM/scripts/a.lua', data);
+
+    await tick();
+    expect(host.last.opcode).toBe(FtpOpcode.CreateFile);
+    expect(new TextDecoder().decode(host.last.data)).toBe('/APM/scripts/a.lua');
+    host.ackLast({ session: 11 });
+
+    await tick();
+    expect(host.last).toMatchObject({
+      opcode: FtpOpcode.WriteFile,
+      session: 11,
+      offset: 0,
+      size: 3,
     });
-    await expect(client.remove('/f')).rejects.toBeInstanceOf(FtpError);
+    expect([...host.last.data]).toEqual([1, 2, 3]);
+    host.ackLast({ session: 11 });
+
+    await tick();
+    expect(host.last).toMatchObject({
+      opcode: FtpOpcode.WriteFile,
+      session: 11,
+      offset: 3,
+      size: 3,
+    });
+    expect([...host.last.data]).toEqual([4, 5, 6]);
+    host.ackLast({ session: 11 });
+
+    await tick();
+    expect(host.last).toMatchObject({
+      opcode: FtpOpcode.WriteFile,
+      session: 11,
+      offset: 6,
+      size: 2,
+    });
+    expect([...host.last.data]).toEqual([7, 8]);
+    host.ackLast({ session: 11 });
+
+    await tick();
+    expect(host.last).toMatchObject({ opcode: FtpOpcode.TerminateSession, session: 11 });
+    host.ackLast({ session: 11 });
+
+    await expect(pr).resolves.toBeUndefined();
+  });
+
+  it('rejects write on a WriteFile NAK and still terminates', async () => {
+    const { host, client } = setup({ chunkSize: 4 });
+    const pr = client.write('/f', new Uint8Array([1, 2, 3, 4]));
+
+    await tick();
+    host.ackLast({ session: 12 });
+    await tick();
+    host.nakLast(FtpNak.FileProtected);
+    await tick();
+    expect(host.last).toMatchObject({ opcode: FtpOpcode.TerminateSession, session: 12 });
+    host.ackLast({ session: 12 });
+
+    await expect(pr).rejects.toMatchObject({ reason: 'nak', nak: FtpNak.FileProtected });
+  });
+
+  it('removes a file on ACK and rejects on NAK', async () => {
+    const ok = setup();
+    const okPr = ok.client.remove('/tmp/old.txt');
+    await tick();
+    expect(ok.host.last.opcode).toBe(FtpOpcode.RemoveFile);
+    expect(new TextDecoder().decode(ok.host.last.data)).toBe('/tmp/old.txt');
+    ok.host.ackLast();
+    await expect(okPr).resolves.toBeUndefined();
+
+    const bad = setup();
+    const badPr = bad.client.remove('/tmp/missing.txt');
+    await tick();
+    bad.host.nakLast(FtpNak.FileNotFound);
+    await expect(badPr).rejects.toMatchObject({ reason: 'nak', nak: FtpNak.FileNotFound });
+  });
+
+  it('remove honors abort signals', async () => {
+    const { host, client } = setup();
+    const ac = new AbortController();
+    const pr = client.remove('/tmp/slow.txt', ac.signal);
+    await tick();
+    expect(host.last.opcode).toBe(FtpOpcode.RemoveFile);
+    ac.abort();
+    await expect(pr).rejects.toBeInstanceOf(FtpError);
   });
 });

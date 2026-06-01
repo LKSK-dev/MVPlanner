@@ -45,10 +45,8 @@ export const FTP_HEADER_LEN = 12;
 export const FTP_MAX_DATA = FTP_PAYLOAD_LEN - FTP_HEADER_LEN;
 
 /**
- * FTP opcodes used by the list/read paths (write/remove land in T5.11). `Ack`
- * and `Nak` are server responses; the rest are GCS requests. `BurstReadFile` is
- * defined for completeness but the M3 read path uses sequential `ReadFile`
- * (burst robustness is T5.11).
+ * FTP opcodes used by the client. `Ack` and `Nak` are server responses; the
+ * rest are GCS requests.
  */
 export const FtpOpcode = {
   TerminateSession: 1,
@@ -56,6 +54,11 @@ export const FtpOpcode = {
   ListDirectory: 3,
   OpenFileRO: 4,
   ReadFile: 5,
+  CreateFile: 6,
+  WriteFile: 7,
+  RemoveFile: 8,
+  CreateDirectory: 9,
+  RemoveDirectory: 10,
   BurstReadFile: 15,
   Ack: 128,
   Nak: 129,

@@ -1,9 +1,9 @@
 /**
- * `mavlink/microservices/ftp` public surface (task T3.1; spec plan/03 §3.4 FTP).
- * The {@link FtpClient} implements the frozen `FtpClient` contract for `list` +
- * `read` over `FILE_TRANSFER_PROTOCOL`; `write`/`remove` (and burst-read
- * robustness) are completed in T5.11. Cross-module consumers import from here,
- * never deep paths (conventions plan/implementation/00 §0.3).
+ * `mavlink/microservices/ftp` public surface (tasks T3.1 + T5.11; spec plan/03
+ * §3.4 FTP). The {@link FtpClient} implements the frozen `FtpClient` contract
+ * for `list`, robust burst/sequential `read`, `write`, and `remove` over
+ * `FILE_TRANSFER_PROTOCOL`. Cross-module consumers import from here, never deep
+ * paths (conventions plan/implementation/00 §0.3).
  *
  * @see ./README.md for the contract, owned files, and how to test it.
  */
