@@ -86,7 +86,7 @@
   background: var(--mvp-bg, #141414);
   color: inherit;
   font: inherit;
-  text-align: right;
+  text-align: end;
 }
 
 .mvp-rally__remove {

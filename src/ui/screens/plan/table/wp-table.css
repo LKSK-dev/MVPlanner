@@ -57,7 +57,7 @@
 }
 
 .mvp-wptable__caption {
-  text-align: left;
+  text-align: start;
   font-weight: 600;
   padding-bottom: 0.4rem;
   color: var(--mvp-fg-muted, #a0a0a0);
@@ -67,7 +67,7 @@
 .mvp-wptable__table td {
   border: 1px solid var(--mvp-border, #444);
   padding: 0.2rem 0.35rem;
-  text-align: left;
+  text-align: start;
 }
 
 .mvp-wptable__table thead th {
@@ -80,7 +80,7 @@
 }
 
 .mvp-wptable__seq {
-  text-align: right;
+  text-align: end;
   font-variant-numeric: tabular-nums;
   color: var(--mvp-fg-muted, #a0a0a0);
 }
@@ -103,7 +103,7 @@
 }
 
 .mvp-wptable__cell--num .mvp-wptable__input {
-  text-align: right;
+  text-align: end;
   font-variant-numeric: tabular-nums;
 }
 

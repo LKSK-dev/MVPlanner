@@ -99,6 +99,32 @@ export function listLocales(): LocaleCode[] {
 }
 
 /**
+ * Enumerate the message keys registered for `code` (the union of central
+ * {@link EN_MESSAGES} keys and every key contributed via
+ * {@link registerMessages}/{@link registerLocale} for that locale).
+ *
+ * Returns an empty array when no catalog is registered for `code`. Used by the
+ * i18n-completeness audit (T8.11) and by {@link pseudoLocaleFromEnglish} to
+ * derive a pseudo-locale from the live English catalog. Defaults to
+ * {@link DEFAULT_LOCALE} (`'en'`), the source-of-truth catalog.
+ */
+export function messageKeys(code: LocaleCode = DEFAULT_LOCALE): LocaleCode[] {
+  const catalog = registry.get(code);
+  return catalog ? Object.keys(catalog) : [];
+}
+
+/**
+ * Snapshot the registered catalog for `code` as a plain readonly map, or an
+ * empty map when none is registered. Unlike {@link catalogFor} this always
+ * returns a catalog object (never `undefined`), so audits/derivations can read
+ * the full key→string surface without a presence check. Defaults to
+ * {@link DEFAULT_LOCALE} (`'en'`).
+ */
+export function getMessages(code: LocaleCode = DEFAULT_LOCALE): MessageCatalog {
+  return registry.get(code) ?? {};
+}
+
+/**
  * Resolve the registered catalog for `code`, or `undefined` when none exists.
  * Internal helper consumed by `t()`; not part of the call-site contract.
  */

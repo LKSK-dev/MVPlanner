@@ -29,7 +29,7 @@
   height: 100%;
   overflow-y: auto;
   background: var(--mvp-surface);
-  border-left: 1px solid var(--mvp-border);
+  border-inline-start: 1px solid var(--mvp-border);
   padding: 16px;
   display: flex;
   flex-direction: column;
@@ -86,7 +86,7 @@
 }
 
 .mvp-conn__transport-hint {
-  margin-left: auto;
+  margin-inline-start: auto;
   font-size: 0.8rem;
   color: var(--mvp-warn);
 }
@@ -172,7 +172,7 @@
 .mvp-floating-panel {
   position: fixed;
   top: 4rem;
-  right: 1.5rem;
+  inset-inline-end: 1.5rem;
   z-index: 1000;
   width: min(28rem, calc(100vw - 3rem));
   max-height: calc(100vh - 6rem);

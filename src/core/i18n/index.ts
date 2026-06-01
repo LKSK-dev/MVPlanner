@@ -22,13 +22,22 @@ export type { LocaleCode } from './locale';
 export {
   DEFAULT_LOCALE,
   getLocale,
+  getMessages,
   hasLocale,
   listLocales,
+  messageKeys,
   locale,
   registerLocale,
   registerMessages,
   setLocale,
 } from './locale';
+export {
+  PSEUDO_LOCALE,
+  buildPseudoCatalog,
+  enablePseudoLocale,
+  pseudoLocalize,
+  registerPseudoLocale,
+} from './pseudo';
 export {
   formatDate,
   formatDateTime,

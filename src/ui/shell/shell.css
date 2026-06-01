@@ -68,7 +68,7 @@
 }
 
 .mvp-status {
-  margin-left: auto;
+  margin-inline-start: auto;
   display: flex;
   align-items: center;
   gap: 6px;
@@ -281,7 +281,7 @@
 /* --- Toasts + modal ------------------------------------------------------ */
 .mvp-toasts {
   position: fixed;
-  right: var(--mvp-gap);
+  inset-inline-end: var(--mvp-gap);
   bottom: var(--mvp-gap);
   display: flex;
   flex-direction: column;
@@ -306,15 +306,15 @@
 }
 
 .mvp-toast--info {
-  border-left: 3px solid var(--mvp-accent);
+  border-inline-start: 3px solid var(--mvp-accent);
 }
 
 .mvp-toast--warn {
-  border-left: 3px solid var(--mvp-warn);
+  border-inline-start: 3px solid var(--mvp-warn);
 }
 
 .mvp-toast--error {
-  border-left: 3px solid var(--mvp-error);
+  border-inline-start: 3px solid var(--mvp-error);
 }
 
 .mvp-toast__close {

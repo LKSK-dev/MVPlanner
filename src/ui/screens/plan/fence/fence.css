@@ -82,7 +82,7 @@
   background: var(--mvp-bg-elevated, #1c1c1c);
   color: inherit;
   font: inherit;
-  text-align: right;
+  text-align: end;
 }
 
 .mvp-fence__select {

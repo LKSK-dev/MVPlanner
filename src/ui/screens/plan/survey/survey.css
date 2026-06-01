@@ -52,7 +52,7 @@
   background: var(--mvp-bg-elevated, #1c1c1c);
   color: inherit;
   font: inherit;
-  text-align: right;
+  text-align: end;
 }
 
 .mvp-survey__estimates {
@@ -69,7 +69,7 @@
 
 .mvp-survey__estimates dd {
   margin: 0;
-  text-align: right;
+  text-align: end;
   font-variant-numeric: tabular-nums;
 }
 
