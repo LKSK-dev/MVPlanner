@@ -18,6 +18,9 @@
     "check:size": "node scripts/check-size.mjs"
   },
   "dependencies": {
+    "@codemirror/autocomplete": "^6.20.2",
+    "@codemirror/lang-javascript": "^6.2.5",
+    "codemirror": "^6.0.2",
     "idb": "^8.0.3",
     "solid-js": "^1.9.13",
     "uplot": "^1.6.32"
