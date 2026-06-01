@@ -1,0 +1,143 @@
+/* Antenna-tracker setup panel (T8.9). Scoped to this panel. */
+
+.mvp-tracker {
+  display: flex;
+  flex-direction: column;
+  gap: var(--mvp-gap);
+  max-inline-size: 48rem;
+}
+
+.mvp-tracker__intro,
+.mvp-tracker__status,
+.mvp-tracker__empty {
+  margin: 0;
+  color: var(--mvp-text-dim);
+}
+
+.mvp-tracker__section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 0.75rem;
+  border: 1px solid var(--mvp-border);
+  border-radius: var(--mvp-radius);
+  background: var(--mvp-surface);
+}
+
+.mvp-tracker__section-title {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.mvp-tracker__readout {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: 0.6rem;
+}
+
+.mvp-tracker__metric {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.mvp-tracker__metric-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--mvp-text-dim);
+}
+
+.mvp-tracker__metric-value {
+  font-variant-numeric: tabular-nums;
+  font-size: 1.1rem;
+}
+
+.mvp-tracker__badge {
+  display: inline-block;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+}
+
+.mvp-tracker__badge--on {
+  background: color-mix(in srgb, var(--mvp-accent) 25%, transparent);
+  color: var(--mvp-accent);
+}
+
+.mvp-tracker__badge--off {
+  background: color-mix(in srgb, var(--mvp-text-dim) 20%, transparent);
+  color: var(--mvp-text-dim);
+}
+
+.mvp-tracker__compass {
+  position: relative;
+  inline-size: 9rem;
+  block-size: 9rem;
+  border: 2px solid var(--mvp-border);
+  border-radius: 50%;
+  margin-inline: auto;
+}
+
+.mvp-tracker__needle {
+  position: absolute;
+  inset-block: 0.4rem 50%;
+  inset-inline-start: calc(50% - 1px);
+  inline-size: 2px;
+  background: var(--mvp-accent);
+  transform-origin: bottom center;
+}
+
+.mvp-tracker__needle--target {
+  background: var(--mvp-text-dim);
+}
+
+.mvp-tracker__north {
+  position: absolute;
+  inset-block-start: 0.1rem;
+  inset-inline-start: 50%;
+  transform: translateX(-50%);
+  font-size: 0.7rem;
+  color: var(--mvp-text-dim);
+}
+
+.mvp-tracker__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.mvp-tracker__label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--mvp-text-dim);
+}
+
+.mvp-tracker__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 0.75rem;
+}
+
+.mvp-tracker__select,
+.mvp-tracker__input {
+  min-block-size: 2rem;
+  padding: 0.35rem 0.45rem;
+  border: 1px solid var(--mvp-border);
+  border-radius: var(--mvp-radius);
+  background: var(--mvp-surface);
+  color: var(--mvp-text);
+}
+
+.mvp-tracker__select:focus-visible,
+.mvp-tracker__input:focus-visible {
+  outline: 2px solid var(--mvp-accent);
+  outline-offset: 1px;
+}
+
+.mvp-tracker__toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
