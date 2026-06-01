@@ -11,6 +11,7 @@ import {
   type SecretStore,
 } from './core/secrets';
 import { Shell, createUiRegistry, setScreenPanel, type ShellContextValue } from './ui/shell';
+import { registerAbout } from './ui/shell/about';
 import { ConnectionProvider } from './ui/shell/connection';
 import { MavlinkHost } from './mavlink/host';
 import type { MavlinkHostLike } from './transport/manager';
@@ -79,6 +80,7 @@ export const App: Component<AppProps> = (props) => {
   const registry = createUiRegistry();
   const capabilities = props.capabilities ?? detectRealCapabilities();
   const host: MavlinkHostLike = props.host ?? new MavlinkHost();
+  onCleanup(registerAbout(registry, t));
 
   // T1.12 integration: register the MAVLink inspector panel + ⌘K command bound to
   // the singleton host's on-demand inspector stream. Guarded so a test mock host

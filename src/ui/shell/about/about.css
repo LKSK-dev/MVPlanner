@@ -1,0 +1,123 @@
+.mvp-about {
+  display: grid;
+  gap: 1rem;
+  max-width: 56rem;
+  color: var(--mvp-fg, #e8edf2);
+}
+
+.mvp-about__header {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.mvp-about__eyebrow {
+  margin: 0;
+  color: var(--mvp-fg-muted, #9aa8b5);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.mvp-about h2,
+.mvp-about h3,
+.mvp-about p {
+  margin: 0;
+}
+
+.mvp-about__description,
+.mvp-about__licenses p,
+.mvp-about__dialect-version {
+  color: var(--mvp-fg-muted, #9aa8b5);
+}
+
+.mvp-about__meta,
+.mvp-about__card {
+  border: 1px solid var(--mvp-border, #334155);
+  border-radius: 0.75rem;
+  background: var(--mvp-panel, #111827);
+}
+
+.mvp-about__meta {
+  display: grid;
+  margin: 0;
+}
+
+.mvp-about__meta-row {
+  display: grid;
+  grid-template-columns: minmax(10rem, 1fr) minmax(0, 2fr);
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+}
+
+.mvp-about__meta-row + .mvp-about__meta-row {
+  border-top: 1px solid var(--mvp-border, #334155);
+}
+
+.mvp-about__meta dt {
+  color: var(--mvp-fg-muted, #9aa8b5);
+  font-weight: 600;
+}
+
+.mvp-about__meta dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-family: var(--mvp-font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+}
+
+.mvp-about__card {
+  display: grid;
+  gap: 0.75rem;
+  padding: 1rem;
+}
+
+.mvp-about__dialects {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mvp-about__dialects li {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.75rem;
+  justify-content: space-between;
+}
+
+.mvp-about__dialect-name {
+  font-weight: 700;
+}
+
+.mvp-about__privacy {
+  border-left: 0.25rem solid var(--mvp-accent, #38bdf8);
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, var(--mvp-accent, #38bdf8) 12%, transparent);
+}
+
+.mvp-about__notices {
+  max-height: min(32rem, 55vh);
+  margin: 0;
+  overflow: auto;
+  white-space: pre-wrap;
+  border: 1px solid var(--mvp-border, #334155);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  background: var(--mvp-surface, #0b1220);
+  color: var(--mvp-fg, #e8edf2);
+  font-family: var(--mvp-font-mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace);
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
+.mvp-about__empty {
+  color: var(--mvp-fg-muted, #9aa8b5);
+}
+
+.mvp-floating-panel--about .mvp-floating-panel__body {
+  width: min(58rem, calc(100vw - 3rem));
+  max-height: min(42rem, calc(100vh - 8rem));
+  overflow: auto;
+}
