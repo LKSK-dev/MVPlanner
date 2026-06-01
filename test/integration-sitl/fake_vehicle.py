@@ -56,6 +56,18 @@ Behaviour:
       - MAV_CMD_DO_CANCEL_MAG_CAL(42426) -> COMMAND_ACK ACCEPTED + stop stream.
     Streaming is driven by a non-blocking scheduler in the main loop so it never
     stalls telemetry or the other microservice handshakes.
+  * Answers the DataFlash LOG-DOWNLOAD microservice (M6 gate): holds ONE
+    in-memory synthetic log (id 0) of a fixed length (2600 bytes, deliberately
+    not a multiple of 90 so the final LOG_DATA chunk is partial/zero-padded)
+    whose bytes follow a deterministic pattern (byte[i] = (i*73 + 7) & 0xFF) so
+    the GCS can assert byte-exact reassembly. It handles:
+      - LOG_REQUEST_LIST(start,end) -> reply LOG_ENTRY for log 0 when it falls
+        in [start,end]: id=0, num_logs=1, last_log_num=0, time_utc, size=<len>.
+      - LOG_REQUEST_DATA(id, ofs, count) -> stream LOG_DATA(id, ofs, count<=90,
+        data[90] zero-padded) over the requested window in 90-byte chunks. To
+        EXERCISE the client's resumable re-request, the chunk at ofs=900 is
+        DROPPED exactly once on the first pass and served when re-requested.
+      - LOG_REQUEST_END -> stop streaming. LOG_ERASE -> clear the stored log.
 """
 import argparse
 import os
@@ -215,6 +227,50 @@ def main() -> int:
     MAG_PCTS = (25, 50, 75)
     mag_cal = None  # active compass-cal stream state, or None
 
+    # --- DataFlash LOG-DOWNLOAD microservice state (M6 gate) ----------------
+    # ONE synthetic in-memory log (id 0). The length is intentionally NOT a
+    # multiple of LOG_CHUNK (90) so the last LOG_DATA chunk is partial and gets
+    # zero-padded to 90 bytes on the wire (the GCS clamps via `count`). The byte
+    # pattern is deterministic so the GCS can assert a byte-exact reassembly.
+    LOG_CHUNK = 90
+    LOG_LEN = 2600
+    LOG_TIME_UTC = 1_700_000_000  # fixed nonzero epoch seconds
+    log_data = bytes((i * 73 + 7) & 0xFF for i in range(LOG_LEN))
+    # id -> bytes; cleared by LOG_ERASE.
+    log_files = {0: log_data}
+    # The chunk at this offset is dropped exactly ONCE (first pass) to force the
+    # GCS-side LogClient to detect the gap and re-request the missing window.
+    LOG_DROP_OFS = 900
+    log_drop_state = {"dropped": False}
+
+    def serve_log_data(log_id: int, ofs: int, count: int) -> None:
+        """Stream LOG_DATA chunks for [ofs, ofs+count) in 90-byte windows.
+
+        Each chunk's `data` is zero-padded to 90 bytes; `count` carries the
+        valid byte length. The chunk at LOG_DROP_OFS is skipped exactly once
+        (first pass) to exercise the client's dropped-chunk resume/re-request.
+        """
+        data = log_files.get(log_id)
+        if data is None:
+            return
+        total = len(data)
+        if ofs < 0 or ofs >= total:
+            return
+        end = min(total, ofs + count)
+        pos = ofs
+        while pos < end:
+            clen = min(LOG_CHUNK, total - pos)
+            if pos == LOG_DROP_OFS and not log_drop_state["dropped"]:
+                # Drop this one chunk once; it is served on re-request.
+                log_drop_state["dropped"] = True
+                pos += clen
+                continue
+            chunk = list(data[pos : pos + clen])
+            if clen < LOG_CHUNK:
+                chunk = chunk + [0] * (LOG_CHUNK - clen)
+            mav.log_data_send(log_id, pos, clen, chunk)
+            pos += clen
+
     boot = time.time()
     last_telemetry = 0.0
     while True:
@@ -331,6 +387,29 @@ def main() -> int:
                             it["z"],
                             mission_type=mt,
                         )
+                elif mtype == "LOG_REQUEST_LIST":
+                    # Reply LOG_ENTRY for each available log whose id falls in
+                    # the requested [start,end] window (here only log 0).
+                    start = int(getattr(msg, "start", 0))
+                    end = int(getattr(msg, "end", 0xFFFF))
+                    for log_id in sorted(log_files):
+                        if start <= log_id <= end:
+                            mav.log_entry_send(
+                                log_id,
+                                len(log_files),
+                                max(log_files),
+                                LOG_TIME_UTC,
+                                len(log_files[log_id]),
+                            )
+                elif mtype == "LOG_REQUEST_DATA":
+                    # Stream the requested byte window as 90-byte LOG_DATA chunks.
+                    serve_log_data(int(msg.id), int(msg.ofs), int(msg.count))
+                elif mtype == "LOG_REQUEST_END":
+                    # GCS is done; nothing to tear down for an in-memory log.
+                    pass
+                elif mtype == "LOG_ERASE":
+                    # Wipe the stored log(s); the LOG protocol has no ACK.
+                    log_files.clear()
                 elif mtype == "MISSION_CLEAR_ALL":
                     # Wipe one type's list and ACK.
                     mt = mission_type_of(msg)
