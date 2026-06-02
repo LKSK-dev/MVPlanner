@@ -3,6 +3,22 @@
 All notable changes to MVPlanner are documented here. This project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [0.3.1] — 2026-06-02
+
+### Fixed (code-audit follow-up)
+
+- **Flight instruments now honor the unit setting** — the gauges/HUD were
+  hard-wired to metric; they now render the selected unit system and per-quantity
+  overrides (the last gap in “units everywhere”).
+- **Map API key is no longer stored in plaintext** — the persisted settings slice
+  redacts it; the key lives only in memory + the encrypted secret store.
+
+### Changed
+
+- Added a root **LICENSE** (ISC), a **nightly CI** job running the live SITL +
+  perf suites, and a parity guard for the example-extension typings; `lint` is
+  now warning-clean. See `docs/audit/CODE-AUDIT.md`.
+
 ## [0.3.0] — 2026-06-02
 
 ### Fixed
