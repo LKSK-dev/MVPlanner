@@ -14,6 +14,7 @@
 import { Show, createSignal, onCleanup, onMount, type Component } from 'solid-js';
 import type { CommandDef, ScreenId } from '../../contracts';
 import { t } from '../../core/i18n';
+import { chordFromEvent } from '../../core/keybinds';
 import { AlertCenter } from './alert-center';
 import { CommandPalette } from './command-palette';
 import { ShellContext, type ShellContextValue } from './context';
@@ -100,7 +101,7 @@ export const Shell: Component<{ ctx: ShellContextValue }> = (props) => {
     registry.registerCommand({
       id: 'palette.open',
       title: t('cmd.openPalette'),
-      shortcut: '⌘K',
+      shortcut: 'mod+k',
       run: openPalette,
     }),
     registry.registerCommand({
@@ -115,12 +116,35 @@ export const Shell: Component<{ ctx: ShellContextValue }> = (props) => {
     }),
   );
 
-  // --- ⌘/Ctrl-K global shortcut -------------------------------------------
+  // --- global keybind dispatcher ------------------------------------------
+  // Resolve a pressed chord to a command through the live keybind registry
+  // (App Settings -> Keybinds). Typing targets are ignored so shortcuts never
+  // fire while editing text; the palette chord is the one exception. When no
+  // keybind registry is injected, fall back to the built-in palette chord.
+  const isTypingTarget = (el: EventTarget | null): boolean => {
+    const node = el as HTMLElement | null;
+    if (node === null) return false;
+    const tag = node.tagName;
+    return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || node.isContentEditable;
+  };
   const onKeyDown = (e: KeyboardEvent): void => {
-    if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) {
-      e.preventDefault();
-      setPaletteOpen((open) => !open);
+    const keybinds = props.ctx.keybinds;
+    if (keybinds === undefined) {
+      if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) {
+        e.preventDefault();
+        setPaletteOpen((open) => !open);
+      }
+      return;
     }
+    const chord = chordFromEvent(e);
+    if (chord === undefined) return;
+    if (isTypingTarget(e.target) && chord !== 'mod+k') return;
+    const id = keybinds.resolve(chord);
+    if (id === undefined) return;
+    const cmd = registry.commands().find((c) => c.id === id);
+    if (cmd === undefined) return;
+    e.preventDefault();
+    void cmd.run();
   };
   onMount(() => window.addEventListener('keydown', onKeyDown));
   onCleanup(() => {

@@ -27,11 +27,7 @@ import { screenPanelId, type ShellRegistry } from '../../shell';
 import { createTileCache } from '../../widgets/map';
 import type { ParamMetaResolver, TFn } from '../../widgets/paramgrid';
 import { type AppStorage, DB_NAME } from '../../../data/storage';
-import {
-  browserStorageEstimate,
-  type NetworkSectionDeps,
-  type StorageManagerDeps,
-} from './settings';
+import { browserStorageEstimate, type StorageManagerDeps } from './settings';
 import { ConfigScreen } from './config-screen';
 import './messages';
 
@@ -50,10 +46,8 @@ export interface ConfigScreenPanelDeps {
   readonly store: Store<AppState>;
   /** The storage foundation (files, blobs, close/estimate for Storage Manager). */
   readonly storage: AppStorage;
-  /** The shell registry (for the `confirm` seam). */
+  /** The shell registry (panel/command registration). */
   readonly registry: ShellRegistry;
-  /** Settings → Network egress-transparency sources (spec plan/07 §7.7); optional. */
-  readonly network?: NetworkSectionDeps;
   /** i18n translate function. */
   readonly t: TFn;
 }
@@ -79,7 +73,9 @@ function deleteDatabase(name: string): Promise<void> {
  * (when the browser supports it), a factory reset (close + delete the database)
  * and a `saveAs` export.
  */
-function buildStorageManager(storage: AppStorage): StorageManagerDeps {
+/** Build {@link StorageManagerDeps} from the storage foundation (shared by the
+ * Config screen and the App Settings pane). */
+export function buildStorageManager(storage: AppStorage): StorageManagerDeps {
   const tileCache = createTileCache({ blobs: storage.blobs, fetch: platformFetch });
   const estimate = browserStorageEstimate();
   return {
@@ -96,7 +92,6 @@ function buildStorageManager(storage: AppStorage): StorageManagerDeps {
 
 /** Build the real `screen.config` {@link PanelDef} bound to the singletons. */
 export function createConfigScreenPanel(deps: ConfigScreenPanelDeps): PanelDef {
-  const storageManager = buildStorageManager(deps.storage);
   return {
     id: CONFIG_SCREEN_PANEL_ID,
     title: deps.t('nav.config'),
@@ -108,12 +103,9 @@ export function createConfigScreenPanel(deps: ConfigScreenPanelDeps): PanelDef {
             meta: deps.meta,
             store: deps.store,
             files: deps.storage.files,
-            storageManager,
-            confirm: (opts) => deps.registry.confirm(opts),
             api,
             t: api.t,
             ...(deps.command !== undefined ? { command: deps.command } : {}),
-            ...(deps.network !== undefined ? { network: deps.network } : {}),
           }),
         el,
       );

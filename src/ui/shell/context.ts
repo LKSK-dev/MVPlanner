@@ -8,6 +8,7 @@
 import { createContext, useContext } from 'solid-js';
 import type { AppState, PanelApi, Store } from '../../contracts';
 import type { Capabilities } from '../../core/capabilities';
+import type { KeybindRegistry } from '../../core/keybinds';
 import type { ShellRegistry } from './registry';
 
 /** Everything the shell tree needs, injected at the root for testability. */
@@ -16,6 +17,12 @@ export interface ShellContextValue {
   readonly registry: ShellRegistry;
   readonly capabilities: Capabilities;
   readonly panelApi: PanelApi;
+  /**
+   * Optional live keybind registry. When present the shell's global keydown
+   * dispatcher resolves chords → command ids through it (App Settings →
+   * Keybinds). When absent the shell falls back to the built-in palette chord.
+   */
+  readonly keybinds?: KeybindRegistry;
 }
 
 const ShellContext = createContext<ShellContextValue>();

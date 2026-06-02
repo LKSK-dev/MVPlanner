@@ -33,12 +33,6 @@ import type {
 import type { ParamMetaResolver, TFn } from '../../widgets/paramgrid';
 import { createParamWorkbenchPanel } from './params';
 import { createTuningPanel, type TuningVehicle } from './tuning';
-import {
-  createSettingsPanel,
-  type ConfirmFn,
-  type NetworkSectionDeps,
-  type StorageManagerDeps,
-} from './settings';
 import { loadParamFile, saveParamFile } from '../../../data/paramfile';
 import './messages';
 
@@ -47,7 +41,6 @@ import './messages';
 import '../../widgets/paramgrid/paramgrid.css';
 import './params/workbench.css';
 import './tuning/tuning.css';
-import './settings/settings.css';
 import './config.css';
 
 /** {@link ConfigScreen} props. */
@@ -62,12 +55,6 @@ export interface ConfigScreenProps {
   store: Store<AppState>;
   /** Storage `FileIo` for `.param` load/save (workbench Save/Compare). */
   files: FileIo;
-  /** Injected Storage Manager handles for the Settings tab. */
-  storageManager: StorageManagerDeps;
-  /** Safety-confirm seam for the Settings factory reset (the shell `confirm`). */
-  confirm?: ConfirmFn;
-  /** Settings → Network egress-transparency sources (spec plan/07 §7.7); optional. */
-  network?: NetworkSectionDeps;
   /** The host panel's {@link PanelApi} (threaded to the sub-panel mounts). */
   api: PanelApi;
   /** i18n translate function. */
@@ -126,16 +113,6 @@ export const ConfigScreen: Component<ConfigScreenProps> = (props) => {
         vehicle,
         t,
         ...(props.command !== undefined ? { command: props.command } : {}),
-      }),
-    },
-    {
-      id: 'settings',
-      labelKey: 'config.tab.settings',
-      panel: createSettingsPanel({
-        store: props.store,
-        storage: props.storageManager,
-        ...(props.confirm !== undefined ? { confirm: props.confirm } : {}),
-        ...(props.network !== undefined ? { network: props.network } : {}),
       }),
     },
   ];

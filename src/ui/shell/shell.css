@@ -38,6 +38,18 @@
   font-weight: 700;
   letter-spacing: 0.2px;
   color: var(--mvp-accent);
+  background: transparent;
+  border: 0;
+  padding: 4px 6px;
+  margin: 0;
+  font-size: inherit;
+  font-family: inherit;
+  cursor: pointer;
+  border-radius: var(--mvp-radius);
+}
+.mvp-brand:hover,
+.mvp-brand:focus-visible {
+  background: var(--mvp-surface-2);
 }
 
 .mvp-nav {

@@ -25,12 +25,23 @@ import {
 } from './ui/screens/flight';
 import {
   createConfigScreenPanel,
+  buildStorageManager,
   createEgressLog,
   type EgressLog,
   type LinkDestination,
   type NetGrantRow,
   type NetworkSectionDeps,
 } from './ui/screens/config';
+import {
+  AppSettingsContext,
+  AppSettingsPane,
+  buildAppSettingsSections,
+  createAppSettingsControl,
+  createLiveKeybinds,
+  type AppSettingsSectionDeps,
+} from './ui/shell/appsettings';
+import { createRecentsStore } from './core/recents';
+import './ui/shell/appsettings/appsettings.css';
 import type { AppState, KvStore, Store } from './contracts';
 import { createPlanScreenPanel } from './ui/screens/plan';
 import { createSetupScreenPanel, wireTracker } from './ui/screens/setup';
@@ -82,6 +93,46 @@ export const App: Component<AppProps> = (props) => {
   const host: MavlinkHostLike = props.host ?? new MavlinkHost();
   onCleanup(registerAbout(registry, t));
 
+  // --- App Settings pane: recents, storage-manager, keybind bridge, control --
+  const recents = createRecentsStore({ kv: storage.kv, blobs: storage.blobs });
+  void recents.load();
+  const storageManager = buildStorageManager(storage);
+  const appSettingsControl = createAppSettingsControl(
+    store.get().settings.appearance?.lastSettingsSection ?? 'appearance',
+  );
+  // Remember the active section across opens (only while the pane is in use).
+  createEffect(() => {
+    if (!appSettingsControl.isOpen()) return;
+    const sec = appSettingsControl.section();
+    store.patch((d) => {
+      d.settings.appearance = { ...d.settings.appearance, lastSettingsSection: sec };
+    });
+  });
+  const liveKeybinds = createLiveKeybinds(() => registry.commands(), store);
+  onCleanup(
+    registry.registerCommand({
+      id: 'app.settings.open',
+      title: t('appsettings.open'),
+      shortcut: 'mod+,',
+      run: () => appSettingsControl.toggle(),
+    }),
+  );
+  const appSettingsSections = buildAppSettingsSections();
+  let paneNetwork: NetworkSectionDeps | undefined;
+  // Open a recent item: navigate to the owning screen (content re-load from the
+  // cache is wired per-screen as a follow-up). Closes the pane.
+  const openRecentImpl = (entry: { kind: 'plan' | 'log' | 'tlog' | 'param' }): void => {
+    store.patch((d) => {
+      d.layout.activeScreen =
+        entry.kind === 'log' || entry.kind === 'tlog'
+          ? 'logs'
+          : entry.kind === 'param'
+            ? 'config'
+            : 'plan';
+    });
+    appSettingsControl.close();
+  };
+
   // T1.12 integration: register the MAVLink inspector panel + ⌘K command bound to
   // the singleton host's on-demand inspector stream. Guarded so a test mock host
   // (MavlinkHostLike without subscribeInspector) simply omits the inspector.
@@ -111,6 +162,7 @@ export const App: Component<AppProps> = (props) => {
     const secrets = createAppSecretStore(storage.kv);
     const egressLog = createEgressLog();
     const networkDeps = buildNetworkDeps({ store, egress: egressLog, getSystem: () => extSystem });
+    paneNetwork = networkDeps;
 
     const disposeConfigPanel = setScreenPanel(
       'config',
@@ -121,7 +173,6 @@ export const App: Component<AppProps> = (props) => {
         store,
         storage,
         registry,
-        network: networkDeps,
         t,
       }),
     );
@@ -256,18 +307,44 @@ export const App: Component<AppProps> = (props) => {
     registry,
     capabilities,
     panelApi: { store, t },
+    keybinds: liveKeybinds.registry,
+  };
+
+  const paneDeps: AppSettingsSectionDeps = {
+    store,
+    t,
+    files: storage.files,
+    recents,
+    keybinds: liveKeybinds.registry,
+    persistKeybinds: liveKeybinds.persist,
+    storage: storageManager,
+    confirm: (opts) => registry.confirm(opts),
+    registry,
+    setSection: appSettingsControl.setSection,
+    close: appSettingsControl.close,
+    openRecent: openRecentImpl,
+    ...(paneNetwork !== undefined ? { network: paneNetwork } : {}),
   };
 
   return (
-    <ConnectionProvider
-      store={store}
-      registry={registry}
-      host={host}
-      {...(forwarder !== undefined ? { forwarder } : {})}
-    >
-      <Shell ctx={ctx} />
-      {installPrompt !== undefined ? <InstallPromptHost controller={installPrompt} t={t} /> : null}
-    </ConnectionProvider>
+    <AppSettingsContext.Provider value={appSettingsControl}>
+      <ConnectionProvider
+        store={store}
+        registry={registry}
+        host={host}
+        {...(forwarder !== undefined ? { forwarder } : {})}
+      >
+        <Shell ctx={ctx} />
+        <AppSettingsPane
+          control={appSettingsControl}
+          sections={appSettingsSections}
+          deps={paneDeps}
+        />
+        {installPrompt !== undefined ? (
+          <InstallPromptHost controller={installPrompt} t={t} />
+        ) : null}
+      </ConnectionProvider>
+    </AppSettingsContext.Provider>
   );
 };
 

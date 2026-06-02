@@ -10,6 +10,7 @@ import type { ConnState, ScreenId } from '../../contracts';
 import { t } from '../../core/i18n';
 import { useShell } from './context';
 import { useConnection } from './connection';
+import { useAppSettings } from './appsettings/context';
 import { SCREEN_ORDER } from './screens';
 
 /** Map a {@link ConnState} to a catalog key for its chip label. */
@@ -21,6 +22,7 @@ function connKey(state: ConnState): string {
 export const TopBar: Component<{ onOpenPalette: () => void }> = (props) => {
   const { store } = useShell();
   const connection = useConnection();
+  const appSettings = useAppSettings();
   const activeScreen = store.select((s) => s.layout.activeScreen);
   const conn = store.select((s) => s.connection);
 
@@ -32,7 +34,19 @@ export const TopBar: Component<{ onOpenPalette: () => void }> = (props) => {
 
   return (
     <header class="mvp-topbar">
-      <span class="mvp-brand">{t('shell.brand')}</span>
+      <button
+        type="button"
+        class="mvp-brand"
+        data-testid="appsettings-open"
+        aria-haspopup="dialog"
+        aria-expanded={appSettings?.isOpen() ?? false}
+        aria-controls="mvp-appsettings"
+        aria-keyshortcuts="Control+, Meta+,"
+        title={t('appsettings.open')}
+        onClick={() => appSettings?.toggle()}
+      >
+        {t('shell.brand')}
+      </button>
 
       <nav class="mvp-nav" aria-label={t('a11y.mainNav')}>
         <For each={SCREEN_ORDER}>

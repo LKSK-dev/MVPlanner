@@ -1,0 +1,246 @@
+/*
+ * App Settings pane styles (spec docs/appsettings §3/§4). Left overlay drawer,
+ * theme-token driven so it restyles instantly on theme/density change. RTL-safe
+ * via logical properties; honors reduced motion.
+ */
+.mvp-appsettings-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+}
+
+.mvp-appsettings__backdrop {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  margin: 0;
+  padding: 0;
+  background: rgb(0 0 0 / 45%);
+  cursor: pointer;
+}
+
+.mvp-appsettings {
+  position: relative;
+  inline-size: clamp(320px, 30vw, 460px);
+  max-inline-size: 100vw;
+  block-size: 100%;
+  margin-inline-end: auto; /* dock to the start (left in LTR) */
+  display: flex;
+  flex-direction: column;
+  background: var(--mvp-surface);
+  color: var(--mvp-text);
+  border-inline-end: 1px solid var(--mvp-border);
+  box-shadow: 2px 0 16px rgb(0 0 0 / 35%);
+  animation: mvp-appsettings-in var(--mvp-motion-duration, 150ms) ease-out;
+}
+
+@keyframes mvp-appsettings-in {
+  from {
+    transform: translateX(-12px);
+    opacity: 0.6;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mvp-appsettings {
+    animation: none;
+  }
+}
+
+.mvp-appsettings__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--mvp-gap);
+  border-block-end: 1px solid var(--mvp-border);
+}
+
+.mvp-appsettings__title {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.mvp-appsettings__close {
+  background: transparent;
+  border: 0;
+  color: var(--mvp-text-dim);
+  font-size: 1.4rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: var(--mvp-radius);
+}
+.mvp-appsettings__close:hover,
+.mvp-appsettings__close:focus-visible {
+  color: var(--mvp-text);
+  background: var(--mvp-surface-2);
+}
+
+.mvp-appsettings__body {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  min-block-size: 0;
+}
+
+.mvp-appsettings__rail {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--mvp-gap);
+  border-inline-end: 1px solid var(--mvp-border);
+  overflow-y: auto;
+}
+
+.mvp-appsettings__tab {
+  text-align: start;
+  background: transparent;
+  border: 0;
+  color: var(--mvp-text-dim);
+  padding: 8px 10px;
+  border-radius: var(--mvp-radius);
+  cursor: pointer;
+  font: inherit;
+}
+.mvp-appsettings__tab:hover,
+.mvp-appsettings__tab:focus-visible {
+  background: var(--mvp-surface-2);
+  color: var(--mvp-text);
+}
+.mvp-appsettings__tab--active {
+  background: var(--mvp-surface-2);
+  color: var(--mvp-text);
+  font-weight: 600;
+}
+
+.mvp-appsettings__section {
+  padding: var(--mvp-gap);
+  overflow-y: auto;
+  min-block-size: 0;
+}
+
+.mvp-appsettings__group {
+  margin-block-end: calc(var(--mvp-gap) * 1.5);
+}
+.mvp-appsettings__group h3 {
+  margin: 0 0 8px;
+  font-size: 0.85rem;
+  color: var(--mvp-text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.mvp-appsettings__field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-block-end: var(--mvp-gap);
+}
+.mvp-appsettings__field--row {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+.mvp-appsettings__label {
+  color: var(--mvp-text-dim);
+  font-size: 0.85rem;
+}
+.mvp-appsettings__hint {
+  color: var(--mvp-text-dim);
+  font-size: 0.78rem;
+}
+.mvp-appsettings__select,
+.mvp-appsettings__input {
+  background: var(--mvp-surface-2);
+  color: var(--mvp-text);
+  border: 1px solid var(--mvp-border);
+  border-radius: var(--mvp-radius);
+  padding: 6px 8px;
+  font: inherit;
+}
+
+.mvp-appsettings__btn {
+  background: var(--mvp-surface-2);
+  color: var(--mvp-text);
+  border: 1px solid var(--mvp-border);
+  border-radius: var(--mvp-radius);
+  padding: 6px 12px;
+  cursor: pointer;
+  font: inherit;
+}
+.mvp-appsettings__btn:hover,
+.mvp-appsettings__btn:focus-visible {
+  border-color: var(--mvp-accent);
+}
+.mvp-appsettings__btn--danger {
+  color: var(--mvp-on-error);
+  background: var(--mvp-error);
+  border-color: var(--mvp-error);
+}
+
+.mvp-appsettings__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* Recents list */
+.mvp-appsettings__recent {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid var(--mvp-border);
+  border-radius: var(--mvp-radius);
+  margin-block-end: 6px;
+}
+.mvp-appsettings__recent-name {
+  font-weight: 600;
+}
+.mvp-appsettings__recent-meta {
+  color: var(--mvp-text-dim);
+  font-size: 0.78rem;
+}
+
+/* Keybind rows + color swatches */
+.mvp-appsettings__keyrow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 0;
+}
+.mvp-appsettings__kbd {
+  font-family: var(--mvp-font-mono);
+  background: var(--mvp-surface-2);
+  border: 1px solid var(--mvp-border);
+  border-radius: var(--mvp-radius);
+  padding: 2px 8px;
+  cursor: pointer;
+}
+.mvp-appsettings__color {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.mvp-appsettings__swatch {
+  inline-size: 28px;
+  block-size: 28px;
+  border: 1px solid var(--mvp-border);
+  border-radius: var(--mvp-radius);
+  padding: 0;
+}
+
+@media (max-width: 520px) {
+  .mvp-appsettings__body {
+    grid-template-columns: 1fr;
+  }
+  .mvp-appsettings__rail {
+    flex-direction: row;
+    flex-wrap: wrap;
+    border-inline-end: 0;
+    border-block-end: 1px solid var(--mvp-border);
+  }
+}

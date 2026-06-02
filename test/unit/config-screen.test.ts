@@ -144,12 +144,13 @@ afterEach(() => {
 });
 
 describe('ConfigScreen — tabs', () => {
-  it('renders the three tabs and shows Parameters first', async () => {
+  it('renders the Parameters + Tuning tabs and shows Parameters first', async () => {
     const container = mountScreen();
     await settle();
 
     const tabs = [...container.querySelectorAll<HTMLButtonElement>('.mvp-config__tab')];
-    expect(tabs.map((b) => b.textContent)).toEqual(['Parameters', 'Tuning', 'Settings']);
+    // Settings migrated to the App Settings pane (opened from the brand).
+    expect(tabs.map((b) => b.textContent)).toEqual(['Parameters', 'Tuning']);
 
     // Parameters tab visible (its workbench mounted), Tuning hidden.
     expect(container.querySelector('.mvp-paramwb')).toBeTruthy();

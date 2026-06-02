@@ -15,6 +15,7 @@ import './messages';
 export { ConfigScreen, type ConfigScreenProps } from './config-screen';
 export {
   createConfigScreenPanel,
+  buildStorageManager,
   CONFIG_SCREEN_PANEL_ID,
   type ConfigScreenPanelDeps,
 } from './register';
