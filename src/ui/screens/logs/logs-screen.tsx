@@ -50,6 +50,7 @@ import {
 } from '../../../ui/widgets/plotter';
 import { Inspector, type InspectorSource } from '../../../ui/widgets/inspector';
 import { MessageSender, type MsgSenderSend } from '../../../ui/widgets/msg-sender';
+import { ResizableSplit } from '../../../ui/widgets/split';
 import {
   PlaybackControls,
   openTlog,
@@ -85,6 +86,22 @@ export type TFn = (key: string, vars?: Record<string, string | number>) => strin
 const MAX_PLOT_POINTS = 1200;
 /** Zoom level applied when recentring the map on a freshly loaded track. */
 const TRACK_ZOOM = 15;
+
+/** Minimum/maximum plot/map split ratio (plot row `fr`) for the stage splitter. */
+const SPLIT_MIN = 0.3;
+const SPLIT_MAX = 4;
+
+/**
+ * The Logs plot/map split ratio (the plot row's `fr`), kept at module scope so
+ * a user's drag persists across the screen's lifetime (and re-mounts within the
+ * session). Default `1.3fr` matches the stage's CSS fallback.
+ */
+const [logsSplitRatio, setLogsSplitRatio] = createSignal(1.3);
+
+/** Commit a new (already-clamped) Logs plot/map split ratio. */
+const applySplitRatio = (next: number): void => {
+  setLogsSplitRatio(next);
+};
 
 /** Kind of plotted series: a raw field or a derived expression. */
 type SeriesKind = 'field' | 'derived';
@@ -533,7 +550,7 @@ export const LogsScreen: Component<LogsScreenProps> = (props) => {
         </span>
       </header>
 
-      <div class="mvp-logs__stage">
+      <div class="mvp-logs__stage" style={{ '--mvp-logs-split': `${logsSplitRatio()}fr` }}>
         <div class="mvp-logs__plot" aria-label={t('logs.plotter.label')}>
           <Plotter
             series={plotterSeries()}
@@ -552,6 +569,15 @@ export const LogsScreen: Component<LogsScreenProps> = (props) => {
             t={t}
           />
         </aside>
+
+        <ResizableSplit
+          class="mvp-logs__split"
+          ratio={logsSplitRatio}
+          onRatio={applySplitRatio}
+          min={SPLIT_MIN}
+          max={SPLIT_MAX}
+          label={t('logs.split.label')}
+        />
 
         <div class="mvp-logs__map" aria-label={t('logs.map.label')}>
           <MapWidget engine={engine} t={t} />

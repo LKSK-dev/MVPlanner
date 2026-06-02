@@ -37,22 +37,28 @@
 
 .mvp-logs__stage {
   /*
-   * Plotter-dominant top row (plot + series sidebar) over a LANDSCAPE map-track
-   * row. Earlier layouts either parked the map in a narrow right column (it
-   * rendered portrait/tall) or spanned it full-width at a short fixed height
-   * (it rendered ultrawide, far past 21:9). Instead the map row is `auto` and
-   * the map cell derives its own size from a height clamp so its box stays
-   * within 4:3..21:9 (~16:9): width = min(100%, height × 16 / 9), centred in
-   * the spanned tracks. The widget's JS guard (./aspect.ts) is the backstop.
+   * Plotter-dominant top row (plot + series sidebar) over a map-track row,
+   * separated by a draggable splitter. Both the plot row and the map row are
+   * `fr` so they GROW to fill the stage — no dead space. The plot row's `fr` is
+   * driven by `--mvp-logs-split` (default 1.3fr), updated live by the splitter
+   * (see ResizableSplit + nextSplitRatio); the splitter row is `auto`. The map
+   * now FILLS the bottom region at its natural aspect (the widget fills its
+   * pane — the earlier 4:3..21:9 letterbox clamp is superseded by fill).
    */
   display: grid;
   grid-template-columns: minmax(0, 1fr) clamp(220px, 22vw, 320px);
-  grid-template-rows: minmax(220px, 1fr) auto;
+  grid-template-rows: minmax(160px, var(--mvp-logs-split, 1.3fr)) auto minmax(140px, 1fr);
   grid-template-areas:
     'plot sidebar'
+    'split split'
     'map map';
   gap: var(--mvp-gap);
   min-height: 0;
+}
+
+/* The plot/map drag handle spans the stage between the two rows. */
+.mvp-logs__split {
+  grid-area: split;
 }
 
 .mvp-logs__plot {
@@ -76,17 +82,14 @@
 
 .mvp-logs__map {
   /*
-   * Bounded landscape box (~16:9): a height clamp drives the block size and the
-   * inline size follows it (capped at the available width), so the rendered map
-   * never goes ultrawide on wide viewports nor portrait on narrow ones. Centred
-   * within the two spanned columns.
+   * Fill the bottom region: the map spans both columns and grows with its grid
+   * cell (a growing `1fr` row), so there is no dead space. The widget sizes its
+   * canvas to this box and fills it at the box's natural aspect.
    */
-  --mvp-logs-map-h: clamp(180px, 26vh, 320px);
   grid-area: map;
   position: relative;
-  block-size: var(--mvp-logs-map-h);
-  inline-size: min(100%, calc(var(--mvp-logs-map-h) * 16 / 9));
-  justify-self: center;
+  block-size: 100%;
+  inline-size: 100%;
   min-width: 0;
   min-height: 0;
   border: 1px solid var(--mvp-border);

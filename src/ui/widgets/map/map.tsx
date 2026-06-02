@@ -25,7 +25,6 @@ import type { UnitSystem } from '../../../contracts';
 import './messages';
 import type { LatLon, MapView, RasterMapEngine } from './engine';
 import { groundResolution, niceScale, type ScaleBar } from './scale';
-import { clampBoxToAspectRange } from './aspect';
 
 /** The i18n translate function (matches `core/i18n` `t`). */
 export type TFn = (key: string, vars?: Record<string, string | number>) => string;
@@ -88,19 +87,16 @@ export const MapWidget: Component<MapWidgetProps> = (props) => {
 
     const resize = (): void => {
       const rect = container.getBoundingClientRect();
-      // Letterbox the canvas inside the container so the rendered box stays
-      // landscape (4:3 .. 21:9) even when the container is out of range; the
-      // canvas is centred via CSS, never stretched. See ./aspect.ts.
-      const box = clampBoxToAspectRange(rect.width, rect.height);
-      const cssW = Math.max(1, Math.floor(box.width));
-      const cssH = Math.max(1, Math.floor(box.height));
+      // Fill the entire container: the canvas spans its pane at the pane's
+      // natural aspect (no letterboxing). CSS sizes it to 100% × 100%; here we
+      // only match the backing-store resolution (CSS px × dpr) for crisp HiDPI.
+      const cssW = Math.max(1, Math.floor(rect.width));
+      const cssH = Math.max(1, Math.floor(rect.height));
       const dw = Math.max(1, Math.round(cssW * dpr));
       const dh = Math.max(1, Math.round(cssH * dpr));
       if (canvas.width !== dw || canvas.height !== dh) {
         canvas.width = dw;
         canvas.height = dh;
-        canvas.style.width = `${cssW}px`;
-        canvas.style.height = `${cssH}px`;
         engine.requestRedraw();
       }
     };

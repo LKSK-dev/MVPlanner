@@ -23,15 +23,15 @@
 }
 
 /*
- * The canvas is sized in JS (HiDPI + aspect-clamped via ./aspect.ts) and may be
- * smaller than the container when the container itself is out of the 4:3..21:9
- * range, so it is centred and the surface background shows as letterbox bars.
+ * The canvas FILLS its container (HiDPI backing store sized in JS); it spans the
+ * pane at the pane's natural aspect — no letterboxing, no centring transform.
  */
 .mvp-map__canvas {
   position: absolute;
-  inset: 50% auto auto 50%;
+  inset: 0;
   display: block;
-  transform: translate(-50%, -50%);
+  inline-size: 100%;
+  block-size: 100%;
 }
 
 .mvp-map__controls {

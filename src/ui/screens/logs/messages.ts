@@ -19,6 +19,7 @@ export const LOGS_MESSAGES: Readonly<Record<string, string>> = {
   'logs.inspector.label': 'MAVLink inspector',
   'logs.sender.label': 'Message sender',
   'logs.playbackBar.label': 'Playback & presets',
+  'logs.split.label': 'Resize plot and map',
 
   // --- source picker -------------------------------------------------------
   'logs.source.label': 'Log source',

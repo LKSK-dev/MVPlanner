@@ -14,7 +14,7 @@
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createComponent, createSignal } from 'solid-js';
-import { cleanup, render } from '@solidjs/testing-library';
+import { cleanup, fireEvent, render } from '@solidjs/testing-library';
 import { t } from '../../src/core/i18n';
 import type { BasemapSource, BlobStore, FileIo, KvStore } from '../../src/contracts';
 import { createRecentsStore } from '../../src/core/recents';
@@ -365,6 +365,27 @@ describe('LogsScreen — composition', () => {
     expect(container.querySelector('.mvp-inspector')).toBeTruthy();
     expect(container.querySelector('.mvp-msgsender')).toBeTruthy();
     expect(container.querySelector('.mvp-playback')).toBeTruthy();
+  });
+
+  it('renders an accessible plot/map splitter wired to the stage split var', async () => {
+    const { container } = mountScreen(undefined);
+    await settle();
+
+    const split = container.querySelector('.mvp-logs__split');
+    expect(split).toBeTruthy();
+    expect(split?.getAttribute('role')).toBe('separator');
+    expect(split?.getAttribute('aria-orientation')).toBe('horizontal');
+    expect(split?.getAttribute('tabindex')).toBe('0');
+    expect(split?.getAttribute('aria-label')).toBeTruthy();
+
+    // The stage drives the plot row's fr via the live CSS var the splitter sets.
+    const stage = container.querySelector('.mvp-logs__stage') as HTMLElement;
+    expect(stage.style.getPropertyValue('--mvp-logs-split')).toContain('fr');
+    // The keyboard handler is wired (does not throw); the pure ratio math that
+    // backs it is covered by split-resize.test.ts.
+    fireEvent.keyDown(split as Element, { key: 'ArrowDown' });
+    await settle();
+    expect(stage.style.getPropertyValue('--mvp-logs-split')).toContain('fr');
   });
 
   it('opening a .bin populates the series picker and adding a series plots it', async () => {

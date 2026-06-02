@@ -3,6 +3,18 @@
 All notable changes to MVPlanner are documented here. This project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [0.3.3] — 2026-06-02
+
+### Changed
+
+- **Maps fill their pane** (no more letterbox dead space) — the map canvas now
+  renders at the full size of its container on every screen.
+- **Logs tab fills vertically** — the plot and map panes both grow to fill the
+  stage (the map is no longer a short, centered, fixed-height strip), and a new
+  **draggable splitter** (mouse + Arrow keys) lets you resize the plot/map split
+  to fill the space how you like. (Supersedes the earlier 21:9 map clamp: a
+  filled map is preferred over letterbox dead space.)
+
 ## [0.3.2] — 2026-06-02
 
 ### Changed

@@ -1,0 +1,34 @@
+/*
+ * Resizable pane splitter (ResizableSplit; spec plan/05 §5.3/§5.4).
+ *
+ * A thin draggable separator styled like the dock gutter (.mvp-dock-gutter): a
+ * flat divider with a row-resize cursor for the horizontal orientation. The
+ * consumer places it in the layout (e.g. a grid-area) and gives it its extent.
+ */
+.mvp-split {
+  align-self: stretch;
+  box-sizing: border-box;
+  background: var(--mvp-border);
+  touch-action: none;
+}
+
+.mvp-split[aria-orientation='horizontal'] {
+  block-size: 6px;
+  inline-size: 100%;
+  cursor: row-resize;
+}
+
+.mvp-split[aria-orientation='vertical'] {
+  inline-size: 6px;
+  block-size: 100%;
+  cursor: col-resize;
+}
+
+.mvp-split:hover {
+  background: var(--mvp-accent, var(--mvp-border));
+}
+
+.mvp-split:focus-visible {
+  outline: 2px solid var(--mvp-focus, #58a6ff);
+  outline-offset: 1px;
+}
