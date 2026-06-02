@@ -173,7 +173,15 @@ and the Config tab is removed.
   (configured tile host, active link, extension `net:` grants, live egress log,
   “no analytics” statement).
 
-### 5.8 About
+### 5.8 Extensions
+
+- Embeds the existing extension manager (`ui/screens/sim` `ExtensionsManager`)
+  bound to the **same** `ExtensionsController` the Sim & Dev Tools hub drives, so
+  install-from-file, enable/disable, reload, uninstall and permission
+  grant/revoke actions stay in sync across both surfaces. Shown only when an
+  extension system is wired (absent in mock-host/test contexts).
+
+### 5.9 About
 
 - Reuse/link the existing About content (app/API versions, build hash, bundled
   dialects, NOTICES viewer). Either embed the About panel or provide a button

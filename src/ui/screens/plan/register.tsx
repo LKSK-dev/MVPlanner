@@ -11,9 +11,10 @@
  * The panel mounts a fresh Solid root via `render()` (the same imperative
  * pattern the Flight/inspector panels use), capturing the services by closure.
  */
-import { createComponent } from 'solid-js';
+import { createComponent, type Accessor } from 'solid-js';
 import { render } from 'solid-js/web';
 import type { AppState, PanelApi, PanelDef, Store } from '../../../contracts';
+import type { RecentsStore } from '../../../core/recents';
 import { screenPanelId } from '../../shell';
 import { PlanScreen, type TFn } from './plan-screen';
 import type { FlightServices } from '../flight/services';
@@ -30,6 +31,12 @@ export interface PlanScreenPanelDeps {
   readonly t: TFn;
   /** App store, so the plan map auto-centers on the active vehicle/home. */
   readonly store?: Store<AppState>;
+  /** Recents store: records opened/saved missions for the Recents launcher. */
+  readonly recents?: RecentsStore;
+  /** Pending-open accessor (App Settings → Recents “Open”), filtered to `plan`. */
+  readonly pendingOpen?: Accessor<{ name: string; blob: Blob } | undefined>;
+  /** Clear the pending-open entry once it has been loaded. */
+  readonly onPendingConsumed?: () => void;
 }
 
 /** Build the real `screen.plan` {@link PanelDef} bound to the services. */
@@ -44,6 +51,11 @@ export function createPlanScreenPanel(deps: PlanScreenPanelDeps): PanelDef {
             services: deps.services,
             t: api.t,
             ...(deps.store !== undefined ? { store: deps.store } : {}),
+            ...(deps.recents !== undefined ? { recents: deps.recents } : {}),
+            ...(deps.pendingOpen !== undefined ? { pendingOpen: deps.pendingOpen } : {}),
+            ...(deps.onPendingConsumed !== undefined
+              ? { onPendingConsumed: deps.onPendingConsumed }
+              : {}),
           }),
         el,
       );

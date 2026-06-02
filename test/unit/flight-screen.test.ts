@@ -12,6 +12,7 @@ import { cleanup, render } from '@solidjs/testing-library';
 import { t } from '../../src/core/i18n';
 import type {
   AppState,
+  BasemapSource,
   BlobStore,
   CalibrationClient,
   CommandClient,
@@ -30,7 +31,11 @@ import type { Capabilities } from '../../src/core/capabilities';
 import { createAppStore } from '../../src/core/store';
 import { createAuditLog, type AuditLog } from '../../src/core/audit';
 import { TlogRecorder } from '../../src/data/tlog';
-import { createRasterMapEngine, type RasterMapEngine } from '../../src/ui/widgets/map';
+import {
+  BASEMAP_PRESETS,
+  createRasterMapEngine,
+  type RasterMapEngine,
+} from '../../src/ui/widgets/map';
 import { TrafficStore } from '../../src/ui/widgets/map/layers/adsb';
 import type { TileCache } from '../../src/geo/tiles';
 import type { StatusMessage } from '../../src/ui/widgets/messages';
@@ -334,6 +339,41 @@ describe('FlightScreen — composition', () => {
     // The map click-intent + guided-mode toggles are wired into the toolbar.
     expect(c.querySelector('[data-testid="flight-tool"]')).toBeTruthy();
     expect(c.querySelector('[data-testid="flight-guided"]')).toBeTruthy();
+  });
+});
+
+describe('FlightScreen — map source → engine (spec §5.6/§7.4)', () => {
+  it('applies settings.mapSource to the engine basemap and repaints on change', async () => {
+    const h = makeHarness();
+    const sources: BasemapSource[] = [];
+    const base = offlineEngine();
+    const engine: RasterMapEngine = {
+      ...base,
+      setBasemap(next: BasemapSource): void {
+        sources.push(next);
+        base.setBasemap(next);
+      },
+    };
+    render(() =>
+      createComponent(FlightScreen, {
+        services: h.services,
+        store: h.store,
+        confirm: () => Promise.resolve(true),
+        t,
+        createEngine: () => engine,
+      }),
+    );
+    await settle();
+    // The unset default resolves to the built-in CARTO-dark basemap.
+    expect(sources.at(-1)?.id).toBe('carto-dark');
+
+    const osm = BASEMAP_PRESETS.find((p) => p.id === 'osm');
+    h.store.patch((s) => {
+      s.settings.mapSource = { urlTemplate: osm?.url ?? '' };
+    });
+    await settle();
+    expect(sources.at(-1)?.id).toBe('osm');
+    expect(engine.getBasemap().id).toBe('osm');
   });
 });
 

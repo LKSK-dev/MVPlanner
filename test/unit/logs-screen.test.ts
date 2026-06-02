@@ -13,14 +13,19 @@
  *  - CSV export calls the FileIo save seam.
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { createComponent } from 'solid-js';
+import { createComponent, createSignal } from 'solid-js';
 import { cleanup, render } from '@solidjs/testing-library';
 import { t } from '../../src/core/i18n';
-import type { BlobStore, FileIo } from '../../src/contracts';
+import type { BasemapSource, BlobStore, FileIo, KvStore } from '../../src/contracts';
+import { createRecentsStore } from '../../src/core/recents';
 import type { LogSeriesData } from '../../src/data/log-query';
 import type { InspectorSnapshot } from '../../src/ui/widgets/inspector';
 import { createAppStore } from '../../src/core/store';
-import { createRasterMapEngine, type RasterMapEngine } from '../../src/ui/widgets/map';
+import {
+  BASEMAP_PRESETS,
+  createRasterMapEngine,
+  type RasterMapEngine,
+} from '../../src/ui/widgets/map';
 import type { TileCache } from '../../src/geo/tiles';
 import type { InspectorSource } from '../../src/ui/widgets/inspector';
 import {
@@ -196,6 +201,41 @@ function fakeFiles(blob: Blob | undefined): FilesHarness {
   return { files, saved };
 }
 
+/** In-memory KV fake for the recents store. */
+function fakeKv(): KvStore {
+  const map = new Map<string, unknown>();
+  return {
+    get: async <T>(ns: string, key: string): Promise<T | undefined> =>
+      map.get(`${ns}/${key}`) as T | undefined,
+    set: async <T>(ns: string, key: string, v: T): Promise<void> => {
+      map.set(`${ns}/${key}`, v);
+    },
+    del: async (ns: string, key: string): Promise<void> => {
+      map.delete(`${ns}/${key}`);
+    },
+  };
+}
+
+/** In-memory blob store fake for the recents store (round-trippable). */
+function inMemoryBlobs(): BlobStore {
+  const map = new Map<string, Uint8Array>();
+  return {
+    put: async (ns, key, data): Promise<void> => {
+      map.set(`${ns}/${key}`, new Uint8Array(await data.arrayBuffer()));
+    },
+    getRange: async (ns, key, start, end): Promise<Uint8Array> => {
+      const d = map.get(`${ns}/${key}`);
+      if (d === undefined) throw new Error('missing');
+      return d.slice(start, end);
+    },
+    size: async (ns, key): Promise<number> => map.get(`${ns}/${key}`)?.byteLength ?? 0,
+    list: async (): Promise<never[]> => [],
+    del: async (ns, key): Promise<void> => {
+      map.delete(`${ns}/${key}`);
+    },
+  };
+}
+
 function mockInspectorSource(): InspectorSource {
   return {
     subscribeInspector: (cb) => {
@@ -363,6 +403,98 @@ describe('LogsScreen — composition', () => {
 
     expect(saved.calls).toBe(1);
     expect(saved.lastName).toBe('log-series.csv');
+  });
+});
+
+describe('LogsScreen — map source → engine (spec §5.6/§7.4)', () => {
+  it('applies settings.mapSource to the track engine basemap when a store is supplied', async () => {
+    const store = createAppStore();
+    const sources: BasemapSource[] = [];
+    const base = offlineEngine();
+    const engine: RasterMapEngine = {
+      ...base,
+      setBasemap(next: BasemapSource): void {
+        sources.push(next);
+        base.setBasemap(next);
+      },
+    };
+    const harness = fakeFiles(undefined);
+    render(() =>
+      createComponent(LogsScreen, {
+        files: harness.files,
+        blobs: fakeBlobs(),
+        send: () => undefined,
+        t,
+        store,
+        createEngine: () => engine,
+      }),
+    );
+    await settle();
+    expect(sources.at(-1)?.id).toBe('carto-dark');
+
+    const osm = BASEMAP_PRESETS.find((p) => p.id === 'osm');
+    store.patch((s) => {
+      s.settings.mapSource = { urlTemplate: osm?.url ?? '' };
+    });
+    await settle();
+    expect(sources.at(-1)?.id).toBe('osm');
+  });
+});
+
+describe('LogsScreen — recents recording + pending open (spec §5.1/§7.3)', () => {
+  it('records a log recent (with its blob) when opening a .bin', async () => {
+    const recents = createRecentsStore({ kv: fakeKv(), blobs: inMemoryBlobs() });
+    const harness = fakeFiles(new Blob([new Uint8Array(buildFixture())]));
+    const { container } = render(() =>
+      createComponent(LogsScreen, {
+        files: harness.files,
+        blobs: fakeBlobs(),
+        send: () => undefined,
+        t,
+        recents,
+        decodeBin: (source) => decodeDataFlashOnMainThread(source),
+        createEngine: () => offlineEngine(),
+      }),
+    );
+    await settle();
+
+    (container.querySelector('[data-testid="logs-open-bin"]') as HTMLButtonElement).click();
+    await settle();
+    await settle();
+
+    expect(recents.snapshot()).toHaveLength(1);
+    expect(recents.snapshot()[0]?.kind).toBe('log');
+    expect(recents.snapshot()[0]?.name).toBe('flight.bin');
+  });
+
+  it('loads a cached .bin blob handed in via pendingOpen and clears it', async () => {
+    const harness = fakeFiles(undefined);
+    const [pending, setPending] = createSignal<{ name: string; blob: Blob } | undefined>({
+      name: 'cached.bin',
+      blob: new Blob([new Uint8Array(buildFixture())]),
+    });
+    let consumed = 0;
+    const { container } = render(() =>
+      createComponent(LogsScreen, {
+        files: harness.files,
+        blobs: fakeBlobs(),
+        send: () => undefined,
+        t,
+        decodeBin: (source) => decodeDataFlashOnMainThread(source),
+        createEngine: () => offlineEngine(),
+        pendingOpen: () => pending(),
+        onPendingConsumed: () => {
+          consumed += 1;
+          setPending(undefined);
+        },
+      }),
+    );
+    await settle();
+    await settle();
+
+    expect(consumed).toBe(1);
+    // The cached log decoded into a series tree (GPS/ATT fields available).
+    expect(container.querySelectorAll('[data-testid="logs-series-add"]').length).toBeGreaterThan(0);
   });
 });
 

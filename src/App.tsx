@@ -1,4 +1,4 @@
-import { createEffect, onCleanup, type Component } from 'solid-js';
+import { createEffect, createSignal, onCleanup, type Accessor, type Component } from 'solid-js';
 import type { Capabilities } from './core/capabilities';
 import { detectRealCapabilities } from './core/capabilities';
 import { createAppStore } from './core/store';
@@ -40,7 +40,7 @@ import {
   createLiveKeybinds,
   type AppSettingsSectionDeps,
 } from './ui/shell/appsettings';
-import { createRecentsStore } from './core/recents';
+import { createRecentsStore, type RecentEntry, type RecentKind } from './core/recents';
 import './ui/shell/appsettings/appsettings.css';
 import type { AppState, KvStore, Store } from './contracts';
 import { createPlanScreenPanel } from './ui/screens/plan';
@@ -53,6 +53,7 @@ import {
   createInstallPromptController,
   createSimDevTools,
   InstallPromptHost,
+  type ExtensionsController,
   type InstallPromptController,
 } from './ui/screens/sim';
 import { createEventsBus, createExtensionSystem, type ExtensionSystem } from './ext/api';
@@ -119,16 +120,43 @@ export const App: Component<AppProps> = (props) => {
   );
   const appSettingsSections = buildAppSettingsSections();
   let paneNetwork: NetworkSectionDeps | undefined;
-  // Open a recent item: navigate to the owning screen (content re-load from the
-  // cache is wired per-screen as a follow-up). Closes the pane.
-  const openRecentImpl = (entry: { kind: 'plan' | 'log' | 'tlog' | 'param' }): void => {
+  let paneExtensions: ExtensionsController | undefined;
+  // Pending Recents “Open”: a cached blob loaded from the recents store, handed
+  // to the owning screen (Plan / Logs) which loads it and clears it via
+  // `onPendingConsumed`. Filtered per-screen by kind below.
+  const [pendingOpen, setPendingOpen] = createSignal<
+    { kind: RecentKind; name: string; blob: Blob } | undefined
+  >();
+  const planPendingOpen: Accessor<{ name: string; blob: Blob } | undefined> = () => {
+    const p = pendingOpen();
+    return p !== undefined && p.kind === 'plan' ? { name: p.name, blob: p.blob } : undefined;
+  };
+  const logsPendingOpen: Accessor<{ name: string; blob: Blob } | undefined> = () => {
+    const p = pendingOpen();
+    return p !== undefined && (p.kind === 'log' || p.kind === 'tlog')
+      ? { name: p.name, blob: p.blob }
+      : undefined;
+  };
+  const clearPendingOpen = (): void => {
+    setPendingOpen(undefined);
+  };
+  // Open a recent item: load its cached content (when present) into the pending
+  // signal, navigate to the owning screen so that screen consumes + loads it,
+  // and close the pane. With no cached blob this is navigate-only (prior
+  // behavior) so the row's picker fallback still applies.
+  const openRecentImpl = async (entry: RecentEntry): Promise<void> => {
+    const owningScreen: AppState['layout']['activeScreen'] =
+      entry.kind === 'log' || entry.kind === 'tlog'
+        ? 'logs'
+        : entry.kind === 'param'
+          ? 'config'
+          : 'plan';
+    const loaded = await recents.open(entry.id);
+    if (loaded !== undefined) {
+      setPendingOpen({ kind: entry.kind, name: loaded.name, blob: loaded.blob });
+    }
     store.patch((d) => {
-      d.layout.activeScreen =
-        entry.kind === 'log' || entry.kind === 'tlog'
-          ? 'logs'
-          : entry.kind === 'param'
-            ? 'config'
-            : 'plan';
+      d.layout.activeScreen = owningScreen;
     });
     appSettingsControl.close();
   };
@@ -182,7 +210,14 @@ export const App: Component<AppProps> = (props) => {
     // terrain provider + file I/O from the same services.
     const disposePlanPanel = setScreenPanel(
       'plan',
-      createPlanScreenPanel({ services: flight.services, t, store }),
+      createPlanScreenPanel({
+        services: flight.services,
+        t,
+        store,
+        recents,
+        pendingOpen: planPendingOpen,
+        onPendingConsumed: clearPendingOpen,
+      }),
     );
     // M5 keystone: install the real Setup screen (frame/accel/compass/radio/
     // modes/failsafe/battery/motors wizard) over its placeholder, sharing the
@@ -211,6 +246,10 @@ export const App: Component<AppProps> = (props) => {
         blobs: storage.blobs,
         send: (name, fields) => host.sendMessage(name, fields),
         t,
+        store,
+        recents,
+        pendingOpen: logsPendingOpen,
+        onPendingConsumed: clearPendingOpen,
         ...(typeof inspectorSource.subscribeInspector === 'function'
           ? { inspectorSource: inspectorSource as InspectorSource }
           : {}),
@@ -256,6 +295,9 @@ export const App: Component<AppProps> = (props) => {
       examples,
     });
     void simTools.ready();
+    // Share the SAME extensions controller with the App Settings -> Extensions
+    // section so installs/grants stay in sync across the pane and the Sim hub.
+    paneExtensions = simTools.manager;
 
     // T8.7 voice/audio alerts: one app/connection-scoped service driven by
     // active-vehicle telemetry transitions + STATUSTEXT; settings persist to the
@@ -324,6 +366,7 @@ export const App: Component<AppProps> = (props) => {
     close: appSettingsControl.close,
     openRecent: openRecentImpl,
     ...(paneNetwork !== undefined ? { network: paneNetwork } : {}),
+    ...(paneExtensions !== undefined ? { extensions: paneExtensions } : {}),
   };
 
   return (

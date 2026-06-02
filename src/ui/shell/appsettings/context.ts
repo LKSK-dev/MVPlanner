@@ -9,6 +9,7 @@ import type { KeybindRegistry } from '../../../core/keybinds';
 import type { RecentEntry, RecentsStore } from '../../../core/recents';
 import type { StorageManagerDeps } from '../../screens/config/settings/storage-manager';
 import type { NetworkSectionDeps } from '../../screens/config/settings/network';
+import type { ExtensionsController } from '../../screens/sim';
 
 /** i18n translate function. */
 export type TFn = (key: string, vars?: Record<string, string | number>) => string;
@@ -44,6 +45,12 @@ export interface AppSettingsSectionDeps {
   readonly network?: NetworkSectionDeps;
   /** UI registry (open the About panel / palette commands). */
   readonly registry: UiRegistry;
+  /**
+   * Shared extensions-manager controller (same instance the Sim hub drives), so
+   * the Extensions section's install/enable/disable/grant actions stay in sync.
+   * Absent in isolated tests / when no extension system is wired.
+   */
+  readonly extensions?: ExtensionsController;
   /** Switch the active section. */
   readonly setSection: (id: string) => void;
   /** Close the pane. */

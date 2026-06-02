@@ -39,6 +39,7 @@ import { Hud } from '../../../ui/widgets/hud';
 import { InstrumentPanel, type RcState } from '../../../ui/widgets/gauges';
 import {
   MapWidget,
+  basemapFromSettings,
   createRasterMapEngine,
   createTileCache,
   type RasterMapEngine,
@@ -160,6 +161,14 @@ export const FlightScreen: Component<FlightScreenProps> = (props) => {
 
   // --- map engine + overlays + tools ----------------------------------------
   const engine = (props.createEngine ?? defaultCreateEngine)(services);
+
+  // Live basemap: repaint when the Maps setting changes (spec §5.6/§7.4). An
+  // unset `mapSource` resolves to the built-in CARTO-dark default (no change).
+  const mapSource = props.store.select((s) => s.settings.mapSource);
+  createEffect(() => {
+    engine.setBasemap(basemapFromSettings(mapSource()));
+  });
+
   const trackRing = createTrackRing({
     capacity: TRACK_CAPACITY,
     minSpacingM: TRACK_MIN_SPACING_M,

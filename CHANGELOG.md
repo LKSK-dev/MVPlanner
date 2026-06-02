@@ -3,6 +3,37 @@
 All notable changes to MVPlanner are documented here. This project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [0.2.0] — 2026-06-01
+
+### Added — Application Settings pane
+
+A left-hand **Application Settings** pane that slides out from the top-left
+**MVPlanner** brand (or `Ctrl/⌘ + ,`). It hosts all app-wide preferences; it
+holds no vehicle- or connection-specific settings.
+
+- **Recents** — recently opened/saved plans, logs and parameter files, re-opened
+  from an offline content cache.
+- **Appearance** — base theme or **System (auto)**, custom **accent/text/surface/
+  error/warning** colors (validated, live), **density** (comfortable/compact),
+  and theme **import/export** (`.mvptheme.json`).
+- **Units & Measurement** — unit system + coordinate format with a live preview.
+- **Keybinds** — rebindable command shortcuts with conflict detection and
+  per-row / all reset; a global dispatcher runs them (and never fires while
+  typing).
+- **Extensions** — the full extension manager (install from file, enable/disable,
+  reload, uninstall, permission grants/revoke), sharing one controller with the
+  Sim & Dev Tools hub so state stays in sync.
+- **Language**, **Maps** (basemap presets — CARTO Dark/Light, OSM, Esri
+  satellite — + custom URL/key + tile cache; changing the basemap updates the
+  map live), and **General** (audio/confirm,
+  telemetry rate, storage manager, network egress, and a redacted **settings
+  backup** export/import).
+- The former **Config → Settings** tab is removed; its settings migrated here.
+- Persistence: settings are stored in the browser (IndexedDB/localStorage). When
+  running from a file, an exported settings backup is the portable safeguard.
+
+Contracts 1.5.0 (additive): `AppSettings.appearance` + `AppSettings.keybinds`.
+
 ## [0.1.0] — 2026-06-01
 
 First public pre-release. MVPlanner is a modern, single-file (`MVPlanner.html`),

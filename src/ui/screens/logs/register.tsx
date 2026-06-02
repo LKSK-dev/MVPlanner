@@ -11,9 +11,10 @@
  * The panel mounts a fresh Solid root via `render()` (the same imperative
  * pattern the Flight/inspector panels use), capturing the seams by closure.
  */
-import { createComponent } from 'solid-js';
+import { createComponent, type Accessor } from 'solid-js';
 import { render } from 'solid-js/web';
-import type { BlobStore, FileIo, PanelApi, PanelDef } from '../../../contracts';
+import type { AppState, BlobStore, FileIo, PanelApi, PanelDef, Store } from '../../../contracts';
+import type { RecentsStore } from '../../../core/recents';
 import { screenPanelId } from '../../shell';
 import type { InspectorSource } from '../../../ui/widgets/inspector';
 import type { MsgSenderSend } from '../../../ui/widgets/msg-sender';
@@ -36,6 +37,14 @@ export interface LogsScreenPanelDeps {
   readonly send: MsgSenderSend;
   /** Live inspector stream source (omitted when no host is connected). */
   readonly inspectorSource?: InspectorSource;
+  /** App store, so `settings.mapSource` reaches the map track engine basemap. */
+  readonly store?: Store<AppState>;
+  /** Recents store: records opened logs/tlogs for the Recents launcher. */
+  readonly recents?: RecentsStore;
+  /** Pending-open accessor (App Settings → Recents “Open”), `log`/`tlog` only. */
+  readonly pendingOpen?: Accessor<{ name: string; blob: Blob } | undefined>;
+  /** Clear the pending-open entry once it has been loaded. */
+  readonly onPendingConsumed?: () => void;
   /** i18n translate function. */
   readonly t: TFn;
 }
@@ -55,6 +64,12 @@ export function createLogsScreenPanel(deps: LogsScreenPanelDeps): PanelDef {
             t: api.t,
             ...(deps.inspectorSource !== undefined
               ? { inspectorSource: deps.inspectorSource }
+              : {}),
+            ...(deps.store !== undefined ? { store: deps.store } : {}),
+            ...(deps.recents !== undefined ? { recents: deps.recents } : {}),
+            ...(deps.pendingOpen !== undefined ? { pendingOpen: deps.pendingOpen } : {}),
+            ...(deps.onPendingConsumed !== undefined
+              ? { onPendingConsumed: deps.onPendingConsumed }
               : {}),
           }),
         el,

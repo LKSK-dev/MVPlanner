@@ -14,6 +14,7 @@ import { UnitsSection } from './units';
 import { LanguageSection } from './language';
 import { MapsSection } from './maps';
 import { KeybindsSection } from './keybinds';
+import { ExtensionsSection } from './extensions';
 import { GeneralSection } from './general';
 import { AboutSection } from './about';
 
@@ -49,6 +50,11 @@ export function buildAppSettingsSections(): AppSettingsSection[] {
       id: 'maps',
       labelKey: 'appsettings.section.maps',
       render: (deps) => createComponent(MapsSection, { deps }),
+    },
+    {
+      id: 'extensions',
+      labelKey: 'appsettings.section.extensions',
+      render: (deps) => createComponent(ExtensionsSection, { deps }),
     },
     {
       id: 'general',

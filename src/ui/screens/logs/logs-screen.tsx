@@ -20,13 +20,23 @@
  * file I/O, host send + inspector source) so the screen unit-tests with no
  * Worker, no canvas pixels, and a synthetic decoded log.
  */
-import { Show, createEffect, createMemo, createSignal, onCleanup, type Component } from 'solid-js';
+import {
+  Show,
+  createEffect,
+  createMemo,
+  createSignal,
+  onCleanup,
+  type Accessor,
+  type Component,
+} from 'solid-js';
 import { t as defaultT } from '../../../core/i18n';
-import type { BlobStore, FileIo } from '../../../contracts';
+import type { AppState, BlobStore, FileIo, Store } from '../../../contracts';
+import type { RecentsStore } from '../../../core/recents';
 import type { LogQueryIndex } from '../../../data/log-query';
 import { saveCsv, seriesToCsv } from '../../../data/export';
 import {
   MapWidget,
+  basemapFromSettings,
   createRasterMapEngine,
   createTileCache,
   type RasterMapEngine,
@@ -103,6 +113,24 @@ export interface LogsScreenProps {
   readonly send: MsgSenderSend;
   /** Live inspector stream source (omitted when no host is connected). */
   readonly inspectorSource?: InspectorSource;
+  /**
+   * Optional app store. When supplied, `settings.mapSource` reaches the map
+   * track engine basemap live (spec §5.6/§7.4).
+   */
+  readonly store?: Store<AppState>;
+  /**
+   * Optional recents store. When supplied, opening a `.bin`/`.log` records a
+   * `log` recent and opening a `.tlog` records a `tlog` recent (with the blob).
+   */
+  readonly recents?: RecentsStore;
+  /**
+   * Optional pending-open accessor (App Settings → Recents “Open”). A `.tlog`
+   * name loads via the playback path; any other name decodes as DataFlash. The
+   * screen calls {@link LogsScreenProps.onPendingConsumed} once loaded.
+   */
+  readonly pendingOpen?: Accessor<{ name: string; blob: Blob } | undefined>;
+  /** Clear the pending-open entry once it has been loaded. */
+  readonly onPendingConsumed?: () => void;
   /** i18n translate function (default the app `t`). */
   readonly t?: TFn;
   /**
@@ -229,6 +257,16 @@ export const LogsScreen: Component<LogsScreenProps> = (props) => {
 
   // --- map engine + track + cursor-marker layers ----------------------------
   const engine = (props.createEngine ?? defaultCreateEngine)(props.blobs);
+
+  // Live basemap: repaint when the Maps setting changes (spec §5.6/§7.4). Only
+  // when an app store is supplied (additive; mounts without a store are skipped).
+  const logStore = props.store;
+  if (logStore !== undefined) {
+    const mapSource = logStore.select((s) => s.settings.mapSource);
+    createEffect(() => {
+      engine.setBasemap(basemapFromSettings(mapSource()));
+    });
+  }
   const layerDisposers = [
     engine.addLayer(createTrackLayer(() => trackLatLon())),
     engine.addLayer(createTrackCursorLayer(() => cursorPosition())),
@@ -345,48 +383,80 @@ export const LogsScreen: Component<LogsScreenProps> = (props) => {
     });
   };
 
-  // --- source open handlers -------------------------------------------------
-  const openBin = async (): Promise<void> => {
-    const picked = await props.files.openForRead(['.bin', '.log']);
-    if (picked === undefined) return;
+  const playback = createScreenPlayback();
+  onCleanup(() => playback.dispose());
+
+  // --- source loaders (shared by the file picker + Recents pending-open) -----
+  // Decode an in-hand DataFlash `.bin`/`.log` blob; returns `true` on success.
+  const loadBinBlob = async (name: string, blob: Blob): Promise<boolean> => {
     setLoading(true);
     setStatus(t('logs.source.loading'));
     try {
-      const idx = await decodeBin(picked.blob);
+      const idx = await decodeBin(blob);
       setIndex(idx);
       setSelected([]);
       setCursorUs(null);
       setTlogBytes(undefined);
-      setStatus(t('logs.source.loaded', { name: picked.name, series: idx.listSeries().length }));
+      setStatus(t('logs.source.loaded', { name, series: idx.listSeries().length }));
+      return true;
     } catch {
       setStatus(t('logs.source.error'));
+      return false;
     } finally {
       setLoading(false);
     }
   };
 
-  const playback = createScreenPlayback();
-  onCleanup(() => playback.dispose());
-
-  const openTlogFile = async (): Promise<void> => {
-    const picked = await props.files.openForRead(['.tlog']);
-    if (picked === undefined) return;
+  // Open an in-hand `.tlog` blob into the playback path; returns `true` on success.
+  const loadTlogBlob = async (name: string, blob: Blob): Promise<boolean> => {
     setLoading(true);
     setStatus(t('logs.source.loading'));
     try {
-      const data = new Uint8Array(await picked.blob.arrayBuffer());
+      const data = new Uint8Array(await blob.arrayBuffer());
       const transport = (props.createReplayTransport ?? (() => new ReplayTransport()))();
       const controller = await openTlog({ data, transport });
       playback.attach(controller);
       controller.seek(0);
       setTlogBytes(data);
-      setStatus(t('logs.source.tlogLoaded', { name: picked.name }));
+      setStatus(t('logs.source.tlogLoaded', { name }));
+      return true;
     } catch {
       setStatus(t('logs.source.error'));
+      return false;
     } finally {
       setLoading(false);
     }
   };
+
+  // --- source open handlers -------------------------------------------------
+  const openBin = async (): Promise<void> => {
+    const picked = await props.files.openForRead(['.bin', '.log']);
+    if (picked === undefined) return;
+    if (await loadBinBlob(picked.name, picked.blob)) {
+      // Record the opened log (with its blob) for App Settings → Recents.
+      void props.recents?.record({ kind: 'log', name: picked.name, blob: picked.blob });
+    }
+  };
+
+  const openTlogFile = async (): Promise<void> => {
+    const picked = await props.files.openForRead(['.tlog']);
+    if (picked === undefined) return;
+    if (await loadTlogBlob(picked.name, picked.blob)) {
+      // Record the opened tlog (with its blob) for App Settings → Recents.
+      void props.recents?.record({ kind: 'tlog', name: picked.name, blob: picked.blob });
+    }
+  };
+
+  // App Settings → Recents “Open”: load a cached `log`/`tlog` blob when it
+  // appears (a `.tlog` name uses the playback path; otherwise DataFlash decode),
+  // then clear it so re-selecting the same entry re-triggers the load.
+  createEffect(() => {
+    const pending = props.pendingOpen?.();
+    if (pending === undefined) return;
+    const isTlog = pending.name.toLowerCase().endsWith('.tlog');
+    const load = isTlog ? loadTlogBlob : loadBinBlob;
+    void load(pending.name, pending.blob).finally(() => props.onPendingConsumed?.());
+  });
 
   // --- CSV export -----------------------------------------------------------
   const exportCsv = async (): Promise<void> => {

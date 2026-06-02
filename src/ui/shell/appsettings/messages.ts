@@ -19,8 +19,12 @@ export const APPSETTINGS_MESSAGES: Readonly<Record<string, string>> = {
   'appsettings.section.keybinds': 'Keybinds',
   'appsettings.section.language': 'Language',
   'appsettings.section.maps': 'Maps',
+  'appsettings.section.extensions': 'Extensions',
   'appsettings.section.general': 'General',
   'appsettings.section.about': 'About',
+
+  // Extensions
+  'appsettings.extensions.unavailable': 'Extensions are unavailable in this session.',
 
   // Recents
   'appsettings.recents.empty': 'No recent files yet. Open a plan, log or parameter file.',

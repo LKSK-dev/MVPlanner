@@ -195,15 +195,41 @@ altitude) with grouping and tooltips. Extended-tuning sliders, channel-6 tuning,
 and autotune controls, plus a live setpoint-vs-actual mini-plot, are provided
 where applicable (`SHOULD`).
 
-### Settings
+> **App-wide settings moved.** As of 0.2.0 the Settings tab is gone from Config;
+> all application-wide settings now live in the **Application Settings pane** —
+> see the section below. Config keeps the vehicle-specific Parameters + Tuning.
 
-App-wide settings (persisted, take effect everywhere):
+---
 
-- **Units** (metric/imperial) and **coordinate format**.
-- **Theme** (Dark/Light/High-contrast/Field) and **language**.
-- **Map sources/keys**, **telemetry rates**, **safety confirmations**, **audio**.
-- A **Storage Manager** (usage / clear / export) and a **Network egress** list so
-  any opt-in network destinations are visible.
+## Application Settings pane
+
+Click the **MVPlanner** brand (top-left) — or press **`Ctrl/⌘ + ,`** — to slide
+out the Application Settings pane. It hosts every app-wide preference (and **no**
+vehicle- or connection-specific settings). Sections:
+
+- **Recents** — reopen recent plans, logs and parameter files (cached for offline
+  reopen); remove or clear entries.
+- **Appearance** — pick a theme or **System (auto)**; set custom **accent / text /
+  surface / error / warning** colors (live); choose **density** (comfortable or
+  compact); **import/export** a theme file (`.mvptheme.json`).
+- **Units & Measurement** — unit system + coordinate format, with a live preview.
+- **Keybinds** — click a shortcut to rebind it; conflicts are blocked; reset a row
+  or all. Shortcuts never fire while you are typing in a field.
+- **Language** — display language.
+- **Maps** — a **basemap preset** (CARTO Dark/Light, OpenStreetMap, Esri
+  satellite) or a **custom** XYZ/WMS URL + optional API key; tile-cache size +
+  clear. Changing the basemap updates the map immediately.
+- **Extensions** — the full extension manager: install from a file, enable/
+  disable, reload, uninstall, and review/revoke permission grants. (Shares state
+  with the Sim & Dev Tools hub.)
+- **General** — audio/voice alerts, confirm-destructive, default telemetry rate, a
+  **Storage Manager** (usage / clear tiles / factory reset), the **Network
+  egress** list, and a **settings backup** export/import (`.mvpsettings.json`;
+  secrets are redacted).
+- **About** — app/API versions, build hash, bundled dialects, licenses.
+
+Settings persist in this browser's storage. When you run MVPlanner from a file
+(`file://`), keep an exported **settings backup** as a portable safeguard.
 
 ---
 

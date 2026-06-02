@@ -13,8 +13,10 @@ import { cleanup, fireEvent, render } from '@solidjs/testing-library';
 import { t } from '../../src/core/i18n';
 import type {
   AppState,
+  BasemapSource,
   BlobStore,
   FileIo,
+  KvStore,
   Mission,
   MissionClient,
   Param,
@@ -22,9 +24,14 @@ import type {
   Store,
   VehicleState,
 } from '../../src/contracts';
+import { createRecentsStore } from '../../src/core/recents';
 import type { ElevationProvider } from '../../src/geo/terrain';
 import { createAppStore } from '../../src/core/store';
-import { createRasterMapEngine, type RasterMapEngine } from '../../src/ui/widgets/map';
+import {
+  BASEMAP_PRESETS,
+  createRasterMapEngine,
+  type RasterMapEngine,
+} from '../../src/ui/widgets/map';
 import { TrafficStore } from '../../src/ui/widgets/map/layers/adsb';
 import type { TileCache } from '../../src/geo/tiles';
 import type { StatusMessage } from '../../src/ui/widgets/messages';
@@ -105,6 +112,41 @@ function fakeBlobs(): BlobStore {
 
 function fakeFiles(): FileIo {
   return { openForRead: async () => undefined, saveAs: async () => undefined };
+}
+
+/** In-memory KV fake for the recents store. */
+function fakeKv(): KvStore {
+  const map = new Map<string, unknown>();
+  return {
+    get: async <T>(ns: string, key: string): Promise<T | undefined> =>
+      map.get(`${ns}/${key}`) as T | undefined,
+    set: async <T>(ns: string, key: string, v: T): Promise<void> => {
+      map.set(`${ns}/${key}`, v);
+    },
+    del: async (ns: string, key: string): Promise<void> => {
+      map.delete(`${ns}/${key}`);
+    },
+  };
+}
+
+/** In-memory blob store fake for the recents store (round-trippable). */
+function inMemoryBlobs(): BlobStore {
+  const map = new Map<string, Uint8Array>();
+  return {
+    put: async (ns, key, data): Promise<void> => {
+      map.set(`${ns}/${key}`, new Uint8Array(await data.arrayBuffer()));
+    },
+    getRange: async (ns, key, start, end): Promise<Uint8Array> => {
+      const d = map.get(`${ns}/${key}`);
+      if (d === undefined) throw new Error('missing');
+      return d.slice(start, end);
+    },
+    size: async (ns, key): Promise<number> => map.get(`${ns}/${key}`)?.byteLength ?? 0,
+    list: async (): Promise<never[]> => [],
+    del: async (ns, key): Promise<void> => {
+      map.delete(`${ns}/${key}`);
+    },
+  };
 }
 
 function stubElevationProvider(): ElevationProvider {
@@ -327,6 +369,93 @@ describe('PlanScreen — map auto-centers on the vehicle', () => {
     // Auto-centered on the vehicle, so drawn surveys/fences are at its location.
     expect(engine.getView().lat).toBeCloseTo(-35.363, 2);
     expect(engine.getView().lon).toBeCloseTo(149.165, 2);
+  });
+});
+
+describe('PlanScreen — map source → engine (spec §5.6/§7.4)', () => {
+  it('applies settings.mapSource to the engine basemap when a store is supplied', async () => {
+    const store = createAppStore();
+    const sources: BasemapSource[] = [];
+    const base = offlineEngine();
+    const engine: RasterMapEngine = {
+      ...base,
+      setBasemap(next: BasemapSource): void {
+        sources.push(next);
+        base.setBasemap(next);
+      },
+    };
+    const h = makeHarness();
+    render(() =>
+      createComponent(PlanScreen, { services: h.services, t, createEngine: () => engine, store }),
+    );
+    await settle();
+    // The unset default resolves to the built-in CARTO-dark basemap.
+    expect(sources.at(-1)?.id).toBe('carto-dark');
+
+    const osm = BASEMAP_PRESETS.find((p) => p.id === 'osm');
+    store.patch((s) => {
+      s.settings.mapSource = { urlTemplate: osm?.url ?? '' };
+    });
+    await settle();
+    expect(sources.at(-1)?.id).toBe('osm');
+  });
+});
+
+describe('PlanScreen — recents recording + pending open (spec §5.1/§7.3)', () => {
+  it('records a plan recent (with its blob) when saving a mission file', async () => {
+    const recents = createRecentsStore({ kv: fakeKv(), blobs: inMemoryBlobs() });
+    const h = makeHarness();
+    const { container } = render(() =>
+      createComponent(PlanScreen, {
+        services: h.services,
+        t,
+        createEngine: () => offlineEngine(),
+        recents,
+      }),
+    );
+    await settle();
+
+    fireEvent.click(container.querySelector('[data-testid="plan-save-plan"]') as HTMLButtonElement);
+    await settle();
+
+    expect(recents.snapshot()).toHaveLength(1);
+    expect(recents.snapshot()[0]?.kind).toBe('plan');
+    expect(recents.snapshot()[0]?.name).toBe('mission.plan');
+  });
+
+  it('loads a cached plan blob handed in via pendingOpen and clears it', async () => {
+    const recents = createRecentsStore({ kv: fakeKv(), blobs: inMemoryBlobs() });
+    // A minimal QGC WPL mission with one nav waypoint.
+    const wpl = `QGC WPL 110\n0\t1\t0\t16\t0\t0\t0\t0\t-35.36\t149.16\t50\t1\n`;
+    const entry = await recents.record({
+      kind: 'plan',
+      name: 'cached.waypoints',
+      blob: new Blob([wpl]),
+    });
+    const loaded = await recents.open(entry.id);
+    expect(loaded).toBeTruthy();
+
+    const [pending, setPending] = createSignal<{ name: string; blob: Blob } | undefined>(loaded);
+    let consumed = 0;
+    const h = makeHarness();
+    const { container } = render(() =>
+      createComponent(PlanScreen, {
+        services: h.services,
+        t,
+        createEngine: () => offlineEngine(),
+        pendingOpen: () => pending(),
+        onPendingConsumed: () => {
+          consumed += 1;
+          setPending(undefined);
+        },
+      }),
+    );
+    await settle();
+    await settle();
+
+    expect(consumed).toBe(1);
+    // The cached mission was parsed into the shared signal → a table row exists.
+    expect(container.querySelector('[data-seq="0"]')).toBeTruthy();
   });
 });
 

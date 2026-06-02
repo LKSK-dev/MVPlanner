@@ -37,6 +37,7 @@ import { t as defaultT } from '../../../core/i18n';
 import type { AppState, Mission, Store, VehicleState } from '../../../contracts';
 import {
   MapWidget,
+  basemapFromSettings,
   createRasterMapEngine,
   createTileCache,
   type RasterMapEngine,
@@ -53,7 +54,16 @@ import {
 } from '../../../geo/mission';
 import { createFence, fenceParams, fenceToMission, type Fence } from '../../../geo/fence';
 import { createRally, rallyToMission, type Rally } from '../../../geo/rally';
-import { loadMissionFile, saveMission } from '../../../data/missionfile';
+import {
+  MISSION_FILE_ACCEPT,
+  PLAN_MIME,
+  WPL_MIME,
+  buildPlan,
+  parseMissionContent,
+  serializePlan,
+  serializeWpl,
+} from '../../../data/missionfile';
+import type { RecentsStore } from '../../../core/recents';
 import { aglToAmsl, type ElevationSample, type TerrainProfilePoint } from '../../../geo/terrain';
 import type { LatLon } from '../../../geo/format';
 import { WaypointTable } from './table';
@@ -93,9 +103,22 @@ export interface PlanScreenProps {
    * Optional app store. When supplied, the plan map auto-centers on the active
    * vehicle (or its home) the first time a real position is known, so drawing
    * surveys/fences/rally points happens at the vehicle's location instead of at
-   * null island (0,0).
+   * null island (0,0), and `settings.mapSource` reaches the engine basemap.
    */
   store?: Store<AppState>;
+  /**
+   * Optional recents store. When supplied, opening/saving a mission file records
+   * a `plan` recent (with the file blob) for the App Settings → Recents launcher.
+   */
+  recents?: RecentsStore;
+  /**
+   * Optional pending-open accessor (App Settings → Recents “Open”). When it
+   * yields a `plan` blob the screen loads it (parsing like {@link openFile}) and
+   * then calls {@link PlanScreenProps.onPendingConsumed} to clear it.
+   */
+  pendingOpen?: Accessor<{ name: string; blob: Blob } | undefined>;
+  /** Clear the pending-open entry once it has been loaded. */
+  onPendingConsumed?: () => void;
   /**
    * Test seam: build the map engine. Defaults to a raster engine over a
    * storage-backed tile cache; tests inject an offline engine.
@@ -202,6 +225,16 @@ export const PlanScreen: Component<PlanScreenProps> = (props) => {
 
   // --- map engine + editor + measure tools ----------------------------------
   const engine = (props.createEngine ?? defaultCreateEngine)(services);
+
+  // Live basemap: repaint when the Maps setting changes (spec §5.6/§7.4). Only
+  // when an app store is supplied (additive; mounts without a store are skipped).
+  const planStore = props.store;
+  if (planStore !== undefined) {
+    const mapSource = planStore.select((s) => s.settings.mapSource);
+    createEffect(() => {
+      engine.setBasemap(basemapFromSettings(mapSource()));
+    });
+  }
 
   const getState = (): EditState => ({
     mission: mission(),
@@ -359,26 +392,55 @@ export const PlanScreen: Component<PlanScreenProps> = (props) => {
       );
   };
 
+  // Parse an in-hand mission blob into the shared mission signal (the common
+  // core for the file picker and the Recents pending-open path).
+  const loadMissionBlob = async (name: string, blob: Blob): Promise<void> => {
+    const text = await blob.text();
+    const loaded = parseMissionContent(name, text);
+    setMission(missionFromWire(loaded.mission));
+    setStatus(t('plan.status.loaded', { name: loaded.name, n: loaded.mission.items.length }));
+  };
+
   const openFile = (): void => {
-    void loadMissionFile(services.files)
-      .then((loaded) => {
-        if (loaded === undefined) return;
-        setMission(missionFromWire(loaded.mission));
-        setStatus(t('plan.status.loaded', { name: loaded.name, n: loaded.mission.items.length }));
+    void (async (): Promise<void> => {
+      const picked = await services.files.openForRead([...MISSION_FILE_ACCEPT]);
+      if (picked === undefined) return;
+      await loadMissionBlob(picked.name, picked.blob);
+      // Record the opened mission (with its blob) for App Settings → Recents.
+      void props.recents?.record({ kind: 'plan', name: picked.name, blob: picked.blob });
+    })().catch((e: unknown) =>
+      setStatus(t('plan.status.error', { what: t('plan.what.mission'), message: errMsg(e) })),
+    );
+  };
+
+  const saveFile = (format: 'wpl' | 'plan'): void => {
+    const name = format === 'plan' ? 'mission.plan' : 'mission.waypoints';
+    const wire = missionToWire(mission());
+    const text = format === 'plan' ? serializePlan(buildPlan(wire)) : serializeWpl(wire);
+    const blob = new Blob([text], { type: format === 'plan' ? PLAN_MIME : WPL_MIME });
+    void services.files
+      .saveAs(blob, name)
+      .then(() => {
+        setStatus(t('plan.status.saved', { name }));
+        // Record the saved mission (with its blob) for App Settings → Recents.
+        void props.recents?.record({ kind: 'plan', name, blob });
       })
       .catch((e: unknown) =>
         setStatus(t('plan.status.error', { what: t('plan.what.mission'), message: errMsg(e) })),
       );
   };
 
-  const saveFile = (format: 'wpl' | 'plan'): void => {
-    const name = format === 'plan' ? 'mission.plan' : 'mission.waypoints';
-    void saveMission(services.files, missionToWire(mission()), format, name)
-      .then(() => setStatus(t('plan.status.saved', { name })))
+  // App Settings → Recents “Open”: load a cached `plan` blob when it appears,
+  // then clear it so re-selecting the same entry re-triggers the load.
+  createEffect(() => {
+    const pending = props.pendingOpen?.();
+    if (pending === undefined) return;
+    void loadMissionBlob(pending.name, pending.blob)
       .catch((e: unknown) =>
         setStatus(t('plan.status.error', { what: t('plan.what.mission'), message: errMsg(e) })),
-      );
-  };
+      )
+      .finally(() => props.onPendingConsumed?.());
+  });
 
   const onSurveyGenerate = (m: Mission): void => {
     setMission(missionFromWire(m));
