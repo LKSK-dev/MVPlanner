@@ -36,7 +36,7 @@ export {
   LinkGauge,
   NavGauge,
 } from './value-cards';
-export { metricUnits, type UnitHook, type UnitFormat } from './units';
+export { metricUnits, unitsFromResolved, type UnitHook, type UnitFormat } from './units';
 export { GAUGE_MESSAGES, registerGaugeMessages } from './register';
 export {
   airspeedReadings,

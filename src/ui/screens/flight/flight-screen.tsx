@@ -36,7 +36,7 @@ import {
 import { t as defaultT } from '../../../core/i18n';
 import type { AppState, Store, VehicleState } from '../../../contracts';
 import { Hud } from '../../../ui/widgets/hud';
-import { InstrumentPanel, type RcState } from '../../../ui/widgets/gauges';
+import { InstrumentPanel, unitsFromResolved, type RcState } from '../../../ui/widgets/gauges';
 import {
   MapWidget,
   basemapFromSettings,
@@ -58,7 +58,7 @@ import {
   type MapTools,
   type ToolMode,
 } from '../../../ui/widgets/map/tools';
-import { unitFormatterFor } from '../../../core/units';
+import { resolveUnits, unitFormatterFor } from '../../../core/units';
 import {
   createAdsbTrafficLayer,
   pickTrafficTarget,
@@ -211,6 +211,9 @@ export const FlightScreen: Component<FlightScreenProps> = (props) => {
   // Reactive unit formatter from the app store so the Measure readout honours
   // the selected units live (e.g. feet/miles under an imperial preset).
   const unitFmt = createMemo(() => unitFormatterFor(props.store.get().settings));
+  // Per-quantity unit hook for the instrument gauges/HUD so they honor the
+  // selected unit system + per-quantity overrides (not hard-wired metric).
+  const gaugeUnits = createMemo(() => unitsFromResolved(resolveUnits(props.store.get().settings)));
   const tools: MapTools = createMapTools(engine, {
     t,
     formatLength: (m) => measureFormatters(unitFmt()).formatLength(m),
@@ -419,7 +422,7 @@ export const FlightScreen: Component<FlightScreenProps> = (props) => {
       </div>
 
       <aside class="mvp-flight__rail" aria-label={t('flight.instruments.label')}>
-        <InstrumentPanel vehicle={activeVehicle} rc={rcState} t={t} />
+        <InstrumentPanel vehicle={activeVehicle} rc={rcState} t={t} units={gaugeUnits()} />
       </aside>
 
       <div class="mvp-flight__actions">

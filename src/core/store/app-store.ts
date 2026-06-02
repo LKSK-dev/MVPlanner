@@ -48,9 +48,20 @@ function snapshot<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
 
+/**
+ * Settings as persisted to disk, with the map-tile **API key redacted**. The
+ * key is a local secret: it stays in the in-memory store (the map consumes it)
+ * and is encrypted-at-rest by the WebCrypto secret store (see `src/App.tsx`),
+ * but it must never be written to the KvStore in plaintext (audit P0.2).
+ */
+function persistableSettings(s: AppSettings): AppSettings {
+  if (s.mapSource?.apiKey === undefined) return s;
+  return { ...s, mapSource: { urlTemplate: s.mapSource.urlTemplate } };
+}
+
 /** Stable serialization of the persisted slice, for change detection. */
 function persistKey(s: AppState): string {
-  return JSON.stringify({ settings: s.settings, layout: s.layout });
+  return JSON.stringify({ settings: persistableSettings(s.settings), layout: s.layout });
 }
 
 /**
@@ -91,7 +102,11 @@ export function createAppStore(initial?: Partial<AppState>, persist?: KvStore): 
         persistTimer = undefined;
         const latest = unwrap(state);
         void Promise.all([
-          kv.set<AppSettings>(PERSIST_NS, KEY_SETTINGS, snapshot(latest.settings)),
+          kv.set<AppSettings>(
+            PERSIST_NS,
+            KEY_SETTINGS,
+            snapshot(persistableSettings(latest.settings)),
+          ),
           kv.set<LayoutState>(PERSIST_NS, KEY_LAYOUT, snapshot(latest.layout)),
         ]).catch(reportPersistError);
       }, PERSIST_DEBOUNCE_MS);

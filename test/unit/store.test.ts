@@ -263,6 +263,21 @@ describe('createAppStore — persistence', () => {
     });
   });
 
+  it('never persists the map API key in plaintext (audit P0.2)', async () => {
+    const kv = makeFakeKv();
+    const store = createAppStore(undefined, kv);
+    store.patch((d) => {
+      d.settings.mapSource = { urlTemplate: 'https://t/{z}/{x}/{y}.png', apiKey: 'secret-key' };
+    });
+    await vi.waitFor(() => {
+      const saved = kv.peek<AppSettings>('app', 'settings');
+      expect(saved?.mapSource?.urlTemplate).toBe('https://t/{z}/{x}/{y}.png');
+      expect(saved?.mapSource?.apiKey).toBeUndefined();
+    });
+    // In-memory value is preserved (the map still uses it).
+    expect(store.get().settings.mapSource?.apiKey).toBe('secret-key');
+  });
+
   it('does not persist when settings/layout are untouched', async () => {
     const kv = makeFakeKv();
     const store = createAppStore(undefined, kv);
