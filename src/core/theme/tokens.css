@@ -125,9 +125,19 @@ body {
   background: var(--mvp-bg);
   color: var(--mvp-text);
   font-family: var(--mvp-font);
-  font-size: 14px;
+  font-size: var(--mvp-font-size, 14px);
   line-height: 1.45;
   -webkit-font-smoothing: antialiased;
+}
+
+/*
+ * Compact UI density (App Settings → Appearance). Tightens the shared spacing,
+ * radius and base font tokens; every component that uses the tokens follows.
+ */
+:root[data-density='compact'] {
+  --mvp-gap: 8px;
+  --mvp-radius: 6px;
+  --mvp-font-size: 13px;
 }
 
 /* Respect reduced-motion: drop the motion token and neutralise animations. */

@@ -23,11 +23,39 @@ export interface MapSourceSetting {
   apiKey?: string;
 }
 
+/** Theme mode: a concrete theme id, or 'system' to follow `prefers-*`. */
+export type ThemeMode = ThemeId | 'system';
+
+/** UI density (spacing scale). Added with the App Settings pane (contracts 1.5.0). */
+export type Density = 'comfortable' | 'compact';
+
+/** Canonical palette token a custom-color override targets. */
+export type AppearanceColorKey = 'accent' | 'text' | 'surface' | 'error' | 'warn';
+
+/**
+ * Appearance customization for the App Settings pane (contracts 1.5.0,
+ * additive). All fields optional; absent fields fall back to code defaults and
+ * to {@link AppSettings.theme}. Color override values are validated as CSS
+ * colors before being applied as inline custom properties.
+ */
+export interface AppearanceSettings {
+  /** Base theme, or 'system' to follow OS `prefers-*` (overrides `theme`). */
+  themeMode?: ThemeMode;
+  /** Canonical token color overrides (validated hex/rgb/hsl strings). */
+  colors?: Partial<Record<AppearanceColorKey, string>>;
+  /** UI density. Defaults to 'comfortable'. */
+  density?: Density;
+  /** Last-open App Settings section id (UI memory). */
+  lastSettingsSection?: string;
+}
+
 /**
  * App settings (spec plan/04 §4.5, plan/05 §5.4). Extended (not replaced) at
  * T3.7: the original six fields are required; T3.7 added the optional `mapSource`
- * and `telemetryRateHz` fields (additive — contracts 1.3.0). New fields are
- * optional so persisted/older state and existing defaults remain valid.
+ * and `telemetryRateHz` fields (additive — contracts 1.3.0). The App Settings
+ * pane added optional `appearance` + `keybinds` (additive — contracts 1.5.0).
+ * New fields are optional so persisted/older state and existing defaults remain
+ * valid.
  */
 export interface AppSettings {
   units: UnitSystem;
@@ -44,6 +72,10 @@ export interface AppSettings {
    * manager keeps its built-in default. Added T3.7.
    */
   telemetryRateHz?: number;
+  /** Appearance customization (theme mode, custom colors, density). 1.5.0. */
+  appearance?: AppearanceSettings;
+  /** Command id → key-chord override (e.g. `app.settings.open` → `mod+,`). 1.5.0. */
+  keybinds?: Record<string, string>;
 }
 
 /** Dock layout + workspaces (spec plan/05 §5.3). Concrete dock shape fixed at T0.7. */

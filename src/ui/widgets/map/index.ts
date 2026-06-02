@@ -27,6 +27,13 @@ export {
   type TileImage,
 } from './engine';
 export { MAP_MESSAGES } from './messages';
+export {
+  BASEMAP_PRESETS,
+  CUSTOM_PRESET_ID,
+  basemapFromSettings,
+  presetIdForSettings,
+  type BasemapPreset,
+} from './basemaps';
 
 // Re-export the pure tile/geo layer so map consumers have one import site.
 export {

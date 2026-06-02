@@ -18,3 +18,16 @@ export {
   prefersReducedMotion,
   systemTheme,
 } from './apply';
+export {
+  APPEARANCE_COLOR_KEYS,
+  DENSITIES,
+  THEME_MODES,
+  applyAppearance,
+  buildColorOverrides,
+  clearColorOverrides,
+  isValidCssColor,
+  parseTheme,
+  resolveThemeMode,
+  serializeTheme,
+  type ThemeBundle,
+} from './custom';
