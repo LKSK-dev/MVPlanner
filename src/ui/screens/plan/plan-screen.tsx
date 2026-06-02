@@ -42,7 +42,8 @@ import {
   createTileCache,
   type RasterMapEngine,
 } from '../../widgets/map';
-import { createMapTools, type MapTools } from '../../widgets/map/tools';
+import { createMapTools, measureFormatters, type MapTools, type MapToolsOptions } from '../../widgets/map/tools';
+import { unitFormatterFor } from '../../../core/units';
 import {
   commandHasPosition,
   haversineMeters,
@@ -262,7 +263,23 @@ export const PlanScreen: Component<PlanScreenProps> = (props) => {
     setState,
     getMode: () => toolMode(),
   });
-  const tools: MapTools = createMapTools(engine, { t });
+
+  // Reactive unit formatter from the app store (when supplied) so the Measure
+  // readout honours the selected units live; without a store it stays metric.
+  const unitFmt =
+    planStore !== undefined
+      ? createMemo(() => unitFormatterFor(planStore.get().settings))
+      : undefined;
+  const toolsOptions: MapToolsOptions = {
+    t,
+    ...(unitFmt !== undefined
+      ? {
+          formatLength: (m: number): string => measureFormatters(unitFmt()).formatLength(m),
+          formatArea: (m2: number): string => measureFormatters(unitFmt()).formatArea(m2),
+        }
+      : {}),
+  };
+  const tools: MapTools = createMapTools(engine, toolsOptions);
 
   // One-shot: center the plan map on the active vehicle/home (or the first real
   // mission/geofence point) so drawing surveys/fences happens at the vehicle's
@@ -297,6 +314,13 @@ export const PlanScreen: Component<PlanScreenProps> = (props) => {
 
   const [measureSummary, setMeasureSummary] = createSignal(tools.measureSummary());
   const offToolsChange = tools.onChange(() => setMeasureSummary(tools.measureSummary()));
+  // Refresh the readout when the selected units change (not just on point edits).
+  if (unitFmt !== undefined) {
+    createEffect(() => {
+      unitFmt();
+      setMeasureSummary(tools.measureSummary());
+    });
+  }
 
   let mapContainer!: HTMLDivElement;
   onMount(() => {

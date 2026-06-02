@@ -250,7 +250,7 @@ async function activateExample(example: ExampleModule, harness = fakeServices())
 }
 
 describe('first-party example extensions', () => {
-  it('exports exactly the seven T7.6 examples with documented minimal permissions', () => {
+  it('exports the bundled examples with documented minimal permissions', () => {
     expect(exampleModules.map((example) => example.manifest.id)).toEqual([
       'org.mvplanner.examples.battery-plus',
       'org.mvplanner.examples.geo-tagger',
@@ -259,6 +259,7 @@ describe('first-party example extensions', () => {
       'org.mvplanner.examples.auto-test-script-pack',
       'org.mvplanner.examples.theme-pack',
       'org.mvplanner.examples.custom-transport-demo',
+      'hello-world',
     ]);
     expect(exampleModules.map((example) => example.manifest.permissions)).toEqual([
       ['telemetry:read', 'ui:panel', 'notify'],
@@ -268,6 +269,7 @@ describe('first-party example extensions', () => {
       ['command', 'telemetry:read'],
       ['ui:panel'],
       ['transport'],
+      ['ui:panel'],
     ]);
   });
 

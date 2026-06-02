@@ -5,9 +5,14 @@
  * we only assert it projects without a 2D context.
  */
 import { describe, expect, it, vi } from 'vitest';
-import type { MapLayer, MapRenderCtx } from '../../src/contracts';
+import type { AppSettings, MapLayer, MapRenderCtx } from '../../src/contracts';
 import type { LatLon } from '../../src/ui/widgets/map/layers/geometry';
-import { createMapTools, type MapToolHost } from '../../src/ui/widgets/map/tools';
+import {
+  createMapTools,
+  measureFormatters,
+  type MapToolHost,
+} from '../../src/ui/widgets/map/tools';
+import { unitFormatterFor } from '../../src/core/units';
 
 /** A fake engine host capturing the click handler + layer for the tests. */
 function fakeHost(): {
@@ -95,6 +100,47 @@ describe('measure tools', () => {
     expect(d).toBeGreaterThan(222_000);
     expect(d).toBeLessThan(223_000);
     expect(tools.measureSummary()).toContain('km');
+  });
+
+  it('renders imperial units in the summary when an imperial formatter is injected', () => {
+    const imperial: AppSettings = {
+      units: 'imperial',
+      coordinateFormat: 'dd',
+      theme: 'dark',
+      language: 'en',
+      audioAlerts: false,
+      confirmDestructive: true,
+    };
+    const fmt = measureFormatters(unitFormatterFor(imperial));
+    const h = fakeHost();
+    const tools = createMapTools(h.host, {
+      genId: idGen(),
+      formatLength: fmt.formatLength,
+      formatArea: fmt.formatArea,
+    });
+
+    // Distance readout: ~222 km reads in miles, never metric km/m.
+    tools.setMode('measure-distance');
+    h.click({ lat: 0, lon: 0 });
+    h.click({ lat: 0, lon: 1 });
+    h.click({ lat: 0, lon: 2 });
+    const distance = tools.measureSummary();
+    expect(distance).toMatch(/mi/);
+    expect(distance).not.toMatch(/km/);
+
+    // Area readout: imperial square units (ft² / mi²), never m².
+    tools.setMode('measure-area');
+    for (const p of [
+      { lat: 0, lon: 0 },
+      { lat: 0, lon: 0.01 },
+      { lat: 0.01, lon: 0.01 },
+      { lat: 0.01, lon: 0 },
+    ]) {
+      h.click(p);
+    }
+    const area = tools.measureSummary();
+    expect(area).toMatch(/ft\u00b2|mi\u00b2/);
+    expect(area).not.toMatch(/ m\u00b2/);
   });
 
   it('computes polygon area in area mode', () => {

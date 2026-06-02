@@ -24,6 +24,10 @@ export const CMD_EDITOR_MESSAGES: Readonly<Record<string, string>> = {
   'cmd.group.condition': 'Conditions',
   'cmd.group.other': 'Other',
 
+  // Custom command entry (arbitrary MAV_CMD id)
+  'cmd.custom': 'Custom…',
+  'cmd.customPlaceholder': 'MAV_CMD id',
+
   // Generic slot fallbacks (used when the dialect has no label)
   'cmd.param': 'Param {n}',
   'cmd.slot.lat': 'Latitude',

@@ -12,6 +12,7 @@ export const customNmeaAdsbLayer: ExampleExtensionModule;
 export const autoTestScriptPack: ExampleExtensionModule;
 export const themePack: ExampleExtensionModule;
 export const customTransportDemo: ExampleExtensionModule;
+export const helloWorld: ExampleExtensionModule;
 
-/** All seven example extension modules in display order. */
+/** All example extension modules in display order. */
 export const examples: readonly ExampleExtensionModule[];

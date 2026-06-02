@@ -172,15 +172,49 @@ export function decimateTrack(points: readonly LatLon[], minSpacingM: number): L
   return out;
 }
 
-/** Format a metre distance as a short metric string (`"456 m"` / `"1.23 km"`). */
-export function formatDistanceM(meters: number): string {
+/**
+ * Length system for the measure readouts. Additive over the historical
+ * metric-only helpers; the screens map the resolved app units onto this token
+ * so the Measure tool honours the selected units.
+ */
+export type MeasureSystem = 'metric' | 'imperial';
+
+/** Metres per international foot (exact). */
+const M_PER_FOOT = 0.3048;
+/** Feet in a statute mile. */
+const FEET_PER_MILE = 5280;
+/** Square metres in a square statute mile (`5280 ft` squared). */
+const M2_PER_SQ_MILE = (FEET_PER_MILE * M_PER_FOOT) ** 2;
+
+/**
+ * Format a metre distance as a short string. Defaults to metric
+ * (`"456 m"` / `"1.23 km"`); pass `'imperial'` to render feet/miles
+ * (`"1497 ft"` / `"1.23 mi"`). The default keeps every existing caller (and
+ * test) unchanged.
+ */
+export function formatDistanceM(meters: number, system: MeasureSystem = 'metric'): string {
+  if (system === 'imperial') {
+    if (!Number.isFinite(meters) || meters <= 0) return '0 ft';
+    const feet = meters / M_PER_FOOT;
+    if (feet >= FEET_PER_MILE) return `${(feet / FEET_PER_MILE).toFixed(2)} mi`;
+    return feet < 10 ? `${feet.toFixed(1)} ft` : `${Math.round(feet)} ft`;
+  }
   if (!Number.isFinite(meters) || meters <= 0) return '0 m';
   if (meters >= 1000) return `${(meters / 1000).toFixed(2)} km`;
   return meters < 10 ? `${meters.toFixed(1)} m` : `${Math.round(meters)} m`;
 }
 
-/** Format a square-metre area as a short metric string (`"456 m²"` / `"1.23 km²"`). */
-export function formatAreaM2(area: number): string {
+/**
+ * Format a square-metre area as a short string. Defaults to metric
+ * (`"456 m²"` / `"1.23 km²"`); pass `'imperial'` to render square feet/miles
+ * (`"4908 ft²"` / `"1.23 mi²"`). The default keeps existing callers unchanged.
+ */
+export function formatAreaM2(area: number, system: MeasureSystem = 'metric'): string {
+  if (system === 'imperial') {
+    if (!Number.isFinite(area) || area <= 0) return '0 ft\u00b2';
+    if (area >= M2_PER_SQ_MILE) return `${(area / M2_PER_SQ_MILE).toFixed(2)} mi\u00b2`;
+    return `${Math.round(area / (M_PER_FOOT * M_PER_FOOT))} ft\u00b2`;
+  }
   if (!Number.isFinite(area) || area <= 0) return '0 m\u00b2';
   if (area >= 1_000_000) return `${(area / 1_000_000).toFixed(2)} km\u00b2`;
   return `${Math.round(area)} m\u00b2`;

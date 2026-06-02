@@ -52,7 +52,13 @@ import {
   type LatLon,
   type VehicleOverlay,
 } from '../../../ui/widgets/map/layers';
-import { createMapTools, type MapTools, type ToolMode } from '../../../ui/widgets/map/tools';
+import {
+  createMapTools,
+  measureFormatters,
+  type MapTools,
+  type ToolMode,
+} from '../../../ui/widgets/map/tools';
+import { unitFormatterFor } from '../../../core/units';
 import {
   createAdsbTrafficLayer,
   pickTrafficTarget,
@@ -202,7 +208,14 @@ export const FlightScreen: Component<FlightScreenProps> = (props) => {
     engine.addLayer(createVehicleLayer(vehicleOverlay)),
     engine.addLayer(adsbLayer),
   ];
-  const tools: MapTools = createMapTools(engine, { t });
+  // Reactive unit formatter from the app store so the Measure readout honours
+  // the selected units live (e.g. feet/miles under an imperial preset).
+  const unitFmt = createMemo(() => unitFormatterFor(props.store.get().settings));
+  const tools: MapTools = createMapTools(engine, {
+    t,
+    formatLength: (m) => measureFormatters(unitFmt()).formatLength(m),
+    formatArea: (m2) => measureFormatters(unitFmt()).formatArea(m2),
+  });
   onCleanup(() => {
     tools.dispose();
     for (const off of layerDisposers) off();

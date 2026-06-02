@@ -75,6 +75,29 @@ export function curatedCommandMetas(): readonly MavCmdMeta[] {
   return out;
 }
 
+/**
+ * Every `MAV_CMD` in the bundled dialect catalog (e.g. the VTOL
+ * `NAV_VTOL_TAKEOFF`=84 / `NAV_VTOL_LAND`=85), ordered so the picker shows a
+ * sensible list: within a category the curated commands sort first (in curated
+ * order), then the remaining ids by numeric value (ties by short name). The
+ * caller groups by category via {@link groupCommands}, which preserves this
+ * relative order within each group.
+ */
+export function allCommandMetas(): readonly MavCmdMeta[] {
+  const catalog = defaultCommandCatalog();
+  const curatedRank = new Map<number, number>();
+  CURATED_COMMANDS.forEach((value, rank) => curatedRank.set(value, rank));
+  const metas = [...catalog.values()];
+  metas.sort((a, b) => {
+    const ra = curatedRank.get(a.value) ?? Number.POSITIVE_INFINITY;
+    const rb = curatedRank.get(b.value) ?? Number.POSITIVE_INFINITY;
+    if (ra !== rb) return ra - rb;
+    if (a.value !== b.value) return a.value - b.value;
+    return a.shortName.localeCompare(b.shortName);
+  });
+  return metas;
+}
+
 /** A category group with its members (in input order). */
 export interface CommandGroup {
   category: MavCmdCategory;

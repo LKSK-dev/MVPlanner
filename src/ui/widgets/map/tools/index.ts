@@ -9,10 +9,12 @@
  */
 export {
   createMapTools,
+  measureFormatters,
   type MapMarker,
   type MapToolHost,
   type MapTools,
   type MapToolsOptions,
+  type MeasureFormatters,
   type TFn,
   type ToolMode,
 } from './tools';

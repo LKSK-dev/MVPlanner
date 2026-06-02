@@ -17,11 +17,12 @@
 import './messages';
 
 export { CmdEditor } from './cmd-editor';
-export { CmdPicker } from './cmd-picker';
+export { CmdPicker, CUSTOM_OPTION_VALUE } from './cmd-picker';
 export { registerCmdEditorMessages, CMD_EDITOR_MESSAGES } from './messages';
 export {
   CURATED_COMMANDS,
   CATEGORY_ORDER,
+  allCommandMetas,
   applySlot,
   categoryKey,
   curatedCommandMetas,

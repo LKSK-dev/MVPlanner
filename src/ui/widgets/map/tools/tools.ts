@@ -21,6 +21,7 @@
  */
 import type { MapLayer } from '../../../../contracts';
 import { t as defaultT } from '../../../../core/i18n';
+import type { ResolvedUnits, UnitFormatter } from '../../../../core/units';
 import { drawDisc, drawLabel, strokePath } from '../layers/draw';
 import {
   formatAreaM2,
@@ -29,6 +30,7 @@ import {
   polygonAreaMeters2,
   projectPath,
   type LatLon,
+  type MeasureSystem,
 } from '../layers/geometry';
 import '../layers/messages';
 
@@ -69,6 +71,18 @@ export interface MapToolsOptions {
   markerColor?: string;
   /** Layer id (default `'map-tools'`). */
   layerId?: string;
+  /**
+   * Format a measured length (metres) for {@link MapTools.measureSummary}.
+   * Defaults to the metric {@link formatDistanceM}; screens inject the active
+   * unit formatter's `distance` so the readout honours the selected units.
+   */
+  formatLength?: (meters: number) => string;
+  /**
+   * Format a measured area (square metres) for {@link MapTools.measureSummary}.
+   * Defaults to the metric {@link formatAreaM2}; screens inject a unit-aware
+   * formatter (m² metric, ft²/mi² imperial) matching the chosen units.
+   */
+  formatArea?: (squareMeters: number) => string;
 }
 
 /** The tools controller returned by {@link createMapTools}. */
@@ -111,6 +125,39 @@ export interface MapTools {
   dispose(): void;
 }
 
+/** The length-formatter pair the Measure readout injects into {@link createMapTools}. */
+export interface MeasureFormatters {
+  /** Format a measured length (metres). */
+  formatLength: (meters: number) => string;
+  /** Format a measured area (square metres). */
+  formatArea: (squareMeters: number) => string;
+}
+
+/**
+ * Map resolved app units onto the {@link MeasureSystem} that picks the area
+ * suffix (m² metric, ft²/mi² imperial). Distance overrides win; an `'auto'`
+ * distance follows the preset, and the nautical/forced-metric units stay m².
+ */
+function measureSystemFor(units: ResolvedUnits): MeasureSystem {
+  if (units.distance === 'ft' || units.distance === 'mi') return 'imperial';
+  if (units.distance === 'auto') return units.system === 'imperial' ? 'imperial' : 'metric';
+  return 'metric';
+}
+
+/**
+ * Build the {@link MapToolsOptions.formatLength}/`formatArea` pair from a live
+ * {@link UnitFormatter} so the Measure readout honours the selected units:
+ * length reuses the formatter's `distance`; area follows the matching length
+ * system. Screens pass these into {@link createMapTools}.
+ */
+export function measureFormatters(fmt: UnitFormatter): MeasureFormatters {
+  const system = measureSystemFor(fmt.units);
+  return {
+    formatLength: (meters) => fmt.distance(meters),
+    formatArea: (squareMeters) => formatAreaM2(squareMeters, system),
+  };
+}
+
 /**
  * Create a {@link MapTools} controller bound to a map engine. It registers the
  * click listener and a render layer immediately; call {@link MapTools.dispose}
@@ -121,6 +168,8 @@ export function createMapTools(host: MapToolHost, options: MapToolsOptions = {})
   const measureColor = options.measureColor ?? '#f5a623';
   const markerColor = options.markerColor ?? '#f5a623';
   const layerId = options.layerId ?? 'map-tools';
+  const formatLength = options.formatLength ?? formatDistanceM;
+  const formatArea = options.formatArea ?? formatAreaM2;
 
   let counter = 0;
   const genId = options.genId ?? ((): string => `marker-${++counter}`);
@@ -202,10 +251,10 @@ export function createMapTools(host: MapToolHost, options: MapToolsOptions = {})
     measureSummary(): string {
       if (points.length < 2) return t('mapoverlay.measure.empty');
       if (mode === 'measure-area') {
-        return t('mapoverlay.measure.area', { value: formatAreaM2(polygonAreaMeters2(points)) });
+        return t('mapoverlay.measure.area', { value: formatArea(polygonAreaMeters2(points)) });
       }
       return t('mapoverlay.measure.distance', {
-        value: formatDistanceM(pathLengthMeters(points)),
+        value: formatLength(pathLengthMeters(points)),
       });
     },
     undoLastPoint(): void {

@@ -188,6 +188,15 @@ describe('metric formatters', () => {
     expect(formatAreaM2(2_500_000)).toBe('2.50 km\u00b2');
   });
 
+  it('formats distances + areas in imperial when asked (additive opt-in)', () => {
+    expect(formatDistanceM(0, 'imperial')).toBe('0 ft');
+    expect(formatDistanceM(304.8, 'imperial')).toBe('1000 ft');
+    expect(formatDistanceM(1609.344, 'imperial')).toBe('1.00 mi');
+    expect(formatAreaM2(0, 'imperial')).toBe('0 ft\u00b2');
+    expect(formatAreaM2(100, 'imperial')).toMatch(/ft\u00b2$/);
+    expect(formatAreaM2(5_000_000, 'imperial')).toMatch(/mi\u00b2$/);
+  });
+
   it('projectPath maps each point through project', () => {
     const project = vi.fn<Project>((lat, lon) => [lon, lat]);
     const out = projectPath(

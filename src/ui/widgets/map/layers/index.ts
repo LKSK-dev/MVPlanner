@@ -38,6 +38,7 @@ export {
   toRadians,
   vehicleIconPolygon,
   type LatLon,
+  type MeasureSystem,
   type Project,
   type ScreenPoint,
 } from './geometry';

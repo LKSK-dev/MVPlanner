@@ -203,8 +203,8 @@ where applicable (`SHOULD`).
 
 ## Application Settings pane
 
-Click the **MVPlanner** brand (top-left) — or press **`Ctrl/⌘ + ,`** — to slide
-out the Application Settings pane. It hosts every app-wide preference (and **no**
+Click the **MVPlanner** brand (top-left) — or press **`Shift+S`** — to slide
+out the **MVPlanner Settings** pane. It hosts every app-wide preference (and **no**
 vehicle- or connection-specific settings). Sections:
 
 - **Recents** — reopen recent plans, logs and parameter files (cached for offline
@@ -212,9 +212,16 @@ vehicle- or connection-specific settings). Sections:
 - **Appearance** — pick a theme or **System (auto)**; set custom **accent / text /
   surface / error / warning** colors (live); choose **density** (comfortable or
   compact); **import/export** a theme file (`.mvptheme.json`).
-- **Units & Measurement** — unit system + coordinate format, with a live preview.
-- **Keybinds** — click a shortcut to rebind it; conflicts are blocked; reset a row
-  or all. Shortcuts never fire while you are typing in a field.
+- **Units & Measurement** — a Metric/Imperial preset **plus full per-quantity
+  selection** (altitude, distance, speed, vertical speed, temperature, heading,
+  coordinates), with a live preview. Applies everywhere, including the Measure
+  tool.
+- **Keybinds** — rebind a shortcut by **pressing** keys or by **typing** standard
+  syntax (e.g. `Shift+1`); conflicts are blocked; reset a row or all. Shortcuts
+  never fire while you are typing in a field.
+- **Appearance themes** — **Install theme** adds a `.mvptheme.json` permanently to
+  the theme selector; the theme **manager** edits/uninstalls custom themes
+  (built-ins are protected). Custom colors include an **outline** swatch.
 - **Language** — display language.
 - **Maps** — a **basemap preset** (CARTO Dark/Light, OpenStreetMap, Esri
   satellite) or a **custom** XYZ/WMS URL + optional API key; tile-cache size +

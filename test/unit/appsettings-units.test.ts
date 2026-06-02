@@ -58,6 +58,42 @@ describe('UnitsSection', () => {
     expect(store.get().settings.coordinateFormat).toBe('dms');
     expect(coord.textContent ?? '').not.toBe(ddCoord);
   });
+
+  it('writes a per-quantity override (altitude=ft) and reflects it in the preview', async () => {
+    const store = createAppStore();
+    const deps = makeDeps(store);
+    const { getByTestId } = render(() => createComponent(UnitsSection, { deps }));
+
+    const altitude = getByTestId('appsettings-units-preview-altitude');
+    expect(altitude.textContent ?? '').toMatch(/\bm$/); // metric preset → metres
+
+    // Force altitude to feet while the preset stays metric.
+    fireEvent.change(getByTestId('appsettings-units-q-altitude'), { target: { value: 'ft' } });
+    await settle();
+
+    expect(store.get().settings.unitPreferences?.altitude).toBe('ft');
+    expect(store.get().settings.units).toBe('metric'); // preset untouched
+    expect(altitude.textContent ?? '').toMatch(/\bft$/); // preview now in feet
+  });
+
+  it('reverts a per-quantity override to Auto by deleting it', async () => {
+    const store = createAppStore();
+    const deps = makeDeps(store);
+    const { getByTestId } = render(() => createComponent(UnitsSection, { deps }));
+    const select = getByTestId('appsettings-units-q-altitude') as HTMLSelectElement;
+
+    fireEvent.change(select, { target: { value: 'ft' } });
+    await settle();
+    expect(store.get().settings.unitPreferences?.altitude).toBe('ft');
+
+    // Selecting the Auto (empty) option removes the override entirely.
+    fireEvent.change(select, { target: { value: '' } });
+    await settle();
+
+    expect(store.get().settings.unitPreferences?.altitude).toBeUndefined();
+    expect(store.get().settings.unitPreferences ?? {}).not.toHaveProperty('altitude');
+    expect(getByTestId('appsettings-units-preview-altitude').textContent ?? '').toMatch(/\bm$/);
+  });
 });
 
 describe('LanguageSection', () => {

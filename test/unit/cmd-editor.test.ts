@@ -15,10 +15,12 @@ import {
   MAV_FRAME_GLOBAL_RELATIVE_ALT_INT,
   type MissionItemModel,
 } from '../../src/geo/mission';
-import { CmdEditor } from '../../src/ui/widgets/cmd-editor';
+import { CmdEditor, CUSTOM_OPTION_VALUE } from '../../src/ui/widgets/cmd-editor';
 
 const NAV_WAYPOINT = 16;
 const DO_CHANGE_SPEED = 178;
+const NAV_VTOL_LAND = 85;
+const CUSTOM_CMD_ID = 99999;
 
 function item(over: Partial<MissionItemModel> = {}): MissionItemModel {
   return {
@@ -112,6 +114,50 @@ describe('CmdEditor widget', () => {
 
     const next = onChange.mock.calls.at(-1)![0] as MissionItemModel;
     expect(next.command).toBe(DO_CHANGE_SPEED);
+  });
+
+  it('lists the full catalog incl. the VTOL command NAV_VTOL_LAND (85)', () => {
+    const container = mount(item(), () => {});
+    const picker = container.querySelector<HTMLSelectElement>('.mvp-cmd-editor__picker');
+    expect(picker).toBeTruthy();
+    const values = [...picker!.querySelectorAll('option')].map((o) => o.value);
+    // VTOL land is absent from the curated set but present in the full catalog.
+    expect(values).toContain(String(NAV_VTOL_LAND));
+    // The "Custom…" sentinel option is offered too.
+    expect(values).toContain(CUSTOM_OPTION_VALUE);
+  });
+
+  it('selects Custom and commits an arbitrary MAV_CMD id from the numeric input', () => {
+    const onChange = vi.fn();
+    const container = mount(item(), onChange);
+    const picker = container.querySelector<HTMLSelectElement>('.mvp-cmd-editor__picker');
+    expect(picker).toBeTruthy();
+
+    // No custom input until "Custom…" is chosen.
+    expect(container.querySelector('.mvp-cmd-editor__custom-input')).toBeNull();
+
+    picker!.value = CUSTOM_OPTION_VALUE;
+    picker!.dispatchEvent(new Event('change', { bubbles: true }));
+
+    const customInput = container.querySelector<HTMLInputElement>('.mvp-cmd-editor__custom-input');
+    expect(customInput).toBeTruthy();
+    customInput!.value = String(CUSTOM_CMD_ID);
+    customInput!.dispatchEvent(new Event('change', { bubbles: true }));
+
+    const next = onChange.mock.calls.at(-1)![0] as MissionItemModel;
+    expect(next.command).toBe(CUSTOM_CMD_ID);
+  });
+
+  it('shows a command absent from the catalog as Custom with its numeric id', () => {
+    const container = mount(item({ command: CUSTOM_CMD_ID }), () => {});
+    const picker = container.querySelector<HTMLSelectElement>('.mvp-cmd-editor__picker');
+    expect(picker!.value).toBe(CUSTOM_OPTION_VALUE);
+    const customInput = container.querySelector<HTMLInputElement>('.mvp-cmd-editor__custom-input');
+    expect(customInput).toBeTruthy();
+    expect(customInput!.value).toBe(String(CUSTOM_CMD_ID));
+    // Slots remain editable even for an unknown command.
+    const slots = container.querySelectorAll('.mvp-cmd-editor__slot-input');
+    expect(slots.length).toBe(7);
   });
 
   it('maps the frame select back to a MAV_FRAME value', () => {

@@ -38,7 +38,8 @@ export interface CmdPickerProps {
   t: TFn;
   /**
    * Commands to offer, grouped by category in the dropdown. Defaults to the
-   * curated mission command set resolved against the bundled dialects.
+   * full `MAV_CMD` catalog resolved against the bundled dialects (the picker
+   * also offers a "Custom…" entry for an arbitrary id).
    */
   commands?: readonly MavCmdMeta[];
 }
@@ -52,8 +53,9 @@ export interface CmdEditorProps {
   /** i18n translate function. */
   t: TFn;
   /**
-   * Commands to offer in the picker. Defaults to the curated mission command
-   * set resolved against the bundled dialects.
+   * Commands to offer in the picker. Defaults to the full `MAV_CMD` catalog
+   * resolved against the bundled dialects (the picker also offers a "Custom…"
+   * entry for an arbitrary id).
    */
   commands?: readonly MavCmdMeta[];
 }

@@ -17,7 +17,7 @@ import {
   mavFrameToAltFrame,
   type AltFrame,
 } from '../../../geo/mission';
-import { applySlot, curatedCommandMetas, resolveSlots } from './catalog';
+import { allCommandMetas, applySlot, resolveSlots } from './catalog';
 import { CmdPicker } from './cmd-picker';
 import type { CmdEditorProps, EditorSlot } from './types';
 
@@ -29,7 +29,7 @@ function frameKey(frame: AltFrame): string {
 /** The MAV_CMD parameter editor. */
 export const CmdEditor: Component<CmdEditorProps> = (props) => {
   const meta = createMemo(() => commandMeta(props.value.command));
-  const commands = createMemo(() => props.commands ?? curatedCommandMetas());
+  const commands = createMemo(() => props.commands ?? allCommandMetas());
   const slots = createMemo(() => resolveSlots(props.value, meta(), props.t));
   const activeFrame = createMemo(() => mavFrameToAltFrame(props.value.frame));
 

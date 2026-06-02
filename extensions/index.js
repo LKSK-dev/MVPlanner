@@ -6,6 +6,7 @@ import * as customNmeaAdsbLayer from './custom-nmea-adsb-layer.mvpext.js';
 import * as autoTestScriptPack from './auto-test-script-pack.mvpext.js';
 import * as themePack from './theme-pack.mvpext.js';
 import * as customTransportDemo from './custom-transport-demo.mvpext.js';
+import * as helloWorld from './hello-world.mvpext.js';
 
 export {
   batteryPlus,
@@ -15,6 +16,7 @@ export {
   autoTestScriptPack,
   themePack,
   customTransportDemo,
+  helloWorld,
 };
 
 export const examples = [
@@ -25,4 +27,5 @@ export const examples = [
   autoTestScriptPack,
   themePack,
   customTransportDemo,
+  helloWorld,
 ];

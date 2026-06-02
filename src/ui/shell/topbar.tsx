@@ -20,9 +20,15 @@ function connKey(state: ConnState): string {
 
 /** The persistent application top bar. */
 export const TopBar: Component<{ onOpenPalette: () => void }> = (props) => {
-  const { store } = useShell();
+  const { store, registry } = useShell();
   const connection = useConnection();
   const appSettings = useAppSettings();
+  // Extension-contributed top-bar items (e.g. the Hello World example):
+  // `ctx.ui.addMenuItem('topbar', cmd)`.
+  const topbarItems = (): readonly {
+    location: string;
+    item: { id: string; title: string; run: () => void | Promise<void> };
+  }[] => registry.menuItems().filter((m) => m.location === 'topbar');
   const activeScreen = store.select((s) => s.layout.activeScreen);
   const conn = store.select((s) => s.connection);
 
@@ -83,6 +89,19 @@ export const TopBar: Component<{ onOpenPalette: () => void }> = (props) => {
           {t('status.battery')} {t('status.unknown')}
         </span>
       </div>
+
+      <For each={topbarItems()}>
+        {(entry) => (
+          <button
+            type="button"
+            class="mvp-chip mvp-chip--button"
+            data-testid={`topbar-item-${entry.item.id}`}
+            onClick={() => void entry.item.run()}
+          >
+            {entry.item.title}
+          </button>
+        )}
+      </For>
 
       <button
         type="button"

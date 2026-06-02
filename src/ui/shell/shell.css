@@ -175,8 +175,17 @@
 
 /* --- Main / dock --------------------------------------------------------- */
 .mvp-main {
+  /*
+   * Top-level safety net: the shell grid bounds this row (`auto auto 1fr`,
+   * `height:100%`, `min-height:0`), but a screen whose own root does not
+   * scroll (e.g. Plan, whose wrapping toolbar + terrain profile are `auto`
+   * rows around a `1fr` body) can still overflow on a short viewport. `auto`
+   * lets the whole app scroll as a fallback instead of clipping content, while
+   * each screen keeps its own internal scroll on variable regions. Dock panels
+   * stay `overflow:hidden` because their `__body` already scrolls.
+   */
   min-height: 0;
-  overflow: hidden;
+  overflow: auto;
   padding: var(--mvp-gap);
 }
 

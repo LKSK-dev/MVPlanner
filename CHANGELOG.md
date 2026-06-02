@@ -3,6 +3,40 @@
 All notable changes to MVPlanner are documented here. This project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [0.3.0] — 2026-06-02
+
+### Fixed
+
+- **UI no longer clipped** by the window — the app fits the viewport and variable
+  regions (e.g. the Plan waypoint list) scroll internally instead of being cut off.
+- **Keybinds now work**: rebinding by pressing keys no longer triggers a command
+  mid-capture, and a **manual entry** field accepts standard syntax (e.g.
+  `Shift+1`) as a fallback to pressing.
+- **Units honored everywhere**: the Measure tool (and plan/flight readouts) now
+  render in the selected unit system instead of always metric.
+- **Ctrl/right-click** to delete waypoints/plan elements no longer pops the
+  browser context menu (suppressed app-wide, except in text fields).
+- The **plan persists** when switching tabs (session-scoped).
+
+### Added
+
+- **MVPlanner Settings** (renamed from “Application Settings”); default open
+  shortcut is now **Shift+S**.
+- **Full per-quantity units**: independent unit selection for altitude, distance,
+  speed, vertical speed, temperature, heading and coordinates (with a preset).
+- **Theme install + manager**: “Install theme” adds a theme permanently to the
+  selector; a manager lets you edit/uninstall custom themes (built-ins are
+  protected). New **outline** color customization.
+- **Extensions** section gains the **full mission-command list** (incl.
+  `VTOL_TAKEOFF`/`VTOL_LAND`) plus a **Custom…** option to enter arbitrary
+  `MAV_CMD` ids in the waypoint editor.
+- A bundled **Hello World** example extension (top-bar box → overlay) to sanity
+  check the extension system; top-bar extension contributions now render.
+- The Measure tool uses a **ruler** icon.
+
+Contracts 1.6.0 (additive): `AppearanceColorKey += outline`;
+`AppearanceSettings += themeLibrary/activeThemeId`; `AppSettings += unitPreferences`.
+
 ## [0.2.0] — 2026-06-01
 
 ### Added — Application Settings pane

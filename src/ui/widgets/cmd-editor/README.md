@@ -17,11 +17,16 @@ A grouped `<select>` of `MAV_CMD`s. Props:
 - `value: number` — selected command id.
 - `onChange: (command: number) => void`.
 - `t: TFn` — i18n.
-- `commands?: MavCmdMeta[]` — override the offered set (default: the curated
-  mission command set from `curatedCommandMetas()`).
+- `commands?: MavCmdMeta[]` — override the offered set (default: the full
+  `MAV_CMD` catalog from `allCommandMetas()`, e.g. the VTOL `NAV_VTOL_TAKEOFF`
+  / `NAV_VTOL_LAND`; `curatedCommandMetas()` is still exported for callers that
+  want the short curated list).
 
 Commands are grouped by category — **Navigation** (`NAV_*`), **Actions (DO)**
-(`DO_*`), **Conditions** (`CONDITION_*`), **Other** — in `<optgroup>`s.
+(`DO_*`), **Conditions** (`CONDITION_*`), **Other** — in `<optgroup>`s. A
+trailing **Custom…** option (sentinel `CUSTOM_OPTION_VALUE`) reveals a numeric
+input for an arbitrary `MAV_CMD` id; a `value` whose id is absent from the
+offered list is shown as custom automatically.
 
 ### `CmdEditor`
 
