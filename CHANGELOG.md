@@ -3,6 +3,17 @@
 All notable changes to MVPlanner are documented here. This project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [0.3.2] — 2026-06-02
+
+### Changed
+
+- **UI fills the window — no large dead space.** Removed the fixed width caps on
+  screen content (Setup steps radio/motors/tracker/battery, the legacy Settings
+  screen, the About panel) so content stretches to the full pane; form fields
+  flow into responsive auto-fit columns, and Config Parameters/Tuning grow to
+  fill their pane. Genuine overlays (the Settings/Connection drawers, command
+  palette, toasts, install-prompt modal) stay intentionally bounded.
+
 ## [0.3.1] — 2026-06-02
 
 ### Fixed (code-audit follow-up)

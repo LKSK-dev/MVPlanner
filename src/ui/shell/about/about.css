@@ -1,7 +1,7 @@
 .mvp-about {
   display: grid;
   gap: 1rem;
-  max-width: 56rem;
+  inline-size: 100%;
   color: var(--mvp-fg, #e8edf2);
 }
 
