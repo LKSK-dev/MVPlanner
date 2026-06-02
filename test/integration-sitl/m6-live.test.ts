@@ -222,13 +222,11 @@ describe('M6 live integration: DataFlash log list + resumable download over the 
     // On failure, surface child diagnostics to aid debugging.
     if (failed || !vehicleReady) {
       if (vehicle) {
-        // eslint-disable-next-line no-console
         console.error(
           `[fake_vehicle] stdout:\n${vehicle.stdout()}\n[fake_vehicle] stderr:\n${vehicle.stderr()}`,
         );
       }
       if (bridge) {
-        // eslint-disable-next-line no-console
         console.error(`[bridge] stdout:\n${bridge.stdout()}\n[bridge] stderr:\n${bridge.stderr()}`);
       }
     }

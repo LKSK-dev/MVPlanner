@@ -1,0 +1,33 @@
+name: Nightly (live SITL + perf)
+
+# The live MAVLink integration suite (pymavlink fake vehicle -> companion bridge
+# -> WebSocket -> real MavlinkSession) and the performance harness are excluded
+# from the default `npm test` (they need Python/pymavlink and longer timeouts).
+# This job runs them on a schedule + on demand so codec/wire-format and
+# bounded-memory regressions are caught off the PR critical path (audit §5.1).
+on:
+  schedule:
+    - cron: '0 6 * * *' # daily 06:00 UTC
+  workflow_dispatch:
+
+jobs:
+  live-and-perf:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      # Provision the pymavlink "fake vehicle" venv at the path the suite expects
+      # (./.venv/bin/python).
+      - run: python -m venv .venv
+      - run: ./.venv/bin/pip install --upgrade pip pymavlink
+      - run: npm ci
+      - name: Live SITL integration suite
+        run: npx vitest run --config test/integration-sitl/vitest.config.ts
+      - name: Performance harness
+        run: npx vitest run --config test/perf/vitest.config.ts

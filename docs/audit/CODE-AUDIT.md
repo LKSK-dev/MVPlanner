@@ -206,6 +206,32 @@ constants that import `commonDialect`.
 
 ---
 
+## 7a. Remediation status (post-audit)
+
+Executed in commits following this audit:
+
+- **4.1 (P0) DONE** — Flight gauges/HUD now honor units via
+  `unitsFromResolved(resolveUnits(settings))` (`src/ui/widgets/gauges/units.ts`),
+  injected into `InstrumentPanel` from `flight-screen.tsx`; gauge unit-symbol
+  i18n keys added. Tested (`test/unit/gauge-units.test.ts`).
+- **4.2 (P0) DONE** — `persistableSettings()` redacts `mapSource.apiKey` from the
+  persisted KV slice (`src/core/store/app-store.ts`); in-memory value + the
+  encrypted secret store unchanged. Tested (`test/unit/store.test.ts`).
+- **5.1 (P1) DONE** — `.github/workflows/nightly.yml` runs the live SITL +
+  perf suites (provisions a pymavlink venv) on a schedule + on demand.
+- **5.3 (P1) DONE** — root `LICENSE` added (ISC, matching `package.json`).
+- **6.2 (P2) DONE** — `test/unit/ext-index-parity.test.ts` guards
+  `extensions/index.{js,d.ts}` against drift.
+- **6.4 (P2) DONE** — removed the unused `eslint-disable` directives in
+  `test/integration-sitl/*`; `npm run lint` is now warning-clean.
+
+Deliberately deferred (documented, lower value or browser/refactor risk):
+**5.2** sandbox blob-Worker spawner (needs in-browser isolation verification),
+**5.4** CSP hashing/worker-eval, **5.5** Playwright+axe gate, **5.6** dialect
+de-duplication (codec-constants refactor; size already within budget),
+**6.1** shared NumberField, **6.3** EXT_API_VERSION decision, **6.5** persist the
+working plan across reloads, **6.6** dependency bumps.
+
 ## 8. Appendix — files referenced
 
 - `src/ui/screens/flight/flight-screen.tsx` (gauges mount, line 422)
