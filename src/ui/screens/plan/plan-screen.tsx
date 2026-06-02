@@ -45,15 +45,15 @@ import {
 import { createMapTools, type MapTools } from '../../widgets/map/tools';
 import {
   commandHasPosition,
-  createMission,
   haversineMeters,
   mavFrameToAltFrame,
   missionFromWire,
   missionToWire,
   type MissionModel,
 } from '../../../geo/mission';
-import { createFence, fenceParams, fenceToMission, type Fence } from '../../../geo/fence';
-import { createRally, rallyToMission, type Rally } from '../../../geo/rally';
+import { fenceParams, fenceToMission } from '../../../geo/fence';
+import { rallyToMission } from '../../../geo/rally';
+import { createPlanSession, type PlanSession } from './plan-session';
 import {
   MISSION_FILE_ACCEPT,
   PLAN_MIME,
@@ -119,6 +119,12 @@ export interface PlanScreenProps {
   pendingOpen?: Accessor<{ name: string; blob: Blob } | undefined>;
   /** Clear the pending-open entry once it has been loaded. */
   onPendingConsumed?: () => void;
+  /**
+   * Optional session-scoped plan state. When supplied, the in-progress
+   * mission/fence/rally/survey persist across Plan-tab switches (the dock
+   * re-mounts the screen). When omitted the screen keeps local signals.
+   */
+  session?: PlanSession;
   /**
    * Test seam: build the map engine. Defaults to a raster engine over a
    * storage-backed tile cache; tests inject an offline engine.
@@ -212,10 +218,11 @@ export const PlanScreen: Component<PlanScreenProps> = (props) => {
   const services = props.services;
 
   // --- shared plan state: one signal per kind -------------------------------
-  const [mission, setMission] = createSignal<MissionModel>(createMission('mission'));
-  const [fence, setFence] = createSignal<Fence>(createFence());
-  const [rally, setRally] = createSignal<Rally>(createRally());
-  const [surveyPolygon, setSurveyPolygon] = createSignal<readonly LatLon[]>([]);
+  // Plan data signals: use the injected session (persists across tab switches)
+  // when supplied, else local signals.
+  const session = props.session ?? createPlanSession();
+  const { mission, setMission, fence, setFence, rally, setRally, surveyPolygon, setSurveyPolygon } =
+    session;
 
   const [toolMode, setToolMode] = createSignal<PlanToolMode>('select');
   const [drawerTab, setDrawerTab] = createSignal<DrawerTab>('fence');

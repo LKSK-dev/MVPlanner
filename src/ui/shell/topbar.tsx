@@ -41,7 +41,7 @@ export const TopBar: Component<{ onOpenPalette: () => void }> = (props) => {
         aria-haspopup="dialog"
         aria-expanded={appSettings?.isOpen() ?? false}
         aria-controls="mvp-appsettings"
-        aria-keyshortcuts="Control+, Meta+,"
+        aria-keyshortcuts="Shift+S"
         title={t('appsettings.open')}
         onClick={() => appSettings?.toggle()}
       >

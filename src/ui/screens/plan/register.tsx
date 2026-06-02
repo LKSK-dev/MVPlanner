@@ -15,6 +15,7 @@ import { createComponent, type Accessor } from 'solid-js';
 import { render } from 'solid-js/web';
 import type { AppState, PanelApi, PanelDef, Store } from '../../../contracts';
 import type { RecentsStore } from '../../../core/recents';
+import type { PlanSession } from './plan-session';
 import { screenPanelId } from '../../shell';
 import { PlanScreen, type TFn } from './plan-screen';
 import type { FlightServices } from '../flight/services';
@@ -37,6 +38,8 @@ export interface PlanScreenPanelDeps {
   readonly pendingOpen?: Accessor<{ name: string; blob: Blob } | undefined>;
   /** Clear the pending-open entry once it has been loaded. */
   readonly onPendingConsumed?: () => void;
+  /** App-lifetime plan session so the plan persists across Plan-tab switches. */
+  readonly session?: PlanSession;
 }
 
 /** Build the real `screen.plan` {@link PanelDef} bound to the services. */
@@ -56,6 +59,7 @@ export function createPlanScreenPanel(deps: PlanScreenPanelDeps): PanelDef {
             ...(deps.onPendingConsumed !== undefined
               ? { onPendingConsumed: deps.onPendingConsumed }
               : {}),
+            ...(deps.session !== undefined ? { session: deps.session } : {}),
           }),
         el,
       );

@@ -37,6 +37,11 @@ export interface AppSettingsSectionDeps {
   readonly keybinds: KeybindRegistry;
   /** Persist keybind overrides back to `settings.keybinds`. */
   readonly persistKeybinds: () => void;
+  /**
+   * Raise/lower the global keybind-capture lock so the shell dispatcher pauses
+   * while the Keybinds section is recording a pressed chord.
+   */
+  readonly setKeybindCapturing?: (on: boolean) => void;
   /** Storage Manager handles (usage/clear/factory-reset). Optional. */
   readonly storage?: StorageManagerDeps;
   /** Safety-confirm seam. */

@@ -220,6 +220,10 @@
   padding: 2px 8px;
   cursor: pointer;
 }
+.mvp-appsettings__kbd-input {
+  inline-size: 9ch;
+  font-family: var(--mvp-font-mono);
+}
 .mvp-appsettings__color {
   display: flex;
   align-items: center;

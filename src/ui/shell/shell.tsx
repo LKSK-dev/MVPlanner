@@ -128,6 +128,9 @@ export const Shell: Component<{ ctx: ShellContextValue }> = (props) => {
     return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || node.isContentEditable;
   };
   const onKeyDown = (e: KeyboardEvent): void => {
+    // While the user is rebinding a key in App Settings -> Keybinds, do not let
+    // the dispatcher consume the captured chord.
+    if (props.ctx.keybindCapturing?.() === true) return;
     const keybinds = props.ctx.keybinds;
     if (keybinds === undefined) {
       if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'K')) {
@@ -146,9 +149,22 @@ export const Shell: Component<{ ctx: ShellContextValue }> = (props) => {
     e.preventDefault();
     void cmd.run();
   };
-  onMount(() => window.addEventListener('keydown', onKeyDown));
+  // Suppress the browser's native context menu app-wide so Ctrl/right-click can
+  // delete waypoints/plan elements without the OS menu appearing. Text inputs
+  // keep the native menu (copy/paste/spellcheck).
+  const onContextMenu = (e: MouseEvent): void => {
+    const node = e.target as HTMLElement | null;
+    const tag = node?.tagName;
+    const editable = tag === 'INPUT' || tag === 'TEXTAREA' || (node?.isContentEditable ?? false);
+    if (!editable) e.preventDefault();
+  };
+  onMount(() => {
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('contextmenu', onContextMenu);
+  });
   onCleanup(() => {
     window.removeEventListener('keydown', onKeyDown);
+    window.removeEventListener('contextmenu', onContextMenu);
     for (const dispose of disposers) dispose();
   });
 

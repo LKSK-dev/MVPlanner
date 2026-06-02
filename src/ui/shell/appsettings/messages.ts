@@ -8,9 +8,9 @@ import { registerMessages } from '../../../core/i18n';
 /** Shipped English `appsettings.*` strings. */
 export const APPSETTINGS_MESSAGES: Readonly<Record<string, string>> = {
   // Pane shell
-  'appsettings.title': 'Application Settings',
-  'appsettings.open': 'Open application settings',
-  'appsettings.close': 'Close application settings',
+  'appsettings.title': 'MVPlanner Settings',
+  'appsettings.open': 'Open MVPlanner Settings',
+  'appsettings.close': 'Close MVPlanner Settings',
 
   // Section labels
   'appsettings.section.recents': 'Recents',
@@ -85,6 +85,9 @@ export const APPSETTINGS_MESSAGES: Readonly<Record<string, string>> = {
   'appsettings.keybinds.resetAll': 'Reset all',
   'appsettings.keybinds.conflict': 'Already bound to “{command}”.',
   'appsettings.keybinds.rebind': 'Rebind {command}',
+  'appsettings.keybinds.manual': 'Type a shortcut for {command}',
+  'appsettings.keybinds.manualPlaceholder': 'e.g. Shift+1',
+  'appsettings.keybinds.invalid': 'Not a valid shortcut.',
 
   // Language
   'appsettings.language.label': 'Display language',

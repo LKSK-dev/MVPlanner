@@ -42,7 +42,12 @@ import { createParamMetaStore } from '../../src/mavlink/param-meta';
 import type { Preset, PresetStore } from '../../src/data/paramfile';
 import { TlogRecorder } from '../../src/data/tlog';
 import type { Capabilities } from '../../src/core/capabilities';
-import { PlanScreen, createPlanScreenPanel, type TFn } from '../../src/ui/screens/plan';
+import {
+  PlanScreen,
+  createPlanScreenPanel,
+  createPlanSession,
+  type TFn,
+} from '../../src/ui/screens/plan';
 import type { FlightServices } from '../../src/ui/screens/flight';
 import {
   Shell,
@@ -345,6 +350,48 @@ describe('PlanScreen — map ⇄ table sync via the shared signal', () => {
     // The shared mission signal now drives the table: a row exists.
     expect(c.querySelector('[data-seq="0"]')).toBeTruthy();
     expect(c.querySelector('[data-testid="wp-empty"]')).toBeNull();
+  });
+});
+
+describe('PlanScreen — session persistence', () => {
+  it('keeps the plan when the screen is unmounted + remounted (tab switch)', async () => {
+    const session = createPlanSession();
+    const h = makeHarness();
+    const engine1 = offlineEngine();
+    engine1.setView({ lat: -35.36, lon: 149.16, zoom: 18 });
+    const first = render(() =>
+      createComponent(PlanScreen, {
+        services: h.services,
+        t,
+        createEngine: () => engine1,
+        session,
+      }),
+    );
+    await settle();
+    // Draw a waypoint with the add-waypoint tool.
+    fireEvent.click(
+      first.container.querySelector('[data-testid="plan-tool-add-waypoint"]') as HTMLButtonElement,
+    );
+    engine1.clickAt(60, 60);
+    await settle();
+    expect(first.container.querySelector('[data-seq="0"]')).toBeTruthy();
+
+    // Simulate a tab switch: the dock disposes the panel.
+    cleanup();
+
+    // Remount with the SAME session (fresh engine) — the plan must persist.
+    const engine2 = offlineEngine();
+    const second = render(() =>
+      createComponent(PlanScreen, {
+        services: h.services,
+        t,
+        createEngine: () => engine2,
+        session,
+      }),
+    );
+    await settle();
+    expect(second.container.querySelector('[data-seq="0"]')).toBeTruthy();
+    expect(second.container.querySelector('[data-testid="wp-empty"]')).toBeNull();
   });
 });
 

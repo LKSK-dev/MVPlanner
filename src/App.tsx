@@ -43,7 +43,7 @@ import {
 import { createRecentsStore, type RecentEntry, type RecentKind } from './core/recents';
 import './ui/shell/appsettings/appsettings.css';
 import type { AppState, KvStore, Store } from './contracts';
-import { createPlanScreenPanel } from './ui/screens/plan';
+import { createPlanScreenPanel, createPlanSession } from './ui/screens/plan';
 import { createSetupScreenPanel, wireTracker } from './ui/screens/setup';
 import { createForwardController, type ForwardController } from './ui/shell/connection';
 import { createAudioAlertService } from './core/audio';
@@ -97,6 +97,8 @@ export const App: Component<AppProps> = (props) => {
   // --- App Settings pane: recents, storage-manager, keybind bridge, control --
   const recents = createRecentsStore({ kv: storage.kv, blobs: storage.blobs });
   void recents.load();
+  // App-lifetime plan session so the in-progress plan survives Plan-tab switches.
+  const planSession = createPlanSession();
   const storageManager = buildStorageManager(storage);
   const appSettingsControl = createAppSettingsControl(
     store.get().settings.appearance?.lastSettingsSection ?? 'appearance',
@@ -110,11 +112,12 @@ export const App: Component<AppProps> = (props) => {
     });
   });
   const liveKeybinds = createLiveKeybinds(() => registry.commands(), store);
+  const [keybindCapturing, setKeybindCapturing] = createSignal(false);
   onCleanup(
     registry.registerCommand({
       id: 'app.settings.open',
       title: t('appsettings.open'),
-      shortcut: 'mod+,',
+      shortcut: 'shift+s',
       run: () => appSettingsControl.toggle(),
     }),
   );
@@ -217,6 +220,7 @@ export const App: Component<AppProps> = (props) => {
         recents,
         pendingOpen: planPendingOpen,
         onPendingConsumed: clearPendingOpen,
+        session: planSession,
       }),
     );
     // M5 keystone: install the real Setup screen (frame/accel/compass/radio/
@@ -350,6 +354,7 @@ export const App: Component<AppProps> = (props) => {
     capabilities,
     panelApi: { store, t },
     keybinds: liveKeybinds.registry,
+    keybindCapturing,
   };
 
   const paneDeps: AppSettingsSectionDeps = {
@@ -359,6 +364,7 @@ export const App: Component<AppProps> = (props) => {
     recents,
     keybinds: liveKeybinds.registry,
     persistKeybinds: liveKeybinds.persist,
+    setKeybindCapturing,
     storage: storageManager,
     confirm: (opts) => registry.confirm(opts),
     registry,

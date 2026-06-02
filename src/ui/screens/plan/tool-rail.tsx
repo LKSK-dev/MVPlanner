@@ -40,7 +40,7 @@ const TOOLS: readonly ToolEntry[] = [
   { mode: 'draw-fence-polygon', labelKey: 'plan.tool.fencePolygon', glyph: '\u2b1f' },
   { mode: 'draw-fence-circle', labelKey: 'plan.tool.fenceCircle', glyph: '\u25ef' },
   { mode: 'place-rally', labelKey: 'plan.tool.rally', glyph: '\u2691' },
-  { mode: 'measure', labelKey: 'plan.tool.measure', glyph: '\u2316' },
+  { mode: 'measure', labelKey: 'plan.tool.measure', glyph: '📏' },
 ];
 
 /** The Plan tool rail. */

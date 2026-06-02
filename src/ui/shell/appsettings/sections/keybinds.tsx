@@ -8,10 +8,15 @@
  * `deps.persistKeybinds`. The shell owns the global dispatcher — this section
  * only reads/writes the registry and re-renders from `list()` after each change.
  */
-import { For, Show, createSignal, type Component } from 'solid-js';
+import { For, Show, createSignal, onCleanup, type Component } from 'solid-js';
 import type { AppSettingsSectionDeps } from '../context';
 import type { KeybindRow } from '../../../../core/keybinds';
-import { chordFromEvent, formatChord, type ChordKeyEvent } from '../../../../core/keybinds';
+import {
+  chordFromEvent,
+  formatChord,
+  normalizeChord,
+  type ChordKeyEvent,
+} from '../../../../core/keybinds';
 
 /**
  * The Keybinds section. Seeds its row list from `deps.keybinds.list()` and
@@ -33,16 +38,49 @@ export const KeybindsSection: Component<{ deps: AppSettingsSectionDeps }> = (pro
     setRows(deps.keybinds.list());
   };
 
-  /** Enter capture mode for `commandId`, clearing any prior conflict. */
+  /** Enter capture mode for `commandId`, clearing any prior conflict. Raises the
+   * global capture lock so the shell dispatcher ignores the captured chord. */
   const startCapture = (commandId: string): void => {
     setMessage('');
     setCapturing(commandId);
+    deps.setKeybindCapturing?.(true);
   };
 
-  /** Leave capture mode and clear any conflict message. */
+  /** Leave capture mode, lower the lock, and clear any conflict message. */
   const cancelCapture = (): void => {
     setCapturing(undefined);
     setMessage('');
+    deps.setKeybindCapturing?.(false);
+  };
+
+  // Safety: always lower the lock if the section unmounts mid-capture.
+  onCleanup(() => deps.setKeybindCapturing?.(false));
+
+  /** Try to bind `chord` to `commandId`; returns false (with a message) on
+   * conflict. Shared by press-capture and manual text entry. */
+  const tryBind = (commandId: string, chord: string): boolean => {
+    const conflictId = deps.keybinds.conflict(chord, commandId);
+    if (conflictId !== undefined) {
+      const conflictTitle = rows().find((r) => r.commandId === conflictId)?.title ?? conflictId;
+      setMessage(t('appsettings.keybinds.conflict', { command: conflictTitle }));
+      return false;
+    }
+    deps.keybinds.setOverride(commandId, chord);
+    deps.persistKeybinds();
+    refresh();
+    return true;
+  };
+
+  /** Commit a manually-typed shortcut (e.g. "Shift+1"). */
+  const commitManual = (commandId: string, raw: string): void => {
+    const trimmed = raw.trim();
+    if (trimmed === '') return;
+    const chord = normalizeChord(trimmed);
+    if (chord === undefined) {
+      setMessage(t('appsettings.keybinds.invalid'));
+      return;
+    }
+    if (tryBind(commandId, chord)) setMessage('');
   };
 
   /**
@@ -64,18 +102,7 @@ export const KeybindsSection: Component<{ deps: AppSettingsSectionDeps }> = (pro
     };
     const chord = chordFromEvent(keyEvent);
     if (chord === undefined) return; // bare modifier — keep waiting
-
-    const conflictId = deps.keybinds.conflict(chord, commandId);
-    if (conflictId !== undefined) {
-      const conflictTitle = rows().find((r) => r.commandId === conflictId)?.title ?? conflictId;
-      setMessage(t('appsettings.keybinds.conflict', { command: conflictTitle }));
-      return; // do not bind
-    }
-
-    deps.keybinds.setOverride(commandId, chord);
-    deps.persistKeybinds();
-    refresh();
-    cancelCapture();
+    if (tryBind(commandId, chord)) cancelCapture();
   };
 
   /** Reset a single command's override back to its default. */
@@ -113,6 +140,24 @@ export const KeybindsSection: Component<{ deps: AppSettingsSectionDeps }> = (pro
           <div class="mvp-appsettings__keyrow">
             <span>{row.title}</span>
             <div class="mvp-appsettings__actions">
+              <input
+                type="text"
+                class="mvp-appsettings__input mvp-appsettings__kbd-input"
+                aria-label={t('appsettings.keybinds.manual', { command: row.title })}
+                placeholder={t('appsettings.keybinds.manualPlaceholder')}
+                data-testid={`keybind-manual-${row.commandId}`}
+                value={row.chord !== undefined ? formatChord(row.chord) : ''}
+                onKeyDown={(event) => {
+                  event.stopPropagation();
+                  if (event.key === 'Enter') {
+                    event.preventDefault();
+                    commitManual(row.commandId, event.currentTarget.value);
+                  }
+                }}
+                onChange={(event) => {
+                  commitManual(row.commandId, event.currentTarget.value);
+                }}
+              />
               <button
                 type="button"
                 class="mvp-appsettings__kbd"

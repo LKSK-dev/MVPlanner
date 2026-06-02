@@ -5,7 +5,7 @@
  * frozen surface handed to imperatively-mounted panels (contract
  * `src/contracts/ui.ts`).
  */
-import { createContext, useContext } from 'solid-js';
+import { createContext, useContext, type Accessor } from 'solid-js';
 import type { AppState, PanelApi, Store } from '../../contracts';
 import type { Capabilities } from '../../core/capabilities';
 import type { KeybindRegistry } from '../../core/keybinds';
@@ -23,6 +23,11 @@ export interface ShellContextValue {
    * Keybinds). When absent the shell falls back to the built-in palette chord.
    */
   readonly keybinds?: KeybindRegistry;
+  /**
+   * True while App Settings → Keybinds is capturing a chord; the global keydown
+   * dispatcher pauses so the captured keystroke isn't consumed as a command.
+   */
+  readonly keybindCapturing?: Accessor<boolean>;
 }
 
 const ShellContext = createContext<ShellContextValue>();

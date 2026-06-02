@@ -13,6 +13,7 @@ import './messages';
 export { PlanScreen, type PlanScreenProps, type TFn } from './plan-screen';
 export { ToolRail, type ToolRailProps } from './tool-rail';
 export { createPlanScreenPanel, PLAN_SCREEN_PANEL_ID, type PlanScreenPanelDeps } from './register';
+export { createPlanSession, type PlanSession } from './plan-session';
 export { PLAN_SCREEN_MESSAGES, registerPlanScreenMessages } from './messages';
 
 // The map editor (pure reducer + controller) — re-exported for one import site.
