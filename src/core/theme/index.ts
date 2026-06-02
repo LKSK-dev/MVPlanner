@@ -25,9 +25,12 @@ export {
   applyAppearance,
   buildColorOverrides,
   clearColorOverrides,
+  effectiveAppearance,
+  installTheme,
   isValidCssColor,
   parseTheme,
   resolveThemeMode,
   serializeTheme,
+  uninstallTheme,
   type ThemeBundle,
 } from './custom';

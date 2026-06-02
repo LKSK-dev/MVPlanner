@@ -40,6 +40,13 @@ export {
 } from './convert';
 
 export {
+  resolveUnits,
+  createUnitFormatter,
+  unitFormatterFor,
+  type ResolvedUnits,
+  type UnitFormatter,
+} from './preferences';
+export {
   formatAltitude,
   formatDistance,
   formatSpeed,

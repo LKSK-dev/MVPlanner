@@ -15,6 +15,7 @@ import type {
   AppearanceColorKey,
   AppearanceSettings,
   Density,
+  InstalledTheme,
   ThemeId,
   ThemeMode,
 } from '../../contracts';
@@ -25,6 +26,7 @@ export const APPEARANCE_COLOR_KEYS = [
   'accent',
   'text',
   'surface',
+  'outline',
   'error',
   'warn',
 ] as const satisfies readonly AppearanceColorKey[];
@@ -34,6 +36,7 @@ const COLOR_KEY_TO_VAR: Record<AppearanceColorKey, string> = {
   accent: '--mvp-accent',
   text: '--mvp-text',
   surface: '--mvp-surface',
+  outline: '--mvp-border',
   error: '--mvp-error',
   warn: '--mvp-warn',
 };
@@ -109,23 +112,77 @@ export function clearColorOverrides(): void {
  * @param appearance - The appearance settings (may be undefined/partial).
  * @param baseTheme - The `settings.theme` to use when `themeMode` is unset.
  */
+/**
+ * The appearance to actually apply: when an installed theme is active
+ * ({@link AppearanceSettings.activeThemeId} present in `themeLibrary`), its saved
+ * bundle wins; otherwise the inline `themeMode`/`colors`/`density` apply.
+ */
+export function effectiveAppearance(
+  appearance: AppearanceSettings | undefined,
+): AppearanceSettings | undefined {
+  if (appearance === undefined) return undefined;
+  const id = appearance.activeThemeId;
+  if (id === undefined) return appearance;
+  const found = appearance.themeLibrary?.find((th) => th.id === id);
+  if (found === undefined) return appearance;
+  const b = found.bundle;
+  return {
+    ...(b.themeMode !== undefined ? { themeMode: b.themeMode } : {}),
+    ...(b.colors !== undefined ? { colors: b.colors } : {}),
+    ...(b.density !== undefined ? { density: b.density } : {}),
+  };
+}
+
+/** Generate a short unique id for an installed theme. */
+function themeId(): string {
+  return `t${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+}
+
+/** Install a theme bundle into a library, returning the new library + id. */
+export function installTheme(
+  library: readonly InstalledTheme[] | undefined,
+  appearance: AppearanceSettings,
+  name: string,
+): { library: InstalledTheme[]; id: string } {
+  const id = themeId();
+  const entry: InstalledTheme = {
+    id,
+    name,
+    bundle: {
+      ...(appearance.themeMode !== undefined ? { themeMode: appearance.themeMode } : {}),
+      ...(appearance.colors !== undefined ? { colors: appearance.colors } : {}),
+      ...(appearance.density !== undefined ? { density: appearance.density } : {}),
+    },
+  };
+  return { library: [...(library ?? []), entry], id };
+}
+
+/** Remove an installed theme from a library. */
+export function uninstallTheme(
+  library: readonly InstalledTheme[] | undefined,
+  id: string,
+): InstalledTheme[] {
+  return (library ?? []).filter((th) => th.id !== id);
+}
+
 export function applyAppearance(
   appearance: AppearanceSettings | undefined,
   baseTheme: ThemeId,
 ): void {
   const root = rootElement();
   if (root === undefined) return;
+  const eff = effectiveAppearance(appearance);
 
-  const mode = appearance?.themeMode ?? baseTheme;
+  const mode = eff?.themeMode ?? baseTheme;
   if (mode === 'system') clearTheme();
   else applyTheme(mode);
 
-  const density: Density = appearance?.density ?? 'comfortable';
+  const density: Density = eff?.density ?? 'comfortable';
   if (density === 'compact') root.setAttribute('data-density', 'compact');
   else root.removeAttribute('data-density');
 
   clearColorOverrides();
-  const overrides = buildColorOverrides(appearance?.colors);
+  const overrides = buildColorOverrides(eff?.colors);
   for (const [cssVar, value] of Object.entries(overrides)) {
     root.style.setProperty(cssVar, value);
   }

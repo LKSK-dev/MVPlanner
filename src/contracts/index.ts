@@ -18,7 +18,7 @@
  *   survives structured-clone persistence; implementations register at
  *   `activate()` via `ctx.ui` (T7.3, spec plan/06 §6.2). Additive.
  */
-export const CONTRACTS_VERSION = '1.5.0';
+export const CONTRACTS_VERSION = '1.6.0';
 
 export type * from './bus';
 export type * from './transport';

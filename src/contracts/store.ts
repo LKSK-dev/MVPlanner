@@ -30,7 +30,42 @@ export type ThemeMode = ThemeId | 'system';
 export type Density = 'comfortable' | 'compact';
 
 /** Canonical palette token a custom-color override targets. */
-export type AppearanceColorKey = 'accent' | 'text' | 'surface' | 'error' | 'warn';
+export type AppearanceColorKey = 'accent' | 'text' | 'surface' | 'error' | 'warn' | 'outline';
+
+/**
+ * Stored theme bundle (the appearance payload of an installed/exported theme).
+ * Structural mirror of the theme module's bundle, kept here so the store can
+ * persist a theme library without a contract↔theme import cycle.
+ */
+export interface StoredThemeBundle {
+  themeMode?: ThemeMode;
+  colors?: Partial<Record<AppearanceColorKey, string>>;
+  density?: Density;
+}
+
+/** A user-installed custom theme in the appearance theme library. */
+export interface InstalledTheme {
+  /** Stable id (selected via {@link AppearanceSettings.activeThemeId}). */
+  readonly id: string;
+  /** Display name shown in the theme selector + manager. */
+  readonly name: string;
+  /** The appearance payload applied when this theme is active. */
+  readonly bundle: StoredThemeBundle;
+}
+
+/**
+ * Per-quantity unit overrides (App Settings → Units, contracts 1.6.0). Each is
+ * optional; an absent quantity derives from the {@link AppSettings.units} preset.
+ */
+export interface UnitPreferences {
+  altitude?: 'm' | 'ft';
+  distance?: 'm' | 'km' | 'ft' | 'mi' | 'nm';
+  speed?: 'm/s' | 'km/h' | 'kt' | 'mph';
+  verticalSpeed?: 'm/s' | 'ft/min';
+  temperature?: 'C' | 'F';
+  coordinate?: CoordinateFormat;
+  heading?: 'deg' | 'mil';
+}
 
 /**
  * Appearance customization for the App Settings pane (contracts 1.5.0,
@@ -47,6 +82,10 @@ export interface AppearanceSettings {
   density?: Density;
   /** Last-open App Settings section id (UI memory). */
   lastSettingsSection?: string;
+  /** Installed custom themes (App Settings → Appearance). 1.6.0. */
+  themeLibrary?: InstalledTheme[];
+  /** When set + present in {@link themeLibrary}, the active installed theme. 1.6.0. */
+  activeThemeId?: string;
 }
 
 /**
@@ -74,8 +113,10 @@ export interface AppSettings {
   telemetryRateHz?: number;
   /** Appearance customization (theme mode, custom colors, density). 1.5.0. */
   appearance?: AppearanceSettings;
-  /** Command id → key-chord override (e.g. `app.settings.open` → `mod+,`). 1.5.0. */
+  /** Command id → key-chord override (e.g. `app.settings.open` → `shift+s`). 1.5.0. */
   keybinds?: Record<string, string>;
+  /** Per-quantity unit overrides (else derived from {@link units}). 1.6.0. */
+  unitPreferences?: UnitPreferences;
 }
 
 /** Dock layout + workspaces (spec plan/05 §5.3). Concrete dock shape fixed at T0.7. */
