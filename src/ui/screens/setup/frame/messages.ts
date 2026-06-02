@@ -34,9 +34,13 @@ export const FRAME_MESSAGES: Readonly<Record<string, string>> = {
     'Q_ENABLE is off, so this plane has no multirotor (VTOL) frame to configure. Set up the airframe via the servo function parameters (SERVOn_FUNCTION) instead. To configure a QuadPlane/VTOL frame, enable the QuadPlane stack (Q_ENABLE = 1) in the parameter editor and reconnect.',
   'setup.frame.param.frameClass': 'FRAME_CLASS',
   'setup.frame.param.frameType': 'FRAME_TYPE',
+  'setup.frame.param.qEnable': 'Q_ENABLE (QuadPlane / VTOL)',
   'setup.frame.param.qFrameClass': 'Q_FRAME_CLASS',
   'setup.frame.param.qFrameType': 'Q_FRAME_TYPE',
   'setup.frame.param.frameConfig': 'FRAME_CONFIG',
+
+  'setup.frame.quadplane.enable.off': 'Disabled (fixed-wing only)',
+  'setup.frame.quadplane.enable.on': 'Enabled (QuadPlane / VTOL)',
 
   'setup.frame.copter.class.quad': 'Quad',
   'setup.frame.copter.class.hexa': 'Hexa',

@@ -34,7 +34,7 @@ import {
   type Component,
 } from 'solid-js';
 import { t as defaultT } from '../../../core/i18n';
-import type { Mission } from '../../../contracts';
+import type { AppState, Mission, Store, VehicleState } from '../../../contracts';
 import {
   MapWidget,
   createRasterMapEngine,
@@ -89,6 +89,13 @@ export interface PlanScreenProps {
   services: FlightServices;
   /** i18n translate function (default the app `t`). */
   t?: TFn;
+  /**
+   * Optional app store. When supplied, the plan map auto-centers on the active
+   * vehicle (or its home) the first time a real position is known, so drawing
+   * surveys/fences/rally points happens at the vehicle's location instead of at
+   * null island (0,0).
+   */
+  store?: Store<AppState>;
   /**
    * Test seam: build the map engine. Defaults to a raster engine over a
    * storage-backed tile cache; tests inject an offline engine.
@@ -216,6 +223,32 @@ export const PlanScreen: Component<PlanScreenProps> = (props) => {
     getMode: () => toolMode(),
   });
   const tools: MapTools = createMapTools(engine, { t });
+
+  // One-shot: center the plan map on the active vehicle/home (or the first real
+  // mission/geofence point) so drawing surveys/fences happens at the vehicle's
+  // location, not at null island (0,0). Needs the optional app store.
+  const activeVehicle: Accessor<VehicleState | undefined> =
+    props.store?.select((s) => (s.activeSysid === undefined ? undefined : s.vehicles[s.activeSysid])) ??
+    ((): VehicleState | undefined => undefined);
+  const autoCenterTarget = (): LatLon | undefined => {
+    const v = activeVehicle();
+    const loc = v?.position ?? v?.home;
+    if (loc !== undefined && (loc.lat !== 0 || loc.lon !== 0)) return { lat: loc.lat, lon: loc.lon };
+    for (const it of mission().items) {
+      if (Number.isFinite(it.lat) && Number.isFinite(it.lon) && (it.lat !== 0 || it.lon !== 0)) {
+        return { lat: it.lat, lon: it.lon };
+      }
+    }
+    return undefined;
+  };
+  let didAutoCenter = false;
+  createEffect(() => {
+    if (didAutoCenter) return;
+    const target = autoCenterTarget();
+    if (target === undefined) return;
+    engine.setView({ lat: target.lat, lon: target.lon, zoom: 16 });
+    didAutoCenter = true;
+  });
 
   // Measure tool drives the map-tools controller; all other modes leave it idle.
   createEffect(() => {

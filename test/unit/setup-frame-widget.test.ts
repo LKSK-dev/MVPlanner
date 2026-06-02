@@ -164,20 +164,20 @@ describe('createFrameStep widget', () => {
     expect(selectByParam(container, 'Q_FRAME_TYPE').value).toBe('2');
   });
 
-  it('shows the fixed-wing state (no Q frame) when Q_ENABLE is off', async () => {
+  it('still offers the Q-frame selectors + Q_ENABLE toggle when Q_ENABLE is off', async () => {
     const params = new MockParamClient({ Q_ENABLE: 0 });
     const container = mountFrameStep(params, 'plane');
     await settle();
 
-    expect(container.querySelector('[data-param="Q_FRAME_CLASS"]')).toBeNull();
-    expect(container.querySelector('.mvp-setup-frame__fixed-wing')?.textContent).toBe(
-      t('setup.frame.fixedWing.body'),
-    );
-    expect(
-      container.querySelector('.mvp-setup-frame__parameters-only')?.getAttribute('data-mode'),
-    ).toBe('fixedWing');
+    // Plane/VTOL frame class + type must remain AVAILABLE even with Q_ENABLE off,
+    // alongside an editable Q_ENABLE toggle to turn the VTOL stack on.
+    expect(container.querySelector('[data-param="Q_ENABLE"]')).not.toBeNull();
+    expect(container.querySelector('[data-param="Q_FRAME_CLASS"]')).not.toBeNull();
+    expect(container.querySelector('[data-param="Q_FRAME_TYPE"]')).not.toBeNull();
+    expect(selectByParam(container, 'Q_ENABLE').value).toBe('0');
+    // No valid frame class yet (none selected) → todo.
     expect(container.querySelector('.mvp-setup-frame__status')?.getAttribute('data-status')).toBe(
-      'na',
+      'todo',
     );
   });
 });

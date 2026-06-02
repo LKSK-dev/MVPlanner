@@ -206,6 +206,18 @@ export const FlightScreen: Component<FlightScreenProps> = (props) => {
     engine.requestRedraw();
   });
 
+  // One-shot: center the map on the vehicle (or its home) the first time a real
+  // position is known, so the map does not sit at null island (0,0) on connect.
+  let didAutoCenter = false;
+  createEffect(() => {
+    if (didAutoCenter) return;
+    const v = activeVehicle();
+    const loc = v?.position ?? v?.home;
+    if (loc === undefined || (loc.lat === 0 && loc.lon === 0)) return;
+    engine.setView({ lat: loc.lat, lon: loc.lon, zoom: 16 });
+    didAutoCenter = true;
+  });
+
   // --- guided map-click → runAction (shared confirm + audit) -----------------
   const [guidedMode, setGuidedMode] = createSignal<GuidedMode>('goto');
   const actionDeps = (): ActionsDeps => ({

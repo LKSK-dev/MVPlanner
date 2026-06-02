@@ -65,15 +65,13 @@ function selectValue(param: FrameParamSelection | undefined): string {
   return param?.value === undefined ? '' : String(param.value);
 }
 
-/** Derive the settled status for a frame selection (fixed-wing planes are N/A). */
+/** Derive the settled status for a frame selection. */
 function frameStatus(selection: FrameSelection): SettledStatus {
-  if (selection.mode === 'fixedWing') return 'na';
   return selection.validFrameClass ? 'done' : 'todo';
 }
 
 /** i18n key for the inline status line, keyed off the settled status. */
 function frameStatusMessageKey(status: SettledStatus): string {
-  if (status === 'na') return 'setup.frame.na';
   return status === 'done' ? 'setup.frame.done' : 'setup.frame.todo';
 }
 
@@ -201,38 +199,40 @@ function FrameStepPanel(props: FrameStepPanelProps): JSX.Element {
         when={selection().mode === 'selectable'}
         fallback={
           <div class="mvp-setup-frame__parameters-only" data-mode={selection().mode}>
-            <Show
-              when={selection().mode === 'fixedWing'}
-              fallback={
-                <>
-                  <h3>{props.api.t('setup.frame.parametersOnly.title')}</h3>
-                  <p>
-                    {selection().mode === 'unsupported'
-                      ? props.api.t('setup.frame.unsupported')
-                      : props.api.t('setup.frame.parametersOnly.body')}
-                  </p>
-                  <Show when={selection().params.length > 0}>
-                    <dl class="mvp-setup-frame__params">
-                      <For each={selection().params}>
-                        {(param) => (
-                          <>
-                            <dt>{props.api.t(param.labelKey)}</dt>
-                            <dd>{valueText(props.api, param)}</dd>
-                          </>
-                        )}
-                      </For>
-                    </dl>
-                  </Show>
-                </>
-              }
-            >
-              <h3>{props.api.t('setup.frame.fixedWing.title')}</h3>
-              <p class="mvp-setup-frame__fixed-wing">{props.api.t('setup.frame.fixedWing.body')}</p>
+            <h3>{props.api.t('setup.frame.parametersOnly.title')}</h3>
+            <p>
+              {selection().mode === 'unsupported'
+                ? props.api.t('setup.frame.unsupported')
+                : props.api.t('setup.frame.parametersOnly.body')}
+            </p>
+            <Show when={selection().params.length > 0}>
+              <dl class="mvp-setup-frame__params">
+                <For each={selection().params}>
+                  {(param) => (
+                    <>
+                      <dt>{props.api.t(param.labelKey)}</dt>
+                      <dd>{valueText(props.api, param)}</dd>
+                    </>
+                  )}
+                </For>
+              </dl>
             </Show>
           </div>
         }
       >
         <div class="mvp-setup-frame__selectors">
+          <Show when={selection().frameEnable}>
+            {(param) => (
+              <FrameSelect
+                api={props.api}
+                param={param()}
+                saving={saving()}
+                onWrite={(name, value): void => {
+                  void writeParam(name, value);
+                }}
+              />
+            )}
+          </Show>
           <Show when={selection().frameClass}>
             {(param) => (
               <FrameSelect

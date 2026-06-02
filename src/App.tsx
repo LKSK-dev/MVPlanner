@@ -131,7 +131,7 @@ export const App: Component<AppProps> = (props) => {
     // terrain provider + file I/O from the same services.
     const disposePlanPanel = setScreenPanel(
       'plan',
-      createPlanScreenPanel({ services: flight.services, t }),
+      createPlanScreenPanel({ services: flight.services, t, store }),
     );
     // M5 keystone: install the real Setup screen (frame/accel/compass/radio/
     // modes/failsafe/battery/motors wizard) over its placeholder, sharing the

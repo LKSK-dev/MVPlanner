@@ -20,18 +20,16 @@ export const FRAME_PARAM_NAMES = [
 export type FrameParamName = (typeof FRAME_PARAM_NAMES)[number];
 
 /** Semantic role a parameter plays in frame setup. */
-export type FrameParamRole = 'class' | 'type' | 'config';
+export type FrameParamRole = 'class' | 'type' | 'config' | 'enable';
 
 /**
  * Rendering mode for the detected vehicle class.
  *
  * - `selectable` — editable class/type selectors are offered.
  * - `parameters` — read-only current values are displayed (no safe selector).
- * - `fixedWing`  — an ArduPlane with `Q_ENABLE` off: no multirotor frame exists,
- *   so the step points at servo-function setup instead of an empty selector.
  * - `unsupported` — no simple frame selector is known for this vehicle class.
  */
-export type FrameSelectionMode = 'selectable' | 'parameters' | 'fixedWing' | 'unsupported';
+export type FrameSelectionMode = 'selectable' | 'parameters' | 'unsupported';
 
 /** One selectable numeric value for a frame parameter. */
 export interface FrameOption {
@@ -69,6 +67,8 @@ export interface FrameSelection {
   readonly mode: FrameSelectionMode;
   /** Parameters relevant to this vehicle class. */
   readonly params: readonly FrameParamSelection[];
+  /** The enable-toggle parameter (ArduPlane `Q_ENABLE`), when relevant. */
+  readonly frameEnable: FrameParamSelection | undefined;
   /** The class-like parameter, when one is relevant. */
   readonly frameClass: FrameParamSelection | undefined;
   /** The type-like parameter, when one is relevant. */
@@ -161,14 +161,29 @@ const COPTER_DEFINITION: VehicleFrameDefinition = {
   ],
 };
 
+/** `Q_ENABLE` on/off options (ArduPlane QuadPlane/VTOL master switch). */
+export const QUADPLANE_ENABLE_OPTIONS: readonly FrameOption[] = [
+  { value: 0, labelKey: 'setup.frame.quadplane.enable.off' },
+  { value: 1, labelKey: 'setup.frame.quadplane.enable.on' },
+];
+
 /**
- * QuadPlane / VTOL frame selectors (ArduPlane with `Q_ENABLE = 1`). ArduPlane
- * shares the AP_Motors frame-type enum with Copter, so `Q_FRAME_TYPE` reuses
- * {@link COPTER_FRAME_TYPE_OPTIONS} (0:Plus, 1:X, 2:V, 3:H, …).
+ * ArduPlane frame setup. Unlike a real ArduPlane (where `Q_FRAME_CLASS`/
+ * `Q_FRAME_TYPE` only exist once `Q_ENABLE = 1` and the vehicle reboots), we
+ * ALWAYS surface the QuadPlane/VTOL selectors so the airframe is configurable
+ * from the dialog — plus an editable `Q_ENABLE` toggle to enable the VTOL stack.
+ * ArduPlane shares the AP_Motors frame-type enum with Copter, so `Q_FRAME_TYPE`
+ * reuses {@link COPTER_FRAME_TYPE_OPTIONS} (0:Plus, 1:X, 2:V, 3:H, …).
  */
-const QUADPLANE_DEFINITION: VehicleFrameDefinition = {
+const PLANE_DEFINITION: VehicleFrameDefinition = {
   mode: 'selectable',
   params: [
+    {
+      name: 'Q_ENABLE',
+      role: 'enable',
+      labelKey: 'setup.frame.param.qEnable',
+      options: QUADPLANE_ENABLE_OPTIONS,
+    },
     {
       name: 'Q_FRAME_CLASS',
       role: 'class',
@@ -182,16 +197,6 @@ const QUADPLANE_DEFINITION: VehicleFrameDefinition = {
       options: COPTER_FRAME_TYPE_OPTIONS,
     },
   ],
-};
-
-/**
- * Fixed-wing ArduPlane (`Q_ENABLE` off/absent): there is no multirotor frame to
- * configure, so no frame parameters are surfaced — the UI points the user at
- * servo-function setup instead.
- */
-const FIXED_WING_DEFINITION: VehicleFrameDefinition = {
-  mode: 'fixedWing',
-  params: [],
 };
 
 const ROVER_DEFINITION: VehicleFrameDefinition = {
@@ -250,23 +255,18 @@ export function findFrameOption(
 }
 
 /**
- * The frame parameter definition for a detected vehicle class. For `plane` the
- * definition depends on `Q_ENABLE`: an enabled QuadPlane gets editable
- * `Q_FRAME_CLASS`/`Q_FRAME_TYPE` selectors, while a pure fixed-wing (no/absent
- * `Q_ENABLE`) resolves to the {@link FIXED_WING_DEFINITION}. When no `readValue`
- * is supplied a plane is treated as fixed-wing.
+ * The frame parameter definition for a detected vehicle class. `plane` always
+ * gets the editable QuadPlane/VTOL selectors ({@link PLANE_DEFINITION}) plus a
+ * `Q_ENABLE` toggle, so plane/VTOL frame classes and types are always available
+ * in the dialog (use {@link isQuadPlaneEnabled} to read whether the VTOL stack
+ * is currently on).
  */
-export function definitionForVehicleClass(
-  vehicleClass: VehicleClass,
-  readValue?: FrameParamValueReader,
-): VehicleFrameDefinition {
+export function definitionForVehicleClass(vehicleClass: VehicleClass): VehicleFrameDefinition {
   switch (vehicleClass) {
     case 'copter':
       return COPTER_DEFINITION;
     case 'plane':
-      return isQuadPlaneEnabled(readValue?.('Q_ENABLE'))
-        ? QUADPLANE_DEFINITION
-        : FIXED_WING_DEFINITION;
+      return PLANE_DEFINITION;
     case 'rover':
     case 'boat':
       return ROVER_DEFINITION;
@@ -291,7 +291,7 @@ export function deriveFrameSelection(
   vehicleClass: VehicleClass,
   readValue: FrameParamValueReader,
 ): FrameSelection {
-  const definition = definitionForVehicleClass(vehicleClass, readValue);
+  const definition = definitionForVehicleClass(vehicleClass);
   const params = definition.params.map((param): FrameParamSelection => {
     const raw = readValue(param.name);
     const value = raw !== undefined && Number.isFinite(raw) ? raw : undefined;
@@ -301,12 +301,14 @@ export function deriveFrameSelection(
       option: findFrameOption(param.options, value),
     };
   });
+  const frameEnable = params.find((param) => param.role === 'enable');
   const frameClass = params.find((param) => param.role === 'class');
   const frameType = params.find((param) => param.role === 'type');
   return {
     vehicleClass,
     mode: definition.mode,
     params,
+    frameEnable,
     frameClass,
     frameType,
     validFrameClass: hasValidFrameClass(frameClass),

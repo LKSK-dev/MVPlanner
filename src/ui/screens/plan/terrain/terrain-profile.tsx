@@ -33,7 +33,13 @@ export interface TerrainProfileProps {
 }
 
 /** Inner-plot padding (px): left/right/top/bottom around the axes. */
-const PAD = { left: 8, right: 8, top: 8, bottom: 8 } as const;
+export const PAD = { left: 8, right: 8, top: 8, bottom: 8 } as const;
+
+/** Clamp `value` into the inclusive `[lo, hi]` range; non-finite snaps to `lo`. */
+function clamp(value: number, lo: number, hi: number): number {
+  if (!Number.isFinite(value)) return lo;
+  return Math.max(lo, Math.min(hi, value));
+}
 
 interface Scales {
   readonly x: (distanceM: number) => number;
@@ -82,9 +88,12 @@ export const TerrainProfile: Component<TerrainProfileProps> = (props) => {
     const y1 = h - PAD.bottom;
     const spanX = maxDist > 0 ? maxDist : 1;
     const spanE = maxE - minE;
+    // Clamp both axes to the plot box so no point (terrain, planned or marker)
+    // can ever render outside [x0,x1] × [y0,y1] — e.g. a planned altitude far
+    // below the terrain, or a degenerate / non-finite value.
     return {
-      x: (d: number): number => x0 + ((x1 - x0) * d) / spanX,
-      y: (e: number): number => y1 - ((y1 - y0) * (e - minE)) / spanE,
+      x: (d: number): number => clamp(x0 + ((x1 - x0) * d) / spanX, x0, x1),
+      y: (e: number): number => clamp(y1 - ((y1 - y0) * (e - minE)) / spanE, y0, y1),
       baseY: y1,
     };
   });

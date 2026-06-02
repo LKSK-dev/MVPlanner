@@ -17,6 +17,7 @@
 import './messages';
 
 export { MapWidget, type MapWidgetProps, type TFn } from './map';
+export { clampBoxToAspectRange, MAP_MIN_ASPECT, MAP_MAX_ASPECT, type Box } from './aspect';
 export {
   createRasterMapEngine,
   type RasterMapEngine,

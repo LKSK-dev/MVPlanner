@@ -13,7 +13,7 @@
  */
 import { createComponent } from 'solid-js';
 import { render } from 'solid-js/web';
-import type { PanelApi, PanelDef } from '../../../contracts';
+import type { AppState, PanelApi, PanelDef, Store } from '../../../contracts';
 import { screenPanelId } from '../../shell';
 import { PlanScreen, type TFn } from './plan-screen';
 import type { FlightServices } from '../flight/services';
@@ -28,6 +28,8 @@ export interface PlanScreenPanelDeps {
   readonly services: FlightServices;
   /** i18n translate function. */
   readonly t: TFn;
+  /** App store, so the plan map auto-centers on the active vehicle/home. */
+  readonly store?: Store<AppState>;
 }
 
 /** Build the real `screen.plan` {@link PanelDef} bound to the services. */
@@ -37,7 +39,12 @@ export function createPlanScreenPanel(deps: PlanScreenPanelDeps): PanelDef {
     title: deps.t('nav.plan'),
     mount(el: HTMLElement, api: PanelApi): () => void {
       return render(
-        () => createComponent(PlanScreen, { services: deps.services, t: api.t }),
+        () =>
+          createComponent(PlanScreen, {
+            services: deps.services,
+            t: api.t,
+            ...(deps.store !== undefined ? { store: deps.store } : {}),
+          }),
         el,
       );
     },

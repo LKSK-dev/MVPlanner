@@ -75,14 +75,20 @@ describe('deriveFrameSelection', () => {
     expect(sub.validFrameClass).toBe(false);
   });
 
-  it('exposes editable QuadPlane selectors when Q_ENABLE is on', () => {
+  it('always exposes editable QuadPlane selectors + a Q_ENABLE toggle for planes', () => {
     const selection = deriveFrameSelection(
       'plane',
       reader({ Q_ENABLE: 1, Q_FRAME_CLASS: 3, Q_FRAME_TYPE: 1 }),
     );
 
     expect(selection.mode).toBe('selectable');
-    expect(selection.params.map((param) => param.name)).toEqual(['Q_FRAME_CLASS', 'Q_FRAME_TYPE']);
+    expect(selection.params.map((param) => param.name)).toEqual([
+      'Q_ENABLE',
+      'Q_FRAME_CLASS',
+      'Q_FRAME_TYPE',
+    ]);
+    expect(selection.frameEnable?.name).toBe('Q_ENABLE');
+    expect(selection.frameEnable?.option?.labelKey).toBe('setup.frame.quadplane.enable.on');
     expect(selection.frameClass?.name).toBe('Q_FRAME_CLASS');
     expect(selection.frameClass?.options).toBe(QUADPLANE_FRAME_CLASS_OPTIONS);
     expect(selection.frameClass?.option?.labelKey).toBe('setup.frame.quadplane.class.octa');
@@ -101,17 +107,22 @@ describe('deriveFrameSelection', () => {
     expect(selection.validFrameClass).toBe(false);
   });
 
-  it('treats a plane without Q_ENABLE as a fixed-wing with no Q frame', () => {
+  it('still offers the Q-frame selectors for a plane with Q_ENABLE off/absent', () => {
     const disabled = deriveFrameSelection('plane', reader({ Q_ENABLE: 0, Q_FRAME_CLASS: 1 }));
     const absent = deriveFrameSelection('plane', reader({ Q_FRAME_CLASS: 1 }));
 
-    expect(disabled.mode).toBe('fixedWing');
-    expect(disabled.params).toEqual([]);
-    expect(disabled.frameClass).toBeUndefined();
-    expect(disabled.validFrameClass).toBe(false);
+    expect(disabled.mode).toBe('selectable');
+    expect(disabled.params.map((p) => p.name)).toEqual([
+      'Q_ENABLE',
+      'Q_FRAME_CLASS',
+      'Q_FRAME_TYPE',
+    ]);
+    expect(disabled.frameEnable?.option?.labelKey).toBe('setup.frame.quadplane.enable.off');
+    expect(disabled.frameClass?.name).toBe('Q_FRAME_CLASS');
 
-    expect(absent.mode).toBe('fixedWing');
-    expect(absent.params).toEqual([]);
+    expect(absent.mode).toBe('selectable');
+    expect(absent.frameEnable?.value).toBeUndefined();
+    expect(absent.frameClass?.name).toBe('Q_FRAME_CLASS');
   });
 
   it('encodes the documented QuadPlane Q_FRAME_CLASS enumeration', () => {
