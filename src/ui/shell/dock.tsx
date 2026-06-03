@@ -20,7 +20,9 @@ import {
   readShellLayout,
   setSplitSizes,
   writeShellLayout,
+  widgetIdOf,
   type DockNode,
+  type PanelNode,
   type SplitNode,
 } from './workspace';
 import { t } from '../../core/i18n';
@@ -140,9 +142,7 @@ const DockSplitView: Component<{ node: SplitNode }> = (props) => {
 const DockNodeView: Component<{ node: DockNode }> = (props) => (
   <Show
     when={props.node.type === 'split' ? (props.node as SplitNode) : undefined}
-    fallback={
-      <DockPanelView panelId={(props.node as Extract<DockNode, { type: 'panel' }>).panelId} />
-    }
+    fallback={<DockPanelView panelId={widgetIdOf(props.node as PanelNode)} />}
   >
     {(split) => <DockSplitView node={split()} />}
   </Show>
