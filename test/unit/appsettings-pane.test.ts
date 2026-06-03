@@ -10,6 +10,7 @@ import { createComponent } from 'solid-js';
 import { createAppStore } from '../../src/core/store';
 import { createRecentsStore } from '../../src/core/recents';
 import { createKeybindRegistry } from '../../src/core/keybinds';
+import { createUiRegistry } from '../../src/ui/shell';
 import { t } from '../../src/core/i18n';
 import {
   AppSettingsPane,
@@ -51,7 +52,7 @@ function makeDeps(): AppSettingsSectionDeps {
     recents: createRecentsStore({ kv: fakeKv(), blobs: fakeBlobs() }),
     keybinds: createKeybindRegistry({ commands: [{ id: 'nav.flight', title: 'Flight' }] }),
     persistKeybinds: vi.fn(),
-    registry: {} as AppSettingsSectionDeps['registry'],
+    registry: createUiRegistry(),
     setSection: vi.fn(),
     close: vi.fn(),
   };

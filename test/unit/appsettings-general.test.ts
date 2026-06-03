@@ -80,7 +80,7 @@ function makeDeps(
     recents: {} as unknown as RecentsStore,
     keybinds: {} as unknown as KeybindRegistry,
     persistKeybinds: () => undefined,
-    registry: {} as unknown as UiRegistry,
+    registry: {} as unknown as import('../../src/ui/shell/registry').ShellRegistry,
     setSection: () => undefined,
     close: () => undefined,
     ...extra,

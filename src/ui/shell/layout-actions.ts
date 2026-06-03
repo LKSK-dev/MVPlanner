@@ -6,6 +6,8 @@
  */
 import type { AppState, ScreenId, Store } from '../../contracts';
 import { t } from '../../core/i18n';
+import { SCREEN_ORDER } from './screens';
+import { resetWorkspaceToPreset } from './presets';
 import {
   activateWorkspace,
   activeWorkspace,
@@ -33,6 +35,24 @@ export function activateScreenWorkspace(store: Store<AppState>, screenId: string
     s.layout.activeScreen = screenId as ScreenId;
     const shell = readShellLayout(s.layout, t('workspace.default'));
     writeShellLayout(s.layout, activateWorkspace(shell, screenId));
+  });
+}
+
+/** Set the active workspace by id (keeps `activeScreen` in sync for screens). */
+export function setActiveWorkspace(store: Store<AppState>, id: string): void {
+  store.patch((s) => {
+    if ((SCREEN_ORDER as readonly string[]).includes(id)) s.layout.activeScreen = id as ScreenId;
+    const shell = readShellLayout(s.layout, t('workspace.default'));
+    writeShellLayout(s.layout, activateWorkspace(shell, id));
+  });
+}
+
+/** Reset the active workspace back to its built-in preset. */
+export function resetActiveWorkspace(store: Store<AppState>): void {
+  store.patch((s) => {
+    const shell = readShellLayout(s.layout, t('workspace.default'));
+    const id = shell.activeWorkspaceId;
+    writeShellLayout(s.layout, resetWorkspaceToPreset(shell, id, t(`nav.${id}`)));
   });
 }
 

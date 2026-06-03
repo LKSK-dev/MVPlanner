@@ -4,7 +4,8 @@
  * command/keybind. Mirrors the connection-drawer context pattern.
  */
 import { createContext, createSignal, useContext, type Accessor } from 'solid-js';
-import type { AppState, ConfirmOptions, FileIo, Store, UiRegistry } from '../../../contracts';
+import type { AppState, ConfirmOptions, FileIo, Store } from '../../../contracts';
+import type { ShellRegistry } from '../registry';
 import type { KeybindRegistry } from '../../../core/keybinds';
 import type { RecentEntry, RecentsStore } from '../../../core/recents';
 import type { StorageManagerDeps } from '../../screens/config/settings/storage-manager';
@@ -49,7 +50,7 @@ export interface AppSettingsSectionDeps {
   /** Network egress-transparency sources. Optional. */
   readonly network?: NetworkSectionDeps;
   /** UI registry (open the About panel / palette commands). */
-  readonly registry: UiRegistry;
+  readonly registry: ShellRegistry;
   /**
    * Shared extensions-manager controller (same instance the Sim hub drives), so
    * the Extensions section's install/enable/disable/grant actions stay in sync.

@@ -72,6 +72,21 @@ export const APPSETTINGS_MESSAGES: Readonly<Record<string, string>> = {
   'appsettings.appearance.saveWorkspace': 'Save current layout',
   'appsettings.appearance.resetLayout': 'Reset to default layout',
 
+  // Windows & layout (dockable workspace)
+  'appsettings.layout.title': 'Windows & layout',
+  'appsettings.layout.intro':
+    'Drag the dividers between panels to resize them. Add or remove widgets and arrange each workspace below; changes are saved automatically.',
+  'appsettings.layout.workspace': 'Active workspace',
+  'appsettings.layout.resetPreset': 'Reset this workspace to default',
+  'appsettings.layout.addWidget': 'Add widget',
+  'appsettings.layout.addWidget.placeholder': 'Add a widget…',
+  'appsettings.layout.widgets': 'Widgets in this workspace',
+  'appsettings.layout.remove': 'Remove',
+  'appsettings.layout.empty': 'No widgets.',
+  'appsettings.layout.exportLayout': 'Export layout',
+  'appsettings.layout.importLayout': 'Import layout',
+  'appsettings.layout.importError': 'That file is not a valid MVPlanner layout.',
+
   // Units & Measurement
   'appsettings.units.system': 'Unit system',
   'appsettings.units.metric': 'Metric',

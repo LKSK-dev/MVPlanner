@@ -33,6 +33,7 @@ import {
   uninstallTheme,
 } from '../../../../core/theme';
 import type { AppSettingsSectionDeps } from '../context';
+import { LayoutControls } from './layout';
 
 /** Match a 6-digit hex color the native `<input type=color>` can display. */
 const HEX6 = /^#[0-9a-f]{6}$/i;
@@ -394,6 +395,9 @@ export const AppearanceSection: Component<{ deps: AppSettingsSectionDeps }> = (p
           </For>
         </Show>
       </div>
+
+      {/* Windows & layout (dockable workspace editor) */}
+      <LayoutControls deps={props.deps} />
     </div>
   );
 };

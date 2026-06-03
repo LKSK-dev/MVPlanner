@@ -9,7 +9,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createComponent } from 'solid-js';
 import { cleanup, render } from '@solidjs/testing-library';
-import type { AppState, FileIo, InstalledTheme, Store, UiRegistry } from '../../src/contracts';
+import type { AppState, FileIo, InstalledTheme, Store } from '../../src/contracts';
+import { createUiRegistry } from '../../src/ui/shell';
 import type { KeybindRegistry } from '../../src/core/keybinds';
 import type { RecentsStore } from '../../src/core/recents';
 import { t } from '../../src/core/i18n';
@@ -58,7 +59,7 @@ function mount(): Harness {
     recents: {} as RecentsStore,
     keybinds: {} as KeybindRegistry,
     persistKeybinds: () => undefined,
-    registry: {} as UiRegistry,
+    registry: createUiRegistry(),
     setSection: () => undefined,
     close: () => undefined,
   };

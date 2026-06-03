@@ -86,7 +86,11 @@ function createScreenPanel(screen: ScreenId): PanelDef {
  * remain placeholders until their milestone.
  */
 export function createScreenPanels(): PanelDef[] {
-  return SCREEN_ORDER.map(
-    (screen) => screenPanelOverrides.get(screen) ?? createScreenPanel(screen),
-  );
+  return SCREEN_ORDER.map((screen) => {
+    const base = screenPanelOverrides.get(screen) ?? createScreenPanel(screen);
+    // Tag each screen as a dockable, single-instance widget (category 'Screens')
+    // so it appears in the layout editor's “Add widget” palette and can be tiled
+    // into any workspace.
+    return { ...base, meta: { ...base.meta, category: 'Screens', singleton: true } };
+  });
 }
