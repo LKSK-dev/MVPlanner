@@ -8,6 +8,20 @@ Rover/Boat, Sub, and Antenna Tracker. Modes, setup steps, tuning parameters, and
 mission commands all change to match; unknown types fall back to a generic
 MAVLink view.
 
+## Workspaces & widgets (dockable UI)
+
+MVPlanner's screens are **dockable workspaces** of resizable widget panels:
+
+- **Resize** panels by dragging the **dividers** between them.
+- Each panel has a header with **maximize/restore** and **close**; widgets can be
+  stacked as **tabs**.
+- The top-bar entries (Flight / Plan / Setup / Config / Logs / Sim) switch
+  **workspaces**; each is an editable preset.
+- **Customize** in **MVPlanner Settings → Appearance → Windows & layout**: choose
+  the active workspace, **add** widgets (incl. whole screens) from the catalog,
+  **remove** widgets, and **reset** a workspace to its default. Layouts are saved
+  automatically and survive reloads.
+
 ## Cross-cutting UX
 
 These work everywhere:

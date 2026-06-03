@@ -3,6 +3,32 @@
 All notable changes to MVPlanner are documented here. This project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [0.4.0] — 2026-06-02
+
+### Changed — UI remake: customizable dockable workspaces
+
+The UI is now a **dockable, tiling widget workspace** (built on the existing
+layout engine; every widget component + the whole backend are reused, so no
+feature was lost). Focus: stability, consistency, customizability.
+
+- **Resize** any panel by dragging the dividers between panels (mouse +
+  keyboard); sizes persist.
+- **Tabs**: stack widgets behind a tab strip; consistent panel chrome
+  everywhere (title + maximize/restore + close).
+- **Workspaces**: each screen (Flight/Plan/Setup/Config/Logs/Sim) is now an
+  **editable workspace preset**; the top-bar entries switch workspaces.
+- **Configure in MVPlanner Settings → Appearance → Windows & layout**: pick the
+  active workspace, **add widgets** from a catalog (including whole screens),
+  **remove** widgets, and **reset a workspace to its default**.
+- **Stability**: one pure, unit-tested layout engine; every widget is isolated
+  by an **error boundary** (a faulty widget can never blank the app); persisted
+  layouts are **schema-versioned + migrated** with a safe fallback to the
+  presets (no white-screen on corrupt/old data).
+
+Contracts 1.7.0 (additive): `PanelDef.meta?: WidgetMeta` + `PanelApi.settings`.
+Floating/overlapping windows are intentionally out of scope (tiling + tabs only).
+See `docs/ui-remake/{SPEC,PLAN}.md`.
+
 ## [0.3.3] — 2026-06-02
 
 ### Changed
