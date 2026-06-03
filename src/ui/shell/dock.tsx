@@ -1,53 +1,73 @@
 /**
- * Hand-rolled dockable/tiling panel manager (T0.7; spec plan/05 §5.3).
+ * Dockable/tiling panel manager v2 (UI remake Phase 1; spec docs/ui-remake).
  *
- * A workspace is a tree of {@link DockNode}s: split containers tile their
- * children along one axis with draggable, resizable gutters; panel leaves mount
- * a registered {@link PanelDef} imperatively. Sizes and the active workspace are
- * persisted through the store's `layout` (see {@link workspace}), so layouts
- * survive reloads. No heavyweight dependency — just CSS flex + Solid signals.
+ * A workspace is a tree of {@link DockNode}s rendered here: **split** containers
+ * tile children with draggable resize gutters; **tab** containers stack widget
+ * panels behind a tab strip; **panel** leaves mount a registered widget inside
+ * consistent chrome (header + per-widget menu). Each mounted widget is isolated
+ * by an {@link ErrorBoundary} so one faulty widget can never blank the app, and a
+ * transient maximize state lets a panel fill the workspace. All layout mutation
+ * goes through the pure reducers in `./workspace` via `./layout-actions`.
  *
- * For M0 the default workspace is a single panel whose content follows
- * `layout.activeScreen`; the split/resize/persist/restore framework is what
- * matters and is exercised by the workspace unit tests.
+ * Sizes + the active workspace persist through the store `layout`.
  */
-import { For, Show, createEffect, createMemo, onCleanup, type Component } from 'solid-js';
+import {
+  ErrorBoundary,
+  For,
+  Show,
+  createEffect,
+  createMemo,
+  createSignal,
+  onCleanup,
+  type Component,
+} from 'solid-js';
+import type { PanelApi } from '../../contracts';
 import { useShell } from './context';
 import { screenPanelId } from './screens';
+import { closeWidget, setWidgetTab } from './layout-actions';
 import {
   ACTIVE_SCREEN,
   activeWorkspace,
+  countPanels,
   readShellLayout,
   setSplitSizes,
-  writeShellLayout,
   widgetIdOf,
+  writeShellLayout,
   type DockNode,
   type PanelNode,
   type SplitNode,
+  type TabNode,
 } from './workspace';
 import { t } from '../../core/i18n';
 
-/** Resolve the panel id a leaf should mount, following the active screen. */
-function useResolvedPanelId(panelId: string): () => string {
+/** Maximized widget instance id for the active workspace (transient, not persisted). */
+const [maximizedId, setMaximizedId] = createSignal<string | undefined>(undefined);
+
+/** Resolve the widget id a panel should mount (follows the active screen sentinel). */
+function useResolvedWidgetId(node: PanelNode): () => string {
   const { store } = useShell();
   const activeScreen = store.select((s) => s.layout.activeScreen);
-  return () => (panelId === ACTIVE_SCREEN ? screenPanelId(activeScreen()) : panelId);
+  const wid = widgetIdOf(node);
+  return () => (wid === ACTIVE_SCREEN ? screenPanelId(activeScreen()) : wid);
 }
 
-/** A single dock leaf: header + an imperatively-mounted panel body. */
-const DockPanelView: Component<{ panelId: string }> = (props) => {
+/** Human title for a resolved widget/screen id. */
+function useWidgetTitle(resolvedId: () => string): () => string {
   const { registry, panelApi } = useShell();
-  const resolvedId = useResolvedPanelId(props.panelId);
-  let host: HTMLDivElement | undefined;
-  let dispose: (() => void) | undefined;
-
-  const title = createMemo<string>(() => {
+  return createMemo<string>(() => {
     const id = resolvedId();
     if (id.startsWith('screen.')) return panelApi.t(`nav.${id.slice('screen.'.length)}`);
     return registry.getPanel(id)?.title ?? id;
   });
+}
 
-  // Re-mount whenever the resolved panel changes (e.g. screen switch).
+/** The imperatively-mounted widget body, isolated by an error boundary. */
+const WidgetHost: Component<{ node: PanelNode }> = (props) => {
+  const { registry, panelApi } = useShell();
+  const resolvedId = useResolvedWidgetId(props.node);
+  let host: HTMLDivElement | undefined;
+  let dispose: (() => void) | undefined;
+
   createEffect(() => {
     const id = resolvedId();
     dispose?.();
@@ -55,15 +75,134 @@ const DockPanelView: Component<{ panelId: string }> = (props) => {
     if (!host) return;
     host.replaceChildren();
     const def = registry.getPanel(id);
-    if (def) dispose = def.mount(host, panelApi) ?? undefined;
+    if (!def) return;
+    const api: PanelApi =
+      props.node.settings !== undefined ? { ...panelApi, settings: props.node.settings } : panelApi;
+    dispose = def.mount(host, api) ?? undefined;
   });
   onCleanup(() => dispose?.());
 
   return (
-    <section class="mvp-dock-panel">
-      <header class="mvp-dock-panel__header">{title()}</header>
+    <ErrorBoundary
+      fallback={(_err, reset) => (
+        <div class="mvp-dock-panel__error" role="alert">
+          <p>{t('dock.widgetError')}</p>
+          <button type="button" class="mvp-dock-panel__error-reload" onClick={reset}>
+            {t('dock.reload')}
+          </button>
+        </div>
+      )}
+    >
       <div class="mvp-dock-panel__body" ref={host} />
+    </ErrorBoundary>
+  );
+};
+
+/** Header controls (maximize/restore + close) shared by panels + tab groups. */
+const ChromeControls: Component<{ panelId: string }> = (props) => {
+  const { store } = useShell();
+  const isMax = (): boolean => maximizedId() === props.panelId;
+  const canClose = (): boolean =>
+    countPanels(activeWorkspace(readShellLayout(store.get().layout, t('workspace.default'))).root) >
+    1;
+  return (
+    <span class="mvp-dock-panel__controls">
+      <button
+        type="button"
+        class="mvp-dock-panel__ctl"
+        aria-label={isMax() ? t('dock.restore') : t('dock.maximize')}
+        title={isMax() ? t('dock.restore') : t('dock.maximize')}
+        onClick={() => setMaximizedId(isMax() ? undefined : props.panelId)}
+      >
+        <span aria-hidden="true">{isMax() ? '❐' : '❑'}</span>
+      </button>
+      <Show when={canClose()}>
+        <button
+          type="button"
+          class="mvp-dock-panel__ctl"
+          aria-label={t('dock.close')}
+          title={t('dock.close')}
+          onClick={() => {
+            if (maximizedId() === props.panelId) setMaximizedId(undefined);
+            closeWidget(store, props.panelId);
+          }}
+        >
+          <span aria-hidden="true">{'×'}</span>
+        </button>
+      </Show>
+    </span>
+  );
+};
+
+/** A single widget panel with header chrome. */
+const DockPanelView: Component<{ node: PanelNode }> = (props) => {
+  const resolvedId = useResolvedWidgetId(props.node);
+  const title = useWidgetTitle(resolvedId);
+  return (
+    <section class="mvp-dock-panel" data-panel-id={props.node.id}>
+      <header class="mvp-dock-panel__header">
+        <span class="mvp-dock-panel__title">{title()}</span>
+        <ChromeControls panelId={props.node.id} />
+      </header>
+      <WidgetHost node={props.node} />
     </section>
+  );
+};
+
+/** A tab container: a tab strip over stacked widget bodies (all kept mounted). */
+const DockTabView: Component<{ node: TabNode }> = (props) => {
+  const { store } = useShell();
+  const activeChild = createMemo<PanelNode | undefined>(
+    () => props.node.children[props.node.active],
+  );
+  return (
+    <section class="mvp-dock-panel" data-tabs-id={props.node.id}>
+      <header class="mvp-dock-panel__header mvp-dock-panel__header--tabs">
+        <div class="mvp-dock-tabs" role="tablist">
+          <For each={props.node.children}>
+            {(child, i) => (
+              <TabLabel
+                node={child}
+                active={i() === props.node.active}
+                onSelect={() => setWidgetTab(store, props.node.id, i())}
+              />
+            )}
+          </For>
+        </div>
+        <Show when={activeChild()}>{(child) => <ChromeControls panelId={child().id} />}</Show>
+      </header>
+      {/* Keep every tab mounted; show only the active one (preserves widget state). */}
+      <div class="mvp-dock-tabs__bodies">
+        <For each={props.node.children}>
+          {(child, i) => (
+            <div
+              class="mvp-dock-tabs__body"
+              classList={{ 'mvp-dock-tabs__body--active': i() === props.node.active }}
+            >
+              <WidgetHost node={child} />
+            </div>
+          )}
+        </For>
+      </div>
+    </section>
+  );
+};
+
+/** One tab button, labelled with its widget title. */
+const TabLabel: Component<{ node: PanelNode; active: boolean; onSelect: () => void }> = (props) => {
+  const resolvedId = useResolvedWidgetId(props.node);
+  const title = useWidgetTitle(resolvedId);
+  return (
+    <button
+      type="button"
+      role="tab"
+      class="mvp-dock-tab"
+      classList={{ 'mvp-dock-tab--active': props.active }}
+      aria-selected={props.active}
+      onClick={() => props.onSelect()}
+    >
+      {title()}
+    </button>
   );
 };
 
@@ -138,25 +277,47 @@ const DockSplitView: Component<{ node: SplitNode }> = (props) => {
   );
 };
 
-/** Render any dock node (panel leaf or split container). */
+/** Render any dock node (split / tabs / panel). */
 const DockNodeView: Component<{ node: DockNode }> = (props) => (
   <Show
     when={props.node.type === 'split' ? (props.node as SplitNode) : undefined}
-    fallback={<DockPanelView panelId={widgetIdOf(props.node as PanelNode)} />}
+    fallback={
+      <Show
+        when={props.node.type === 'tabs' ? (props.node as TabNode) : undefined}
+        fallback={<DockPanelView node={props.node as PanelNode} />}
+      >
+        {(tabs) => <DockTabView node={tabs()} />}
+      </Show>
+    }
   >
     {(split) => <DockSplitView node={split()} />}
   </Show>
 );
 
-/** The dock surface: renders the active workspace's tree. */
+/** The dock surface: renders the active workspace tree (or a maximized panel). */
 export const DockManager: Component = () => {
   const { store } = useShell();
   const root = store.select(
     (s) => activeWorkspace(readShellLayout(s.layout, t('workspace.default'))).root,
   );
+  const maximizedPanel = createMemo<PanelNode | undefined>(() => {
+    const id = maximizedId();
+    if (id === undefined) return undefined;
+    return allPanelsOf(root()).find((p) => p.id === id);
+  });
   return (
     <div class="mvp-dock">
-      <DockNodeView node={root()} />
+      <Show when={maximizedPanel()} fallback={<DockNodeView node={root()} />}>
+        {(panel) => <DockPanelView node={panel()} />}
+      </Show>
     </div>
   );
 };
+
+/** Local panel-collector (avoids importing the reducer just for this). */
+function allPanelsOf(node: DockNode): PanelNode[] {
+  if (node.type === 'panel') return [node];
+  const out: PanelNode[] = [];
+  for (const child of node.children) out.push(...allPanelsOf(child));
+  return out;
+}

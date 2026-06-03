@@ -62,6 +62,13 @@ export const EN_MESSAGES: MessageCatalog = {
     'Serial connections to a board or radio are unavailable. Use a supported browser (Chrome/Edge) or the WebSocket bridge.',
   'cap.dismiss': 'Dismiss this notice',
   'dock.resizePanels': 'Resize panels',
+  'dock.close': 'Close widget',
+  'dock.maximize': 'Maximize',
+  'dock.restore': 'Restore',
+  'dock.menu': 'Widget menu',
+  'dock.widgetError': 'This widget stopped responding.',
+  'dock.reload': 'Reload widget',
+  'dock.empty': 'Empty workspace',
   'workspace.default': 'Default',
 
   // --- T1.10 connection drawer + diagnostics (additive) ------------------
