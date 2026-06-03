@@ -37,6 +37,7 @@ export function createJoystickPanel(
     id: JOYSTICK_PANEL_ID,
     title: t('joystick.panel.label'),
     icon: 'joystick',
+    meta: { category: 'appsettings.layout.category.tools', singleton: true },
     mount(el: HTMLElement, api: PanelApi): () => void {
       return render(
         () =>

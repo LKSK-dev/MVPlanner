@@ -43,6 +43,11 @@ import { t } from '../../core/i18n';
 /** Maximized widget instance id for the active workspace (transient, not persisted). */
 const [maximizedId, setMaximizedId] = createSignal<string | undefined>(undefined);
 
+/** Equal fractional distribution for `count` children. */
+function equalizeSizes(count: number): number[] {
+  return Array.from({ length: count }, () => 1 / count);
+}
+
 /** Resolve the widget id a panel should mount (follows the active screen sentinel). */
 function useResolvedWidgetId(node: PanelNode): () => string {
   const { store } = useShell();
@@ -102,9 +107,11 @@ const WidgetHost: Component<{ node: PanelNode }> = (props) => {
 const ChromeControls: Component<{ panelId: string }> = (props) => {
   const { store } = useShell();
   const isMax = (): boolean => maximizedId() === props.panelId;
-  const canClose = (): boolean =>
-    countPanels(activeWorkspace(readShellLayout(store.get().layout, t('workspace.default'))).root) >
-    1;
+  // Reactive panel count so the last-panel close guard updates live.
+  const panelCount = store.select((s) =>
+    countPanels(activeWorkspace(readShellLayout(s.layout, t('workspace.default'))).root),
+  );
+  const canClose = (): boolean => panelCount() > 1;
   return (
     <span class="mvp-dock-panel__controls">
       <button
@@ -158,7 +165,21 @@ const DockTabView: Component<{ node: TabNode }> = (props) => {
   return (
     <section class="mvp-dock-panel" data-tabs-id={props.node.id}>
       <header class="mvp-dock-panel__header mvp-dock-panel__header--tabs">
-        <div class="mvp-dock-tabs" role="tablist">
+        <div
+          class="mvp-dock-tabs"
+          role="tablist"
+          aria-orientation="horizontal"
+          onKeyDown={(e) => {
+            if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+            e.preventDefault();
+            const n = props.node.children.length;
+            const next =
+              e.key === 'ArrowRight'
+                ? (props.node.active + 1) % n
+                : (props.node.active - 1 + n) % n;
+            setWidgetTab(store, props.node.id, next);
+          }}
+        >
           <For each={props.node.children}>
             {(child, i) => (
               <TabLabel
@@ -177,6 +198,7 @@ const DockTabView: Component<{ node: TabNode }> = (props) => {
           {(child, i) => (
             <div
               class="mvp-dock-tabs__body"
+              role="tabpanel"
               classList={{ 'mvp-dock-tabs__body--active': i() === props.node.active }}
             >
               <WidgetHost node={child} />
@@ -199,6 +221,7 @@ const TabLabel: Component<{ node: PanelNode; active: boolean; onSelect: () => vo
       class="mvp-dock-tab"
       classList={{ 'mvp-dock-tab--active': props.active }}
       aria-selected={props.active}
+      tabindex={props.active ? 0 : -1}
       onClick={() => props.onSelect()}
     >
       {title()}
@@ -250,6 +273,38 @@ const DockSplitView: Component<{ node: SplitNode }> = (props) => {
     window.addEventListener('pointerup', up);
   };
 
+  /** Persist a sizes change for this split. */
+  const applySizes = (next: readonly number[]): void => {
+    store.patch((s) => {
+      const shell = readShellLayout(s.layout, t('workspace.default'));
+      const ws = activeWorkspace(shell);
+      const root = setSplitSizes(ws.root, props.node.id, next);
+      writeShellLayout(s.layout, {
+        ...shell,
+        workspaces: { ...shell.workspaces, [ws.id]: { ...ws, root } },
+      });
+    });
+  };
+
+  /** Keyboard resize: Arrow keys nudge the boundary; Home equalizes. */
+  const onGutterKey = (index: number, e: KeyboardEvent): void => {
+    const horizontal = props.node.direction === 'row';
+    const dec = horizontal ? 'ArrowLeft' : 'ArrowUp';
+    const inc = horizontal ? 'ArrowRight' : 'ArrowDown';
+    if (e.key === 'Home') {
+      e.preventDefault();
+      applySizes(equalizeSizes(props.node.children.length));
+      return;
+    }
+    if (e.key !== dec && e.key !== inc) return;
+    e.preventDefault();
+    const step = e.key === inc ? 0.03 : -0.03;
+    const sizes = [...props.node.sizes];
+    sizes[index] = (sizes[index] ?? 0) + step;
+    sizes[index + 1] = (sizes[index + 1] ?? 0) - step;
+    applySizes(sizes);
+  };
+
   return (
     <div
       class="mvp-dock-split"
@@ -265,8 +320,11 @@ const DockSplitView: Component<{ node: SplitNode }> = (props) => {
               <div
                 class="mvp-dock-gutter"
                 role="separator"
+                tabindex={0}
                 aria-orientation={props.node.direction === 'row' ? 'vertical' : 'horizontal'}
                 aria-label={t('dock.resizePanels')}
+                onKeyDown={(e) => onGutterKey(i(), e)}
+                onDblClick={() => applySizes(equalizeSizes(props.node.children.length))}
                 onPointerDown={(e) => onGutterDown(i(), e)}
               />
             </Show>

@@ -36,6 +36,7 @@ export function createQuickWatchPanel(
     id: QUICKWATCH_PANEL_ID,
     title: t('quickwatch.panel.label'),
     icon: 'quickwatch',
+    meta: { category: 'appsettings.layout.category.telemetry' },
     mount(el: HTMLElement, api: PanelApi): () => void {
       return render(
         () =>

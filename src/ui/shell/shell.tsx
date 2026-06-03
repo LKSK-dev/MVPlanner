@@ -15,7 +15,7 @@ import { Show, createSignal, onCleanup, onMount, type Component } from 'solid-js
 import type { CommandDef, ScreenId } from '../../contracts';
 import { t } from '../../core/i18n';
 import { chordFromEvent } from '../../core/keybinds';
-import { activateScreenWorkspace } from './layout-actions';
+import { activateScreenWorkspace, resetActiveWorkspace } from './layout-actions';
 import { AlertCenter } from './alert-center';
 import { CommandPalette } from './command-palette';
 import { ShellContext, type ShellContextValue } from './context';
@@ -111,6 +111,11 @@ export const Shell: Component<{ ctx: ShellContextValue }> = (props) => {
           const saved = saveWorkspaceAs(shell, 'saved', t('workspace.default'));
           s.layout.workspaces[SHELL_LAYOUT_KEY] = saved;
         }),
+    }),
+    registry.registerCommand({
+      id: 'layout.reset',
+      title: t('cmd.resetLayout'),
+      run: () => resetActiveWorkspace(store),
     }),
   );
 

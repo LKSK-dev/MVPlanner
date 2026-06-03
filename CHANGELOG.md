@@ -3,6 +3,18 @@
 All notable changes to MVPlanner are documented here. This project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [0.4.1] — 2026-06-02
+
+### Fixed (UI-remake audit — see `docs/ui-remake/AUDIT.md`)
+
+- **Dividers are now keyboard-resizable** (Arrow keys, Home to equalize,
+  double-click to equalize, focus ring) — not mouse-only.
+- **More widgets are addable**: Inspector, Quick-watch, Joystick, Antenna
+  tracker and About now appear in the “Add widget” palette.
+- Tab strips gain keyboard navigation + proper ARIA roles; widget categories are
+  now translatable; the last-panel close guard updates reactively; added a
+  “Reset workspace layout” command.
+
 ## [0.4.0] — 2026-06-02
 
 ### Changed — UI remake: customizable dockable workspaces

@@ -68,6 +68,7 @@ export function wireTracker(deps: TrackerWiringDeps): () => void {
     id: TRACKER_PANEL_ID,
     title: t('tracker.title'),
     icon: 'tracker',
+    meta: { category: 'appsettings.layout.category.tools', singleton: true },
     mount(el: HTMLElement, api: PanelApi): () => void {
       return render(() => createComponent(TrackerPanel, { service, t: api.t }), el);
     },

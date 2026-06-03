@@ -22,8 +22,8 @@ export interface WidgetCatalogEntry {
   readonly singleton: boolean;
 }
 
-/** Category used when a widget declares no `meta.category`. */
-export const DEFAULT_WIDGET_CATEGORY = 'Other';
+/** Category (i18n key) used when a widget declares no `meta.category`. */
+export const DEFAULT_WIDGET_CATEGORY = 'appsettings.layout.category.other';
 
 /**
  * Build the palette catalog from registered panels. Only panels carrying

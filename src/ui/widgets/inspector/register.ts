@@ -32,6 +32,7 @@ export function createInspectorPanel(source: InspectorSource, t: TFn): PanelDef 
     id: INSPECTOR_PANEL_ID,
     title: t('inspector.title'),
     icon: 'inspector',
+    meta: { category: 'appsettings.layout.category.telemetry' },
     mount(el: HTMLElement, api: PanelApi): () => void {
       return render(() => createComponent(Inspector, { source, t: api.t }), el);
     },

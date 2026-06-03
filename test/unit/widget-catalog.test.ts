@@ -27,7 +27,8 @@ describe('widgetCatalog', () => {
       panel('widget.x', 'X', {}), // meta but no category -> Other
     ];
     const cat = widgetCatalog(panels);
-    expect(cat.map((c) => c.id)).toEqual(['widget.params', 'widget.hud', 'widget.map', 'widget.x']);
+    // Sorted by category then title; the default category key sorts first here.
+    expect(cat.map((c) => c.id)).toEqual(['widget.x', 'widget.params', 'widget.hud', 'widget.map']);
     expect(cat.find((c) => c.id === 'widget.hud')?.singleton).toBe(true);
     expect(cat.find((c) => c.id === 'widget.x')?.category).toBe(DEFAULT_WIDGET_CATEGORY);
   });

@@ -91,6 +91,9 @@ export function createScreenPanels(): PanelDef[] {
     // Tag each screen as a dockable, single-instance widget (category 'Screens')
     // so it appears in the layout editor's “Add widget” palette and can be tiled
     // into any workspace.
-    return { ...base, meta: { ...base.meta, category: 'Screens', singleton: true } };
+    return {
+      ...base,
+      meta: { ...base.meta, category: 'appsettings.layout.category.screens', singleton: true },
+    };
   });
 }

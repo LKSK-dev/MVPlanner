@@ -216,6 +216,13 @@
   background: var(--mvp-border);
   cursor: col-resize;
 }
+.mvp-dock-gutter:hover {
+  background: var(--mvp-accent);
+}
+.mvp-dock-gutter:focus-visible {
+  outline: 2px solid var(--mvp-accent);
+  outline-offset: -1px;
+}
 
 .mvp-dock-split--col > .mvp-dock-gutter {
   cursor: row-resize;

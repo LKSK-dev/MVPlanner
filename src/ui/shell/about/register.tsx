@@ -18,6 +18,7 @@ export function createAboutPanel(t: AboutT): PanelDef {
     id: ABOUT_PANEL_ID,
     title: t('about.title'),
     icon: 'info',
+    meta: { category: 'appsettings.layout.category.info', singleton: true },
     mount(el: HTMLElement, api: PanelApi): () => void {
       return render(() => createComponent(AboutPanel, { t: api.t }), el);
     },

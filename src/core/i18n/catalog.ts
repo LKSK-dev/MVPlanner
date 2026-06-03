@@ -52,6 +52,7 @@ export const EN_MESSAGES: MessageCatalog = {
   'palette.commands': 'Commands',
   'cmd.goTo': 'Go to {screen}',
   'cmd.saveWorkspace': 'Save current workspace',
+  'cmd.resetLayout': 'Reset workspace layout',
   'cmd.openPalette': 'Open command palette',
   'toast.dismiss': 'Dismiss notification',
   'confirm.confirm': 'Confirm',

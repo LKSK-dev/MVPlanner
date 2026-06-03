@@ -88,7 +88,7 @@ export const LayoutControls: Component<{ deps: AppSettingsSectionDeps }> = (prop
           </option>
           <For each={groups()}>
             {([category, entries]) => (
-              <optgroup label={category}>
+              <optgroup label={t(category)}>
                 <For each={entries}>{(w) => <option value={w.id}>{w.title}</option>}</For>
               </optgroup>
             )}

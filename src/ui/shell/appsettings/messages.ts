@@ -86,6 +86,11 @@ export const APPSETTINGS_MESSAGES: Readonly<Record<string, string>> = {
   'appsettings.layout.exportLayout': 'Export layout',
   'appsettings.layout.importLayout': 'Import layout',
   'appsettings.layout.importError': 'That file is not a valid MVPlanner layout.',
+  'appsettings.layout.category.screens': 'Screens',
+  'appsettings.layout.category.telemetry': 'Telemetry',
+  'appsettings.layout.category.tools': 'Tools',
+  'appsettings.layout.category.info': 'Info',
+  'appsettings.layout.category.other': 'Other',
 
   // Units & Measurement
   'appsettings.units.system': 'Unit system',

@@ -9,7 +9,14 @@ import { createComponent } from 'solid-js';
 import { createAppStore } from '../../src/core/store';
 import { createUiRegistry, ShellContext, type ShellContextValue } from '../../src/ui/shell';
 import { DockManager } from '../../src/ui/shell/dock';
-import { SHELL_LAYOUT_KEY, makePanel, type ShellLayout } from '../../src/ui/shell/workspace';
+import {
+  SHELL_LAYOUT_KEY,
+  activeWorkspace,
+  readShellLayout,
+  makePanel,
+  type ShellLayout,
+  type SplitNode,
+} from '../../src/ui/shell/workspace';
 import { t } from '../../src/core/i18n';
 import type { AppState, PanelDef, Store } from '../../src/contracts';
 
@@ -93,6 +100,24 @@ describe('DockManager v2', () => {
     expect(
       [...c.querySelectorAll<HTMLButtonElement>('.mvp-dock-tab')][1]?.getAttribute('aria-selected'),
     ).toBe('true');
+  });
+
+  it('resizes a split via keyboard arrows on the divider', async () => {
+    const store = storeWith({
+      type: 'split',
+      id: 's',
+      direction: 'row',
+      sizes: [0.5, 0.5],
+      children: [makePanel('w.map', 'A'), makePanel('w.hud', 'B')],
+    });
+    const c = mountDock(store, [widget('w.map', 'Map'), widget('w.hud', 'HUD')]);
+    const gutter = c.querySelector('.mvp-dock-gutter') as HTMLElement;
+    fireEvent.keyDown(gutter, { key: 'ArrowRight' });
+    await new Promise((r) => setTimeout(r, 0));
+    const root = activeWorkspace(readShellLayout(store.get().layout, t('workspace.default')))
+      .root as SplitNode;
+    expect(root.sizes[0]).toBeGreaterThan(0.5);
+    expect(root.sizes[1]).toBeLessThan(0.5);
   });
 
   it('hides the close control on a single-panel workspace (last-panel guard)', () => {
