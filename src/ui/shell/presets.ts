@@ -4,7 +4,14 @@
  * "Add widget" palette model. Built-in per-screen preset trees are assembled in
  * a later phase once the widgets are registered.
  */
-import type { PanelDef } from '../../contracts';
+import type { PanelDef, ScreenId } from '../../contracts';
+import { SCREEN_ORDER, screenPanelId } from './screens';
+import {
+  makePanel,
+  SHELL_SCHEMA_VERSION,
+  type ShellLayout,
+  type ShellWorkspace,
+} from './workspace';
 
 /** One selectable widget in the palette. */
 export interface WidgetCatalogEntry {
@@ -53,4 +60,70 @@ export function groupByCategory(
     groups.set(entry.category, bucket);
   }
   return groups;
+}
+
+// ---------------------------------------------------------------------------
+// Built-in workspace presets (UI remake). Each of the six screens is a named,
+// editable workspace whose default root mounts that screen's panel; users tile
+// in more widgets, resize, tab, save + reset. Presets ship in code so “Reset to
+// preset” always restores them.
+// ---------------------------------------------------------------------------
+
+/** A translator for workspace/screen names. */
+export type NameFor = (screenId: string) => string;
+
+/** The default (preset) workspace for a screen id. */
+export function builtinWorkspace(screenId: ScreenId, name: string): ShellWorkspace {
+  return { id: screenId, name, root: makePanel(screenPanelId(screenId), `root-${screenId}`) };
+}
+
+/** The full default shell layout: one preset workspace per screen. */
+export function defaultLayout(nameFor: NameFor): ShellLayout {
+  const workspaces: Record<string, ShellWorkspace> = {};
+  for (const id of SCREEN_ORDER) workspaces[id] = builtinWorkspace(id, nameFor(id));
+  return {
+    schemaVersion: SHELL_SCHEMA_VERSION,
+    activeWorkspaceId: SCREEN_ORDER[0] ?? 'flight',
+    order: [...SCREEN_ORDER],
+    workspaces,
+  };
+}
+
+/**
+ * Ensure every built-in preset workspace exists (adding missing ones) and the
+ * active id is valid, preserving user-edited + custom workspaces. Idempotent;
+ * run on hydrate after {@link import('./workspace').migrateShellLayout}.
+ */
+export function ensurePresets(shell: ShellLayout, nameFor: NameFor): ShellLayout {
+  const workspaces: Record<string, ShellWorkspace> = { ...shell.workspaces };
+  const order = [...shell.order];
+  for (const id of SCREEN_ORDER) {
+    if (workspaces[id] === undefined) {
+      workspaces[id] = builtinWorkspace(id, nameFor(id));
+      if (!order.includes(id)) order.push(id);
+    }
+  }
+  const active = workspaces[shell.activeWorkspaceId]
+    ? shell.activeWorkspaceId
+    : (SCREEN_ORDER[0] ?? 'flight');
+  return {
+    ...shell,
+    schemaVersion: SHELL_SCHEMA_VERSION,
+    order,
+    workspaces,
+    activeWorkspaceId: active,
+  };
+}
+
+/** Reset a screen's workspace back to its built-in preset. */
+export function resetWorkspaceToPreset(
+  shell: ShellLayout,
+  screenId: string,
+  name: string,
+): ShellLayout {
+  if (!(SCREEN_ORDER as readonly string[]).includes(screenId)) return shell;
+  return {
+    ...shell,
+    workspaces: { ...shell.workspaces, [screenId]: builtinWorkspace(screenId as ScreenId, name) },
+  };
 }

@@ -41,6 +41,15 @@ import {
   type AppSettingsSectionDeps,
 } from './ui/shell/appsettings';
 import { createRecentsStore, type RecentEntry, type RecentKind } from './core/recents';
+import {
+  SHELL_LAYOUT_KEY,
+  activateWorkspace,
+  migrateShellLayout,
+  readShellLayout,
+  writeShellLayout,
+} from './ui/shell/workspace';
+import { SCREEN_ORDER } from './ui/shell/screens';
+import { defaultLayout, ensurePresets } from './ui/shell/presets';
 import './ui/shell/appsettings/appsettings.css';
 import type { AppState, KvStore, Store } from './contracts';
 import { createPlanScreenPanel, createPlanSession } from './ui/screens/plan';
@@ -99,6 +108,30 @@ export const App: Component<AppProps> = (props) => {
   void recents.load();
   // App-lifetime plan session so the in-progress plan survives Plan-tab switches.
   const planSession = createPlanSession();
+
+  // UI remake: ensure the six built-in workspace presets exist (migrating any
+  // older/foreign stored layout, never crashing), and point the active
+  // workspace at the current screen. Idempotent + reactive (re-runs once after
+  // the KV rehydrates the persisted layout).
+  const wsNameFor = (id: string): string => t(`nav.${id}`);
+  const shellLayoutSel = store.select((s) => readShellLayout(s.layout, t('workspace.default')));
+  createEffect(() => {
+    const shell = shellLayoutSel();
+    const complete =
+      SCREEN_ORDER.every((id) => shell.workspaces[id] !== undefined) &&
+      shell.workspaces[shell.activeWorkspaceId] !== undefined;
+    if (complete) return;
+    store.patch((s) => {
+      const migrated = migrateShellLayout(
+        s.layout.workspaces[SHELL_LAYOUT_KEY],
+        defaultLayout(wsNameFor),
+      );
+      writeShellLayout(
+        s.layout,
+        activateWorkspace(ensurePresets(migrated, wsNameFor), s.layout.activeScreen),
+      );
+    });
+  });
   const storageManager = buildStorageManager(storage);
   const appSettingsControl = createAppSettingsControl(
     store.get().settings.appearance?.lastSettingsSection ?? 'appearance',

@@ -11,6 +11,7 @@ import { t } from '../../core/i18n';
 import { useShell } from './context';
 import { useConnection } from './connection';
 import { useAppSettings } from './appsettings/context';
+import { activateScreenWorkspace } from './layout-actions';
 import { SCREEN_ORDER } from './screens';
 
 /** Map a {@link ConnState} to a catalog key for its chip label. */
@@ -33,9 +34,7 @@ export const TopBar: Component<{ onOpenPalette: () => void }> = (props) => {
   const conn = store.select((s) => s.connection);
 
   const navigate = (screen: ScreenId): void => {
-    store.patch((s) => {
-      s.layout.activeScreen = screen;
-    });
+    activateScreenWorkspace(store, screen);
   };
 
   return (

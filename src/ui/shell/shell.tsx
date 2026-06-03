@@ -15,6 +15,7 @@ import { Show, createSignal, onCleanup, onMount, type Component } from 'solid-js
 import type { CommandDef, ScreenId } from '../../contracts';
 import { t } from '../../core/i18n';
 import { chordFromEvent } from '../../core/keybinds';
+import { activateScreenWorkspace } from './layout-actions';
 import { AlertCenter } from './alert-center';
 import { CommandPalette } from './command-palette';
 import { ShellContext, type ShellContextValue } from './context';
@@ -83,10 +84,7 @@ export const Shell: Component<{ ctx: ShellContextValue }> = (props) => {
   const disposers: Array<() => void> = [];
   for (const panel of createScreenPanels()) disposers.push(registry.registerPanel(panel));
 
-  const navigate = (screen: ScreenId): void =>
-    store.patch((s) => {
-      s.layout.activeScreen = screen;
-    });
+  const navigate = (screen: ScreenId): void => activateScreenWorkspace(store, screen);
 
   for (const screen of SCREEN_ORDER) {
     const cmd: CommandDef = {

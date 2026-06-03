@@ -4,9 +4,10 @@
  * to mutate the active workspace tree through the pure reducers in
  * `./workspace`, keeping every layout change consistent + persisted.
  */
-import type { AppState, Store } from '../../contracts';
+import type { AppState, ScreenId, Store } from '../../contracts';
 import { t } from '../../core/i18n';
 import {
+  activateWorkspace,
   activeWorkspace,
   allPanels,
   countPanels,
@@ -21,6 +22,19 @@ import {
   type DockNode,
   type DropZone,
 } from './workspace';
+
+/**
+ * Switch to a screen's workspace (UI remake nav). Keeps `layout.activeScreen` in
+ * sync (so the legacy sentinel + any screen-aware code still resolve) and points
+ * the dock at that screen's workspace.
+ */
+export function activateScreenWorkspace(store: Store<AppState>, screenId: string): void {
+  store.patch((s) => {
+    s.layout.activeScreen = screenId as ScreenId;
+    const shell = readShellLayout(s.layout, t('workspace.default'));
+    writeShellLayout(s.layout, activateWorkspace(shell, screenId));
+  });
+}
 
 /** Apply `fn` to the active workspace's root; an `undefined` result is refused. */
 function mutateActiveRoot(
