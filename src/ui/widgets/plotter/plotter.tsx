@@ -105,8 +105,21 @@ export const Plotter: Component<PlotterProps> = (props) => {
       return;
     }
     if (activeStructureKey !== nextModel.structureKey) {
+      // Preserve the user's x-zoom across the structural rebuild.
+      const xScale = plot.scales['x'];
+      const xMin = xScale?.min;
+      const xMax = xScale?.max;
       destroyPlot();
       createPlot(nextModel);
+      if (
+        plot !== undefined &&
+        typeof xMin === 'number' &&
+        Number.isFinite(xMin) &&
+        typeof xMax === 'number' &&
+        Number.isFinite(xMax)
+      ) {
+        plot.setScale('x', { min: xMin, max: xMax });
+      }
       return;
     }
     plot.setSize({ width: nextSize.width, height: nextSize.height });

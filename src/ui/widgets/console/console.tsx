@@ -101,11 +101,20 @@ export const ScriptingConsole: Component<ScriptingConsoleProps> = (props) => {
     push(lines);
   };
 
+  /** Render an infrastructure rejection (not a user-script error) visibly. */
+  const renderFailure = (err: unknown): void => {
+    const name = err instanceof Error ? err.name : 'Error';
+    const message = err instanceof Error ? err.message : String(err);
+    push([{ id: seq++, kind: 'fail', text: t('console.output.error', { name, message }) }]);
+  };
+
   const run = async (): Promise<void> => {
     if (running()) return;
     setRunning(true);
     try {
       renderResult(await props.controller.run(currentCode()));
+    } catch (err) {
+      renderFailure(err);
     } finally {
       setRunning(false);
     }
@@ -114,9 +123,13 @@ export const ScriptingConsole: Component<ScriptingConsoleProps> = (props) => {
   const saveSnippet = async (): Promise<void> => {
     const name = snippetName().trim();
     if (!name) return;
-    await props.controller.snippets.save({ name, code: currentCode() });
-    setSnippetName('');
-    await refreshSnippets();
+    try {
+      await props.controller.snippets.save({ name, code: currentCode() });
+      setSnippetName('');
+      await refreshSnippets();
+    } catch (err) {
+      renderFailure(err);
+    }
   };
 
   const loadSnippet = (snippet: Snippet): void => {
@@ -126,7 +139,11 @@ export const ScriptingConsole: Component<ScriptingConsoleProps> = (props) => {
   };
 
   const runSnippet = async (snippet: Snippet): Promise<void> => {
-    renderResult(await props.controller.runSnippet(snippet.id));
+    try {
+      renderResult(await props.controller.runSnippet(snippet.id));
+    } catch (err) {
+      renderFailure(err);
+    }
   };
 
   const deleteSnippet = async (snippet: Snippet): Promise<void> => {

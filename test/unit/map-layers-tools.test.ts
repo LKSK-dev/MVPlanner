@@ -159,6 +159,28 @@ describe('measure tools', () => {
     expect(tools.measureSummary()).toMatch(/Area/);
   });
 
+  it('leaving a measure mode clears the stale measurement points', () => {
+    const h = fakeHost();
+    const tools = createMapTools(h.host, { genId: idGen() });
+    tools.setMode('measure-distance');
+    h.click({ lat: 0, lon: 0 });
+    h.click({ lat: 0, lon: 1 });
+    expect(tools.measurePoints()).toHaveLength(2);
+
+    tools.setMode('none');
+    expect(tools.measurePoints()).toHaveLength(0);
+    expect(tools.measureSummary()).toBe('Click the map to measure');
+
+    // Leaving into drop-marker clears too.
+    tools.setMode('measure-area');
+    h.click({ lat: 0, lon: 0 });
+    h.click({ lat: 0, lon: 1 });
+    h.click({ lat: 1, lon: 1 });
+    expect(tools.measurePoints()).toHaveLength(3);
+    tools.setMode('drop-marker');
+    expect(tools.measurePoints()).toHaveLength(0);
+  });
+
   it('switching to a measure tool starts a fresh session; undo/clear work', () => {
     const h = fakeHost();
     const tools = createMapTools(h.host, { genId: idGen() });

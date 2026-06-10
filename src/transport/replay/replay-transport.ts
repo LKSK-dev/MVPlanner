@@ -89,7 +89,8 @@ export class ReplayTransport implements Transport {
         this.controller = controller;
       },
       cancel: () => {
-        this.clearTimer();
+        this.controllerClosed = true;
+        void this.close();
       },
     });
 
@@ -104,6 +105,12 @@ export class ReplayTransport implements Transport {
   // --- Transport contract -------------------------------------------------
 
   async open(config: unknown): Promise<void> {
+    if (this.controllerClosed) {
+      throw new Error('transport already consumed; create a new instance');
+    }
+    if (!this.closed) {
+      throw new Error('replay transport: already open');
+    }
     const { data, speed } = parseReplayConfig(config);
     this.frames = parseTlog(data);
     this.speed = speed;
@@ -111,7 +118,6 @@ export class ReplayTransport implements Transport {
     this.lastEmittedTimeUs = undefined;
     this.paused = false;
     this.closed = false;
-    this.controllerClosed = false;
     this.bytesIn = 0;
     this.packetsIn = 0;
 

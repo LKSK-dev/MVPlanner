@@ -16,6 +16,13 @@ export const CONFIG_MESSAGES: Readonly<Record<string, string>> = {
   'config.tab.params': 'Parameters',
   'config.tab.tuning': 'Tuning',
   'config.tab.settings': 'Settings',
+  'config.confirm.write.title': 'Write parameters?',
+  'config.confirm.write.body':
+    'Write {n} parameter value(s) to the vehicle? Wrong values can make the vehicle unsafe to fly.',
+  'config.confirm.autotune.title': 'Start autotune?',
+  'config.confirm.autotune.body':
+    'Start the autotune sequence? The vehicle will perform aggressive test maneuvers.',
+  'config.confirm.declined': 'Cancelled — nothing was written.',
 };
 
 let registered = false;

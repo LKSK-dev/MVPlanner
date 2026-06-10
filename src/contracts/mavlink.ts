@@ -46,6 +46,7 @@ export interface DecodedMessage {
   crcOk: boolean;
   signed: boolean;
   linkId?: number;
+  /** Receive timestamp in Unix-epoch microseconds (used as the tlog timestamp). */
   rxTimeUs: number;
   /** Raw frame bytes — used for tlog recording (spec plan/07 §7.4). */
   raw: Uint8Array;

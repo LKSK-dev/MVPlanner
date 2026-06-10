@@ -33,7 +33,13 @@ import {
   type Component,
   type JSX,
 } from 'solid-js';
-import type { CommandClient, ParamClient, ParamMeta, VehicleClass } from '../../../../contracts';
+import type {
+  CommandClient,
+  ConfirmOptions,
+  ParamClient,
+  ParamMeta,
+  VehicleClass,
+} from '../../../../contracts';
 import type { ParamMetaResolver, TFn } from '../../../widgets/paramgrid';
 import {
   MAV_CMD_DO_AUTOTUNE_ENABLE,
@@ -60,6 +66,12 @@ export interface TuningPanelProps {
   command?: CommandClient;
   /** Reactive active vehicle (drives the per-class group selection). */
   vehicle: Accessor<TuningVehicle | undefined>;
+  /** Destructive-action confirmation gate (threaded from the Config assembly). */
+  confirm?: (opts: ConfirmOptions) => Promise<boolean>;
+  /** Whether the "confirm destructive actions" setting is on (store accessor). */
+  confirmDestructive?: () => boolean;
+  /** Reactive active vehicle sysid — a switch clears cached/staged state. */
+  activeSysid?: () => number | undefined;
   /** i18n translate function. */
   t: TFn;
 }
@@ -137,6 +149,32 @@ export const TuningPanel: Component<TuningPanelProps> = (props) => {
     onCleanup(off);
   });
 
+  // A vehicle switch invalidates the cached base + staged edits — without this
+  // a "Write" after switching would push vehicle A's gains to vehicle B.
+  const sysidAccessor = props.activeSysid;
+  if (sysidAccessor !== undefined) {
+    createEffect<number | undefined>((prev) => {
+      const cur = sysidAccessor();
+      if (prev !== undefined && prev !== cur) {
+        setBase(new Map());
+        setPending(new Map());
+        setStatus('');
+      }
+      return cur;
+    }, sysidAccessor());
+  }
+
+  /**
+   * Gate a destructive action behind the injected confirm seam when the user's
+   * `confirmDestructive` setting is on. Absent seam ⇒ allowed (the
+   * standalone-docked panel keeps its existing behaviour).
+   */
+  const confirmDestructiveAction = async (title: string, body: string): Promise<boolean> => {
+    const confirm = props.confirm;
+    if (confirm === undefined || props.confirmDestructive?.() !== true) return true;
+    return confirm({ title, body, destructive: true, armedAware: true });
+  };
+
   const reportError = (err: unknown): void => {
     const message = err instanceof Error ? err.message : String(err);
     setStatus(t('tuning.status.error', { message }));
@@ -179,6 +217,15 @@ export const TuningPanel: Component<TuningPanelProps> = (props) => {
     if (busy()) return;
     const entries = [...pending()];
     if (entries.length === 0) return;
+    if (
+      !(await confirmDestructiveAction(
+        t('config.confirm.write.title'),
+        t('config.confirm.write.body', { n: entries.length }),
+      ))
+    ) {
+      setStatus(t('config.confirm.declined'));
+      return;
+    }
     setBusy(true);
     setStatus('');
     try {
@@ -200,6 +247,16 @@ export const TuningPanel: Component<TuningPanelProps> = (props) => {
   const autotune = async (enable: boolean): Promise<void> => {
     const command = props.command;
     if (command === undefined || busy()) return;
+    if (
+      enable &&
+      !(await confirmDestructiveAction(
+        t('config.confirm.autotune.title'),
+        t('config.confirm.autotune.body'),
+      ))
+    ) {
+      setStatus(t('config.confirm.declined'));
+      return;
+    }
     setBusy(true);
     setStatus('');
     try {
@@ -365,7 +422,7 @@ export const TuningPanel: Component<TuningPanelProps> = (props) => {
               type="button"
               class="mvp-tuning__btn mvp-tuning__btn--danger"
               data-testid="tuning-autotune-stop"
-              disabled={busy() || !autotuneActive()}
+              disabled={busy()}
               onClick={() => void autotune(false)}
             >
               {t('tuning.autotune.stop')}

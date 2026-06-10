@@ -10,7 +10,7 @@
  * {@link Mission} back via {@link SurveyPanelProps.onGenerate}. Both are injected
  * so the panel unit-tests without a map or mission service.
  */
-import { For, Show, createMemo, createSignal, type Component } from 'solid-js';
+import { For, Show, createMemo, createSignal, type Accessor, type Component, type Setter } from 'solid-js';
 import { t as defaultT } from '../../../../core/i18n';
 import type { Mission } from '../../../../contracts';
 import type { LatLon } from '../../../../geo/format';
@@ -38,6 +38,14 @@ export interface SurveyPanelProps {
   t?: TFn;
   /** Optional initial camera/coverage/layout values. */
   initial?: Partial<SurveyConfig>;
+  /**
+   * Optional externally-owned config (e.g. the {@link PlanSession}) so the
+   * survey form survives drawer-tab switches. Supply BOTH `config` and
+   * `setConfig`; when absent the panel falls back to a local signal.
+   */
+  config?: Accessor<SurveyConfig>;
+  /** Setter paired with {@link SurveyPanelProps.config}. */
+  setConfig?: Setter<SurveyConfig>;
 }
 
 /** The editable survey configuration backing the panel inputs. */
@@ -52,7 +60,7 @@ export interface SurveyConfig {
 }
 
 /** Built-in defaults (DJI Phantom 4 Pro camera, typical mapping overlaps). */
-const DEFAULT_CONFIG: SurveyConfig = {
+export const DEFAULT_SURVEY_CONFIG: SurveyConfig = {
   camera: { ...DEFAULT_CAMERA },
   altitudeM: 100,
   frontlapPct: 75,
@@ -77,11 +85,19 @@ function round(value: number, digits = 1): number {
 /** The Survey / grid configuration panel. */
 export const SurveyPanel: Component<SurveyPanelProps> = (props) => {
   const t = props.t ?? defaultT;
-  const [config, setConfig] = createSignal<SurveyConfig>({
-    ...DEFAULT_CONFIG,
+  const [localConfig, setLocalConfig] = createSignal<SurveyConfig>({
+    ...DEFAULT_SURVEY_CONFIG,
     ...props.initial,
-    camera: { ...DEFAULT_CONFIG.camera, ...props.initial?.camera },
+    camera: { ...DEFAULT_SURVEY_CONFIG.camera, ...props.initial?.camera },
   });
+  const externalConfig = props.config;
+  const externalSetConfig = props.setConfig;
+  const config: Accessor<SurveyConfig> =
+    externalConfig !== undefined && externalSetConfig !== undefined ? externalConfig : localConfig;
+  const setConfig: Setter<SurveyConfig> =
+    externalConfig !== undefined && externalSetConfig !== undefined
+      ? externalSetConfig
+      : setLocalConfig;
 
   const patch = (mutate: (draft: SurveyConfig) => void): void => {
     setConfig((prev) => {

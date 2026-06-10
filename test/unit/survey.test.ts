@@ -23,6 +23,7 @@ import {
   type SurveyOptions,
 } from '../../src/geo/survey';
 import type { LatLon } from '../../src/geo/format';
+import { degToScaled, missionFromWire, scaledToDeg } from '../../src/geo/mission';
 
 /** Clean test camera: GSD/footprint come out to round numbers at 100 m. */
 const CAMERA: CameraModel = {
@@ -230,5 +231,43 @@ describe('surveyToMission', () => {
     const mission = surveyToMission(grid, { cameraTrigger: false });
     expect(mission.items.every((i) => i.command === CMD_NAV_WAYPOINT)).toBe(true);
     expect(mission.items.length).toBe(grid.waypoints.length);
+  });
+
+  it('writes wire x/y as degrees ×1e7, matching the grid waypoints', () => {
+    const mission = surveyToMission(grid, { cameraTrigger: false });
+    mission.items.forEach((it, i) => {
+      const wp = grid.waypoints[i];
+      if (wp === undefined) throw new Error('missing waypoint');
+      expect(it.x).toBe(degToScaled(wp.lat));
+      expect(it.y).toBe(degToScaled(wp.lon));
+      expect(scaledToDeg(it.x)).toBeCloseTo(wp.lat, 6);
+      expect(scaledToDeg(it.y)).toBeCloseTo(wp.lon, 6);
+    });
+  });
+
+  it('round-trips through missionFromWire back to the input coordinates', () => {
+    // A real-world polygon (Zurich-ish) so a missing ×1e7 scale would collapse
+    // 47.397… to ~4.7e-6 and fail loudly.
+    const center: LatLon = { lat: 47.3977, lon: 8.5456 };
+    const mPerDeg = 111319.49079327357;
+    const d = 200 / mPerDeg;
+    const poly: LatLon[] = [
+      { lat: center.lat - d, lon: center.lon - d },
+      { lat: center.lat - d, lon: center.lon + d },
+      { lat: center.lat + d, lon: center.lon + d },
+      { lat: center.lat + d, lon: center.lon - d },
+    ];
+    const g = generateGrid(poly, BASE_OPTS);
+    const model = missionFromWire(surveyToMission(g, { cameraTrigger: false }));
+    expect(model.items.length).toBe(g.waypoints.length);
+    model.items.forEach((it, i) => {
+      const wp = g.waypoints[i];
+      if (wp === undefined) throw new Error('missing waypoint');
+      expect(it.lat).toBeCloseTo(wp.lat, 6);
+      expect(it.lon).toBeCloseTo(wp.lon, 6);
+      // Sanity: coordinates stay in the real-world range, not near zero.
+      expect(Math.abs(it.lat - 47.3977)).toBeLessThan(0.01);
+      expect(Math.abs(it.lon - 8.5456)).toBeLessThan(0.01);
+    });
   });
 });

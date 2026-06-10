@@ -141,7 +141,18 @@ export function createExtensionsController(deps: ExtensionsControllerDeps): Exte
     await refresh();
   };
 
-  const enable = async (id: string): Promise<void> => {
+  /** Surface an action failure via the notify seam (mirrors installFromFile). */
+  const guardAction = async (action: () => Promise<void>): Promise<void> => {
+    try {
+      await action();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      deps.notify.error(deps.t('extmgr.actionError', { message }));
+      await refresh().catch(() => undefined);
+    }
+  };
+
+  const enableImpl = async (id: string): Promise<void> => {
     await system.enable(id);
     const state = system.host.get(id);
     const existing = await system.grants.list(id);
@@ -152,22 +163,27 @@ export function createExtensionsController(deps: ExtensionsControllerDeps): Exte
     await refresh();
   };
 
-  const disable = async (id: string): Promise<void> => {
-    await system.disable(id);
-    await refresh();
-  };
+  const enable = (id: string): Promise<void> => guardAction(() => enableImpl(id));
 
-  const uninstall = async (id: string): Promise<void> => {
-    await system.uninstall(id);
-    await refresh();
-  };
+  const disable = (id: string): Promise<void> =>
+    guardAction(async () => {
+      await system.disable(id);
+      await refresh();
+    });
 
-  const reload = async (id: string): Promise<void> => {
-    await system.reload(id, reloadModule(id));
-    await refresh();
-  };
+  const uninstall = (id: string): Promise<void> =>
+    guardAction(async () => {
+      await system.uninstall(id);
+      await refresh();
+    });
 
-  const revoke = async (id: string, permission: Permission): Promise<void> => {
+  const reload = (id: string): Promise<void> =>
+    guardAction(async () => {
+      await system.reload(id, reloadModule(id));
+      await refresh();
+    });
+
+  const revokeImpl = async (id: string, permission: Permission): Promise<void> => {
     const current = await system.grants.list(id);
     await system.setGrants(
       id,
@@ -178,6 +194,9 @@ export function createExtensionsController(deps: ExtensionsControllerDeps): Exte
     }
     await refresh();
   };
+
+  const revoke = (id: string, permission: Permission): Promise<void> =>
+    guardAction(() => revokeImpl(id, permission));
 
   const installFromFile = async (): Promise<void> => {
     const picked = await deps.files.openForRead(['.json', '.mvpext', '.mvpext.js']);

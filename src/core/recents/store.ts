@@ -88,6 +88,15 @@ export function createRecentsStore(options: RecentsStoreOptions): RecentsStore {
   let entries: RecentEntry[] = [];
   const listeners = new Set<(entries: readonly RecentEntry[]) => void>();
 
+  // Serializes mutations (record/remove/clear) so interleaved awaits cannot
+  // corrupt the entries list or persist out of order (audit B8).
+  let mutationChain: Promise<unknown> = Promise.resolve();
+  const enqueueMutation = <T>(task: () => Promise<T>): Promise<T> => {
+    const next = mutationChain.then(task, task);
+    mutationChain = next.catch(() => undefined);
+    return next;
+  };
+
   const notify = (): void => {
     for (const listener of listeners) listener(entries);
   };
@@ -121,55 +130,59 @@ export function createRecentsStore(options: RecentsStoreOptions): RecentsStore {
       };
     },
 
-    async record(input): Promise<RecentEntry> {
-      // Drop any prior entry for the same kind+name (and its blob).
-      const dupes = entries.filter((e) => e.kind === input.kind && e.name === input.name);
-      for (const dupe of dupes) await dropBlob(dupe.id);
-      entries = entries.filter((e) => !(e.kind === input.kind && e.name === input.name));
+    record(input): Promise<RecentEntry> {
+      return enqueueMutation(async () => {
+        // Drop any prior entry for the same kind+name (and its blob).
+        const dupes = entries.filter((e) => e.kind === input.kind && e.name === input.name);
+        for (const dupe of dupes) await dropBlob(dupe.id);
+        entries = entries.filter((e) => !(e.kind === input.kind && e.name === input.name));
 
-      const id = makeId();
-      const sizeBytes = input.blob.size;
-      const cacheable = sizeBytes > 0 && sizeBytes <= maxCacheBytes;
-      let cached = false;
-      if (cacheable) {
-        try {
-          await blobs.put(NS, id, input.blob);
-          cached = true;
-        } catch {
-          cached = false;
+        const id = makeId();
+        const sizeBytes = input.blob.size;
+        const cacheable = sizeBytes > 0 && sizeBytes <= maxCacheBytes;
+        let cached = false;
+        if (cacheable) {
+          try {
+            await blobs.put(NS, id, input.blob);
+            cached = true;
+          } catch {
+            cached = false;
+          }
         }
-      }
-      const entry: RecentEntry = {
-        id,
-        kind: input.kind,
-        name: input.name,
-        openedAt: now(),
-        sizeBytes,
-        cached,
-      };
-      entries = [entry, ...entries];
+        const entry: RecentEntry = {
+          id,
+          kind: input.kind,
+          name: input.name,
+          openedAt: now(),
+          sizeBytes,
+          cached,
+        };
+        entries = [entry, ...entries];
 
-      // Trim to the max entry count (delete overflow blobs).
-      if (entries.length > maxEntries) {
-        for (const overflow of entries.slice(maxEntries)) await dropBlob(overflow.id);
-        entries = entries.slice(0, maxEntries);
-      }
-
-      // Enforce the cached-bytes budget: uncache oldest cached entries first.
-      let cachedTotal = entries.reduce((sum, e) => sum + (e.cached ? e.sizeBytes : 0), 0);
-      if (cachedTotal > maxCacheBytes) {
-        for (let i = entries.length - 1; i >= 0 && cachedTotal > maxCacheBytes; i -= 1) {
-          const e = entries[i];
-          if (e === undefined || !e.cached) continue;
-          await dropBlob(e.id);
-          entries[i] = { ...e, cached: false };
-          cachedTotal -= e.sizeBytes;
+        // Trim to the max entry count (delete overflow blobs).
+        if (entries.length > maxEntries) {
+          for (const overflow of entries.slice(maxEntries)) await dropBlob(overflow.id);
+          entries = entries.slice(0, maxEntries);
         }
-      }
 
-      await persist();
-      notify();
-      return entry;
+        // Enforce the cached-bytes budget: uncache oldest cached entries first.
+        let cachedTotal = entries.reduce((sum, e) => sum + (e.cached ? e.sizeBytes : 0), 0);
+        if (cachedTotal > maxCacheBytes) {
+          for (let i = entries.length - 1; i >= 0 && cachedTotal > maxCacheBytes; i -= 1) {
+            const e = entries[i];
+            if (e === undefined || !e.cached) continue;
+            await dropBlob(e.id);
+            entries[i] = { ...e, cached: false };
+            cachedTotal -= e.sizeBytes;
+          }
+        }
+
+        await persist();
+        notify();
+        // Re-derive the returned entry from the (possibly evicted) list so it
+        // cannot claim `cached: true` after budget eviction uncached it (B8).
+        return entries.find((e) => e.id === id) ?? entry;
+      });
     },
 
     async open(id): Promise<{ name: string; blob: Blob } | undefined> {
@@ -185,19 +198,23 @@ export function createRecentsStore(options: RecentsStoreOptions): RecentsStore {
       }
     },
 
-    async remove(id): Promise<void> {
-      if (!entries.some((e) => e.id === id)) return;
-      await dropBlob(id);
-      entries = entries.filter((e) => e.id !== id);
-      await persist();
-      notify();
+    remove(id): Promise<void> {
+      return enqueueMutation(async () => {
+        if (!entries.some((e) => e.id === id)) return;
+        await dropBlob(id);
+        entries = entries.filter((e) => e.id !== id);
+        await persist();
+        notify();
+      });
     },
 
-    async clear(): Promise<void> {
-      for (const e of entries) await dropBlob(e.id);
-      entries = [];
-      await persist();
-      notify();
+    clear(): Promise<void> {
+      return enqueueMutation(async () => {
+        for (const e of entries) await dropBlob(e.id);
+        entries = [];
+        await persist();
+        notify();
+      });
     },
   };
 }

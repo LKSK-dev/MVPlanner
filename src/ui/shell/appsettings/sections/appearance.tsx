@@ -13,7 +13,7 @@
  * so a malformed value is surfaced inline (and skipped) instead of poisoning
  * the stored palette.
  */
-import { For, Show, createSignal, type Component } from 'solid-js';
+import { For, Show, createSignal, onCleanup, type Component } from 'solid-js';
 import type {
   AppearanceColorKey,
   AppearanceSettings,
@@ -38,6 +38,9 @@ import { LayoutControls } from './layout';
 /** Match a 6-digit hex color the native `<input type=color>` can display. */
 const HEX6 = /^#[0-9a-f]{6}$/i;
 
+/** How long the transient "theme installed" hint stays visible. */
+const THEME_SAVED_HINT_MS = 4000;
+
 /** Theme-selector option value prefix for a built-in theme mode. */
 const BUILTIN_PREFIX = 'builtin:';
 /** Theme-selector option value prefix for an installed custom theme. */
@@ -57,7 +60,23 @@ export const AppearanceSection: Component<{ deps: AppSettingsSectionDeps }> = (p
   /** Whether the last theme install failed to parse as an MVPlanner bundle. */
   const [importError, setImportError] = createSignal(false);
   /** Whether the last install succeeded (transient confirmation hint). */
-  const [themeSaved, setThemeSaved] = createSignal(false);
+  const [themeSaved, setThemeSavedRaw] = createSignal(false);
+
+  let themeSavedTimer: ReturnType<typeof setTimeout> | undefined;
+  onCleanup(() => {
+    if (themeSavedTimer !== undefined) clearTimeout(themeSavedTimer);
+  });
+  /** Set the saved hint; when shown, auto-clear it after a few seconds. */
+  const setThemeSaved = (value: boolean): void => {
+    if (themeSavedTimer !== undefined) {
+      clearTimeout(themeSavedTimer);
+      themeSavedTimer = undefined;
+    }
+    setThemeSavedRaw(value);
+    if (value) {
+      themeSavedTimer = setTimeout(() => setThemeSavedRaw(false), THEME_SAVED_HINT_MS);
+    }
+  };
   /** Name to give the next installed theme (empty falls back to the default). */
   const [themeName, setThemeName] = createSignal('');
 

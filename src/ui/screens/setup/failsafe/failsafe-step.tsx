@@ -6,7 +6,15 @@
  * and {@link ParamClient.set}. Parameters absent from the current cache are not
  * rendered, allowing Plane/Rover/older-firmware variants to degrade gracefully.
  */
-import { For, Show, createMemo, createSignal, type Accessor, type Component } from 'solid-js';
+import {
+  For,
+  Show,
+  createMemo,
+  createSignal,
+  onCleanup,
+  type Accessor,
+  type Component,
+} from 'solid-js';
 import { createParamMetaStore } from '../../../../mavlink/param-meta';
 import { t } from '../../../../core/i18n';
 import type { ParamClient, VehicleClass } from '../../../../contracts';
@@ -69,6 +77,13 @@ function inputStep(field: FailsafeField): number | 'any' {
 export const FailsafeSetup: Component<FailsafeSetupProps> = (props) => {
   const [pending, setPending] = createSignal<PendingSet>(new Set<FailsafeParamName>());
   const [errors, setErrors] = createSignal<ErrorMap>(new Map<FailsafeParamName, string>());
+
+  // Subscribe in the rendered panel (not the factory) so the tap is released
+  // on unmount — a factory-level subscription leaks per Setup mount (E5).
+  const unsubscribe = props.params.onChange((param) => {
+    if (isFailsafeParamName(param.name)) props.onChanged();
+  });
+  onCleanup(unsubscribe);
 
   const sections = createMemo(() => {
     props.revision();
@@ -210,10 +225,6 @@ export function createFailsafeStep(deps: FailsafeStepDeps): SetupStep {
   const bump = (): void => {
     setRevision((value) => value + 1);
   };
-
-  deps.params.onChange((param) => {
-    if (isFailsafeParamName(param.name)) bump();
-  });
 
   const sections = (): ReturnType<typeof deriveFailsafeSections> => {
     revision();

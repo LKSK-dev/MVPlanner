@@ -240,8 +240,11 @@ export function createMapTools(host: MapToolHost, options: MapToolsOptions = {})
     mode: () => mode,
     setMode(next: ToolMode): void {
       if (next === mode) return;
-      // Entering a measure tool starts a fresh measurement session.
-      if (next === 'measure-distance' || next === 'measure-area') points.length = 0;
+      const wasMeasure = mode === 'measure-distance' || mode === 'measure-area';
+      const isMeasure = next === 'measure-distance' || next === 'measure-area';
+      // Entering a measure tool starts a fresh measurement session; leaving one
+      // clears the stale path so it stops painting and can't mix semantics.
+      if (isMeasure || wasMeasure) points.length = 0;
       mode = next;
       notify();
     },

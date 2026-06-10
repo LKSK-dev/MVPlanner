@@ -297,6 +297,54 @@ describe('ReplayTransport playback', () => {
     expect(late).toEqual(['open']);
   });
 
+  it('rejects re-open after end-of-stream / close (consumed controller, B1)', async () => {
+    const { tlog } = fixture();
+    const sched = new ManualScheduler();
+    const t = new ReplayTransport({ scheduler: sched });
+    const reader = t.readable.getReader();
+
+    await t.open({ data: tlog });
+    sched.runNext();
+    await readChunk(reader);
+    await t.close(); // controller closed for good
+
+    await expect(t.open({ data: tlog })).rejects.toThrow(
+      'transport already consumed; create a new instance',
+    );
+  });
+
+  it('rejects open() while already open (B1)', async () => {
+    const { tlog } = fixture();
+    const sched = new ManualScheduler();
+    const t = new ReplayTransport({ scheduler: sched });
+
+    await t.open({ data: tlog });
+    await expect(t.open({ data: tlog })).rejects.toThrow('replay transport: already open');
+    await t.close();
+  });
+
+  it('readable.cancel() closes the transport so later step/seek cannot enqueue (B2)', async () => {
+    const { tlog } = fixture();
+    const sched = new ManualScheduler();
+    const t = new ReplayTransport({ scheduler: sched });
+    const reader = t.readable.getReader();
+    const states: ConnState['kind'][] = [];
+    t.onState((s) => states.push(s.kind));
+
+    await t.open({ data: tlog });
+    await reader.cancel();
+
+    expect(states[states.length - 1]).toBe('closed');
+    expect(sched.pendingDelays).toEqual([]);
+    // Closed: these must be no-ops, not enqueue-on-closed-controller throws.
+    expect(() => t.step()).not.toThrow();
+    expect(() => t.seek(2000)).not.toThrow();
+    // A consumed transport cannot be re-opened.
+    await expect(t.open({ data: tlog })).rejects.toThrow(
+      'transport already consumed; create a new instance',
+    );
+  });
+
   it('close() emits closed and ends the stream', async () => {
     const { tlog } = fixture();
     const sched = new ManualScheduler();

@@ -107,17 +107,40 @@ export const Shell: Component<{ ctx: ShellContextValue }> = (props) => {
     registry.registerCommand({
       id: 'workspace.save',
       title: t('cmd.saveWorkspace'),
-      run: () =>
+      run: () => {
+        // Unique auto-numbered id/name so repeated saves never silently
+        // overwrite one another (audit D4).
+        const current = readShellLayout(store.get().layout, t('workspace.default'));
+        let n = Object.keys(current.workspaces).filter((id) => id.startsWith('saved-')).length + 1;
+        while (current.workspaces[`saved-${n}`] !== undefined) n += 1;
+        const savedId = `saved-${n}`;
+        const savedName = `Saved ${n}`;
         store.patch((s) => {
           const shell = readShellLayout(s.layout, t('workspace.default'));
-          const saved = saveWorkspaceAs(shell, 'saved', t('workspace.default'));
+          const saved = saveWorkspaceAs(shell, savedId, savedName);
           s.layout.workspaces[SHELL_LAYOUT_KEY] = saved;
-        }),
+        });
+        registry.toast('info', t('workspace.savedToast', { name: savedName }));
+      },
     }),
     registry.registerCommand({
       id: 'layout.reset',
       title: t('cmd.resetLayout'),
-      run: () => resetActiveWorkspace(store),
+      run: async () => {
+        // Destructive: gate through the confirm dialog when the user has
+        // confirm-destructive enabled (audit D6).
+        if (store.get().settings.confirmDestructive) {
+          const ok = await registry.confirm({
+            destructive: true,
+            title: t('workspace.resetConfirmTitle'),
+            body: t('workspace.resetConfirmBody'),
+          });
+          if (!ok) return;
+        }
+        if (!resetActiveWorkspace(store)) {
+          registry.toast('warn', t('workspace.noPreset'));
+        }
+      },
     }),
   );
 

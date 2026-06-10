@@ -136,8 +136,9 @@ export function interpolateTrackAt(
 
 /**
  * Map a clicked lat/lon back to the nearest track sample's `timeUs` (the
- * optional map→plot-cursor direction). Uses a cheap squared-degree distance,
- * which is monotonic enough for picking the closest vertex at log scales.
+ * optional map→plot-cursor direction). Uses a cheap equirectangular squared
+ * distance: the longitude delta is wrapped into [-180, 180] and weighted by
+ * cos(lat) so picks stay correct near the antimeridian and at high latitudes.
  */
 export function nearestTrackTime(
   track: readonly TrackSample[],
@@ -146,9 +147,13 @@ export function nearestTrackTime(
 ): number | undefined {
   let bestTime: number | undefined;
   let bestDistance = Number.POSITIVE_INFINITY;
+  const lonScale = Math.cos((lat * Math.PI) / 180);
   for (const sample of track) {
     const dLat = sample.lat - lat;
-    const dLon = sample.lon - lon;
+    let dLon = (sample.lon - lon) % 360;
+    if (dLon > 180) dLon -= 360;
+    else if (dLon < -180) dLon += 360;
+    dLon *= lonScale;
     const distance = dLat * dLat + dLon * dLon;
     if (distance < bestDistance) {
       bestDistance = distance;

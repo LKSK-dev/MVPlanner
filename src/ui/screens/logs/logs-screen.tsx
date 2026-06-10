@@ -62,7 +62,7 @@ import {
   type PlaybackProgress,
   type ReplayController,
 } from './playback';
-import { ReplayTransport } from '../../../transport/replay';
+import { ReplayTransport, parseTlog, type TlogFrame } from '../../../transport/replay';
 import { SeriesPicker, type SelectedSeriesSummary } from './series-picker';
 import { decodeDataFlashInWorker } from './source';
 import {
@@ -173,6 +173,92 @@ function defaultCreateEngine(blobs: BlobStore): RasterMapEngine {
   return createRasterMapEngine({ cache });
 }
 
+/** Compare two byte chunks for exact equality. */
+function bytesEqual(a: Uint8Array, b: Uint8Array): boolean {
+  if (a.byteLength !== b.byteLength) return false;
+  for (let i = 0; i < a.byteLength; i++) if (a[i] !== b[i]) return false;
+  return true;
+}
+
+/** A running replay session: the open transport plus its cancellable reader loop. */
+interface ReplaySession {
+  /** Cancel the reader loop and pause/close the transport. */
+  stop(): Promise<void>;
+}
+
+/**
+ * Start the frame-report loop for an open replay transport (fix F1): read the
+ * transport's frame stream (one chunk per tlog frame), map each chunk back to
+ * its parsed frame (the chunk is an exact copy of `frame.bytes`; matching scans
+ * forward from the last position and wraps once to survive seeks), and feed
+ * `controller.report(frameTimeUs, atEnd)` so the scrub slider and timecode
+ * track playback. Reports `ended` when the stream completes. The returned
+ * session's `stop()` cancels the loop and pauses/closes the transport (fix F2).
+ */
+function startReplaySession(
+  transport: OpenableReplayTransport,
+  controller: ReplayController,
+  frames: readonly TlogFrame[],
+): ReplaySession {
+  const readable = transport.readable;
+  const lastUs = frames[frames.length - 1]?.timeUs ?? 0;
+  let cancelled = false;
+
+  const closeTransport = async (): Promise<void> => {
+    transport.pause();
+    await transport.close?.();
+  };
+
+  if (readable === undefined) {
+    // Test doubles without a frame stream: nothing to report, only cleanup.
+    return { stop: closeTransport };
+  }
+
+  const reader = readable.getReader();
+  let pointer = 0;
+  const matchFrame = (chunk: Uint8Array): TlogFrame | undefined => {
+    // Frames replay in order; a seek may jump the pointer, so scan forward
+    // first and wrap to the start once on a miss.
+    for (let pass = 0; pass < 2; pass++) {
+      for (let i = pass === 0 ? pointer : 0; i < frames.length; i++) {
+        const frame = frames[i];
+        if (frame !== undefined && bytesEqual(frame.bytes, chunk)) {
+          pointer = i + 1;
+          return frame;
+        }
+      }
+    }
+    return undefined;
+  };
+
+  const loop = (async (): Promise<void> => {
+    try {
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done || cancelled) break;
+        const frame = matchFrame(value);
+        if (frame !== undefined) controller.report(frame.timeUs, pointer >= frames.length);
+      }
+      if (!cancelled) controller.report(lastUs, true);
+    } catch {
+      // Reader cancelled or transport torn down mid-read: nothing to report.
+    }
+  })();
+
+  return {
+    stop: async (): Promise<void> => {
+      cancelled = true;
+      try {
+        await reader.cancel();
+      } catch {
+        // Already closed/errored; cancellation is best-effort.
+      }
+      await loop;
+      await closeTransport();
+    },
+  };
+}
+
 /** A stable playback controller that re-targets a fresh tlog controller on open. */
 interface ScreenPlayback {
   /** The stable controller handed to {@link PlaybackControls}. */
@@ -240,7 +326,6 @@ function createScreenPlayback(): ScreenPlayback {
 /** The composed Logs & analysis screen. */
 export const LogsScreen: Component<LogsScreenProps> = (props) => {
   const t = props.t ?? defaultT;
-  const decodeBin = props.decodeBin ?? decodeDataFlashInWorker;
 
   // --- log source state -----------------------------------------------------
   const [index, setIndex] = createSignal<LogQueryIndex | undefined>();
@@ -251,6 +336,13 @@ export const LogsScreen: Component<LogsScreenProps> = (props) => {
   const [tlogBytes, setTlogBytes] = createSignal<Uint8Array | undefined>();
 
   const descriptors = createMemo(() => index()?.listSeries() ?? []);
+
+  // Default decode path: the inlined log worker, with streamed record-count
+  // progress surfacing in the status line (fix F4).
+  const decodeBin = (blob: Blob): Promise<LogQueryIndex> =>
+    props.decodeBin !== undefined
+      ? props.decodeBin(blob)
+      : decodeDataFlashInWorker(blob, (n) => setStatus(t('logs.source.loadingProgress', { n })));
 
   // --- flight track (GPS/POS) + cursor sync ---------------------------------
   const track = createMemo<readonly TrackSample[]>(() => {
@@ -409,6 +501,16 @@ export const LogsScreen: Component<LogsScreenProps> = (props) => {
   const playback = createScreenPlayback();
   onCleanup(() => playback.dispose());
 
+  // The active replay session (transport + reader loop); swapped on each open
+  // and torn down on unmount so no ghost replay keeps running (fix F2).
+  let replaySession: ReplaySession | undefined;
+  const stopReplaySession = async (): Promise<void> => {
+    const session = replaySession;
+    replaySession = undefined;
+    if (session !== undefined) await session.stop();
+  };
+  onCleanup(() => void stopReplaySession());
+
   // --- source loaders (shared by the file picker + Recents pending-open) -----
   // Decode an in-hand DataFlash `.bin`/`.log` blob; returns `true` on success.
   const loadBinBlob = async (name: string, blob: Blob): Promise<boolean> => {
@@ -422,8 +524,9 @@ export const LogsScreen: Component<LogsScreenProps> = (props) => {
       setTlogBytes(undefined);
       setStatus(t('logs.source.loaded', { name, series: idx.listSeries().length }));
       return true;
-    } catch {
-      setStatus(t('logs.source.error'));
+    } catch (err) {
+      const detail = err instanceof Error && err.message !== '' ? ` (${err.message})` : '';
+      setStatus(t('logs.source.error') + detail);
       return false;
     } finally {
       setLoading(false);
@@ -435,16 +538,21 @@ export const LogsScreen: Component<LogsScreenProps> = (props) => {
     setLoading(true);
     setStatus(t('logs.source.loading'));
     try {
+      // Tear down any previous replay before attaching a new one (fix F2).
+      await stopReplaySession();
       const data = new Uint8Array(await blob.arrayBuffer());
       const transport = (props.createReplayTransport ?? (() => new ReplayTransport()))();
       const controller = await openTlog({ data, transport });
       playback.attach(controller);
+      // Feed live frame timestamps into the controller (fix F1).
+      replaySession = startReplaySession(transport, controller, parseTlog(data));
       controller.seek(0);
       setTlogBytes(data);
       setStatus(t('logs.source.tlogLoaded', { name }));
       return true;
-    } catch {
-      setStatus(t('logs.source.error'));
+    } catch (err) {
+      const detail = err instanceof Error && err.message !== '' ? ` (${err.message})` : '';
+      setStatus(t('logs.source.error') + detail);
       return false;
     } finally {
       setLoading(false);
@@ -473,9 +581,14 @@ export const LogsScreen: Component<LogsScreenProps> = (props) => {
   // App Settings → Recents “Open”: load a cached `log`/`tlog` blob when it
   // appears (a `.tlog` name uses the playback path; otherwise DataFlash decode),
   // then clear it so re-selecting the same entry re-triggers the load.
+  let startedPending: { name: string; blob: Blob } | undefined;
   createEffect(() => {
     const pending = props.pendingOpen?.();
-    if (pending === undefined) return;
+    if (pending === undefined || pending === startedPending) return;
+    // This effect reads `loading()` so it re-runs when a load finishes; never
+    // start a second decode while one is in flight (fix F15).
+    if (loading()) return;
+    startedPending = pending;
     const isTlog = pending.name.toLowerCase().endsWith('.tlog');
     const load = isTlog ? loadTlogBlob : loadBinBlob;
     void load(pending.name, pending.blob).finally(() => props.onPendingConsumed?.());
@@ -594,6 +707,7 @@ export const LogsScreen: Component<LogsScreenProps> = (props) => {
         <PlaybackControls
           controller={playback.controller}
           totalUs={playbackTotalUs()}
+          disabled={loading()}
           t={t}
           onSelectPreset={(spec) => applyPreset(spec)}
         />

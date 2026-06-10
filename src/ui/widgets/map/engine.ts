@@ -171,6 +171,12 @@ export function createRasterMapEngine(options: RasterMapEngineOptions): RasterMa
   const bitmaps = new Map<string, TileImage>();
   /** Keys with an in-flight load, to dedupe concurrent fetches. */
   const pending = new Set<string>();
+  /**
+   * Invalidation generation: bumped on detach()/setBasemap(). In-flight tile
+   * loads capture the generation at start; results from a stale generation are
+   * closed + dropped instead of inserted (no leak, no stale-key redraw).
+   */
+  let generation = 0;
 
   function viewport(): Viewport {
     return {
@@ -199,6 +205,7 @@ export function createRasterMapEngine(options: RasterMapEngineOptions): RasterMa
   function ensureTile(tile: TileCoord, key: string): void {
     if (pending.has(key) || bitmaps.has(key)) return;
     pending.add(key);
+    const startedGeneration = generation;
     void cache
       .get(source, tile, { online: isOnline() })
       .then(async (blob) => {
@@ -206,6 +213,11 @@ export function createRasterMapEngine(options: RasterMapEngineOptions): RasterMa
         if (!blob) return;
         try {
           const img = await createBitmap(blob);
+          if (startedGeneration !== generation) {
+            // detach()/setBasemap() happened mid-load: drop the stale result.
+            closeBitmap(img);
+            return;
+          }
           bitmaps.set(key, img);
           trimBitmaps();
           requestRedraw();
@@ -336,6 +348,7 @@ export function createRasterMapEngine(options: RasterMapEngineOptions): RasterMa
     },
 
     detach(): void {
+      generation++;
       if (frameHandle !== undefined) {
         cancelFrame(frameHandle);
         frameHandle = undefined;
@@ -396,6 +409,7 @@ export function createRasterMapEngine(options: RasterMapEngineOptions): RasterMa
     },
 
     setBasemap(next: BasemapSource): void {
+      generation++;
       source = next;
       // Tiles from the previous source are no longer valid for this view.
       for (const img of bitmaps.values()) closeBitmap(img);

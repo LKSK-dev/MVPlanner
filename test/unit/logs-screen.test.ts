@@ -292,6 +292,21 @@ describe('logs track — cursor ⇄ position core', () => {
     expect(nearestTrackTime([], 0, 0)).toBeUndefined();
   });
 
+  it('weights longitude by cos(lat) and wraps across the antimeridian', () => {
+    // At 80°N a 1° lon offset is far smaller on the ground than 0.5° lat.
+    const polar = [
+      { timeUs: 1, lat: 80.5, lon: 0 }, // 0.5° lat away from the click
+      { timeUs: 2, lat: 80, lon: 1 }, // 1° lon away → ~0.17° ground-equivalent
+    ] as const;
+    expect(nearestTrackTime(polar, 80, 0)).toBe(2);
+    // dLon wraps into [-180, 180]: 179.5°E is 1° from 179.5°W, not 359°.
+    const wrap = [
+      { timeUs: 1, lat: 0, lon: 179.5 },
+      { timeUs: 2, lat: 0, lon: 170 },
+    ] as const;
+    expect(nearestTrackTime(wrap, 0, -179.5)).toBe(1);
+  });
+
   it('detects the GPS track source from descriptors', () => {
     expect(
       findTrackSource([

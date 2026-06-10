@@ -172,6 +172,8 @@ export const APPSETTINGS_MESSAGES: Readonly<Record<string, string>> = {
   'appsettings.general.refresh': 'Refresh',
   'appsettings.general.clearTiles': 'Clear tile cache',
   'appsettings.general.factoryReset': 'Factory reset',
+  'appsettings.general.resetDone': 'Reset complete — reloading…',
+  'appsettings.general.actionFailed': 'Action failed: {message}',
   'appsettings.general.factoryReset.confirm.title': 'Erase all local data?',
   'appsettings.general.factoryReset.confirm.body':
     'This clears all settings, caches and stored data. This cannot be undone.',

@@ -21,6 +21,8 @@ function anyArmed(vehicles: Record<number, { armed: boolean }>): boolean {
 /** Toast stack + confirm modal, mounted once at the shell root. */
 export const AlertCenter: Component = () => {
   const { registry, store } = useShell();
+  // Reactive armed flag (audit D3): updates live while the dialog is open.
+  const anyVehicleArmed = store.select((s) => anyArmed(s.vehicles));
 
   return (
     <>
@@ -50,10 +52,11 @@ export const AlertCenter: Component = () => {
         </For>
       </div>
 
-      <Show when={registry.confirmRequest()}>
+      {/* `keyed` so a swapped concurrent request re-renders fresh content (audit D1). */}
+      <Show when={registry.confirmRequest()} keyed>
         {(request) => {
-          const opts = request().opts;
-          const armed = opts.armedAware === true && anyArmed(store.get().vehicles);
+          const opts = request.opts;
+          const armed = (): boolean => opts.armedAware === true && anyVehicleArmed();
           let dialogEl: HTMLDivElement | undefined;
           let cancelEl: HTMLButtonElement | undefined;
           let confirmEl: HTMLButtonElement | undefined;
@@ -70,7 +73,7 @@ export const AlertCenter: Component = () => {
           const onKeyDown = (e: KeyboardEvent): void => {
             if (e.key === 'Escape') {
               e.preventDefault();
-              request().resolve(false);
+              request.resolve(false);
               return;
             }
             if (e.key !== 'Tab') return;
@@ -91,7 +94,7 @@ export const AlertCenter: Component = () => {
           };
 
           return (
-            <div class="mvp-modal-backdrop" onClick={() => request().resolve(false)}>
+            <div class="mvp-modal-backdrop" onClick={() => request.resolve(false)}>
               <div
                 ref={dialogEl}
                 class="mvp-modal"
@@ -109,7 +112,7 @@ export const AlertCenter: Component = () => {
                 <p class="mvp-modal__body" id="mvp-confirm-body">
                   {opts.body}
                 </p>
-                <Show when={armed}>
+                <Show when={armed()}>
                   <p class="mvp-modal__warn" role="note">
                     {t('confirm.armedWarning')}
                   </p>
@@ -119,7 +122,7 @@ export const AlertCenter: Component = () => {
                     ref={cancelEl}
                     type="button"
                     class="mvp-btn"
-                    onClick={() => request().resolve(false)}
+                    onClick={() => request.resolve(false)}
                   >
                     {t('confirm.cancel')}
                   </button>
@@ -128,7 +131,7 @@ export const AlertCenter: Component = () => {
                     type="button"
                     class="mvp-btn mvp-btn--primary"
                     classList={{ 'mvp-btn--danger': opts.destructive === true }}
-                    onClick={() => request().resolve(true)}
+                    onClick={() => request.resolve(true)}
                   >
                     {t('confirm.confirm')}
                   </button>

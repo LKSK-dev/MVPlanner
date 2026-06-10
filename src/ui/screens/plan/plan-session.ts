@@ -14,6 +14,7 @@ import { createMission, type MissionModel } from '../../../geo/mission';
 import { createFence, type Fence } from '../../../geo/fence';
 import { createRally, type Rally } from '../../../geo/rally';
 import type { LatLon } from '../../../geo/format';
+import { DEFAULT_SURVEY_CONFIG, type SurveyConfig } from './survey';
 
 /** The persisted plan-editing signals (get + set per slice). */
 export interface PlanSession {
@@ -25,6 +26,8 @@ export interface PlanSession {
   readonly setRally: Setter<Rally>;
   readonly surveyPolygon: Accessor<readonly LatLon[]>;
   readonly setSurveyPolygon: Setter<readonly LatLon[]>;
+  readonly surveyConfig: Accessor<SurveyConfig>;
+  readonly setSurveyConfig: Setter<SurveyConfig>;
 }
 
 /** Create an App-lifetime {@link PlanSession} seeded with empty plan state. */
@@ -33,6 +36,10 @@ export function createPlanSession(): PlanSession {
   const [fence, setFence] = createSignal<Fence>(createFence());
   const [rally, setRally] = createSignal<Rally>(createRally());
   const [surveyPolygon, setSurveyPolygon] = createSignal<readonly LatLon[]>([]);
+  const [surveyConfig, setSurveyConfig] = createSignal<SurveyConfig>({
+    ...DEFAULT_SURVEY_CONFIG,
+    camera: { ...DEFAULT_SURVEY_CONFIG.camera },
+  });
   return {
     mission,
     setMission,
@@ -42,5 +49,7 @@ export function createPlanSession(): PlanSession {
     setRally,
     surveyPolygon,
     setSurveyPolygon,
+    surveyConfig,
+    setSurveyConfig,
   };
 }

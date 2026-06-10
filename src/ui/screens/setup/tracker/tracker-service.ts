@@ -119,6 +119,8 @@ export class TrackerService {
   private trackerPosition: GeoPoint | undefined;
   private lastFeedMs = Number.NEGATIVE_INFINITY;
   private disposed = false;
+  /** Last `connected` value EMITTED to listeners (E1: staleness detection). */
+  private lastEmittedConnected = false;
 
   constructor(deps: TrackerServiceDeps) {
     this.sendMessage = deps.sendMessage;
@@ -211,10 +213,9 @@ export class TrackerService {
    * "disconnected" without needing a new message.
    */
   refreshConnection(): void {
-    const before = this.isConnected();
-    // No mutation needed — connection is derived from `lastHeartbeatMs`; emit
-    // only when the derived value would differ from a fresh read.
-    if (before !== this.isConnected()) this.emit();
+    // Connection is derived from `lastHeartbeatMs`; emit only when the fresh
+    // derivation differs from the last value listeners were told about.
+    if (this.isConnected() !== this.lastEmittedConnected) this.emit();
   }
 
   /** Tear down the message tap and drop all listeners. */
@@ -309,8 +310,9 @@ export class TrackerService {
 
   /** Fire all `onChange` listeners with a fresh snapshot. */
   private emit(): void {
-    if (this.changeListeners.size === 0) return;
     const state = this.getState();
+    this.lastEmittedConnected = state.connected;
+    if (this.changeListeners.size === 0) return;
     for (const cb of this.changeListeners) cb(state);
   }
 

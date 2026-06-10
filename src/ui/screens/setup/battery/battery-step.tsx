@@ -151,11 +151,16 @@ const BatteryPanel: Component<BatteryPanelProps> = (props) => {
 
   const writeField = (field: BatteryValueField, value: number): void => {
     const param = FIELD_PARAM[field];
+    const previous = values()[field];
     setFieldLocal(field, value);
     void props.params
       .set(param, value)
       .then(() => setStatus(t('setup.battery.status.wrote', { param })))
-      .catch(reportError);
+      .catch((err: unknown) => {
+        // The write failed — revert the optimistic local value (E14).
+        setFieldLocal(field, previous);
+        reportError(err);
+      });
   };
 
   const writeFieldFromRaw = (field: BatteryValueField, raw: string): void => {

@@ -68,7 +68,15 @@ import {
 } from '../../../ui/widgets/map/layers/adsb';
 import { MessagesConsole } from '../../../ui/widgets/messages';
 import { QuickWatch } from '../../../ui/widgets/quickwatch';
-import { ActionsBar, AuditPanel, runAction, type ActionsDeps, type ConfirmFn } from './actions';
+import {
+  ActionsBar,
+  AuditPanel,
+  runAction,
+  type ActionId,
+  type ActionOutcome,
+  type ActionsDeps,
+  type ConfirmFn,
+} from './actions';
 import type { FlightServices } from './services';
 import './messages';
 
@@ -250,6 +258,17 @@ export const FlightScreen: Component<FlightScreenProps> = (props) => {
 
   // --- guided map-click → runAction (shared confirm + audit) -----------------
   const [guidedMode, setGuidedMode] = createSignal<GuidedMode>('goto');
+  // E10: surface failed actions (bar buttons AND map-guided clicks) instead of
+  // dropping the outcome silently.
+  const [actionError, setActionError] = createSignal('');
+  const errMsg = (e: unknown): string => (e instanceof Error ? e.message : String(e));
+  const onActionOutcome = (id: ActionId, outcome: ActionOutcome): void => {
+    setActionError(
+      outcome.status === 'error'
+        ? t('flight.actions.failed', { action: id, message: errMsg(outcome.error) })
+        : '',
+    );
+  };
   const actionDeps = (): ActionsDeps => ({
     command: services.command,
     confirm: props.confirm,
@@ -272,7 +291,9 @@ export const FlightScreen: Component<FlightScreenProps> = (props) => {
     setSelectedIcao(undefined);
     const altM = activeVehicle()?.position?.altRelM ?? DEFAULT_GUIDED_ALT_M;
     const action = guidedMode() === 'roi' ? 'setRoi' : 'guidedGoto';
-    void runAction(actionDeps(), action, { lat: e.lat, lon: e.lon, altM });
+    void runAction(actionDeps(), action, { lat: e.lat, lon: e.lon, altM }).then((outcome) =>
+      onActionOutcome(action, outcome),
+    );
   });
   onCleanup(offIntent);
 
@@ -320,8 +341,13 @@ export const FlightScreen: Component<FlightScreenProps> = (props) => {
     const action = recorder.isRecording ? recorder.stop() : recorder.start();
     void action.then(refreshStats).catch(refreshStats);
   };
+  // E10: surface export failures (previously swallowed) near the control.
+  const [exportStatus, setExportStatus] = createSignal('');
   const exportTlog = (): void => {
-    void recorder.saveAs().catch(() => undefined);
+    setExportStatus('');
+    void recorder.saveAs().catch((e: unknown) => {
+      setExportStatus(t('flight.record.exportFailed', { message: errMsg(e) }));
+    });
   };
 
   const recStatsText = createMemo<string>(() => {
@@ -438,7 +464,11 @@ export const FlightScreen: Component<FlightScreenProps> = (props) => {
           audit={services.audit}
           vehicle={activeVehicle}
           t={t}
+          onOutcome={onActionOutcome}
         />
+        <p class="mvp-flight__action-error" aria-live="polite" data-testid="flight-action-error">
+          {actionError()}
+        </p>
 
         <section class="mvp-flight__record" aria-label={t('flight.record.title')}>
           <h2 class="mvp-flight__record-title">{t('flight.record.title')}</h2>
@@ -469,6 +499,13 @@ export const FlightScreen: Component<FlightScreenProps> = (props) => {
           </div>
           <p class="mvp-flight__record-stats" aria-live="polite">
             {recStatsText()}
+          </p>
+          <p
+            class="mvp-flight__record-export-status"
+            aria-live="polite"
+            data-testid="flight-export-status"
+          >
+            {exportStatus()}
           </p>
         </section>
 

@@ -8,7 +8,7 @@
  * {@link ExtensionsController}; this is a thin reactive view + the
  * {@link createExtensionsManagerPanel} registration glue.
  */
-import { For, Show, createComponent, type Component } from 'solid-js';
+import { For, Show, createComponent, createSignal, type Component } from 'solid-js';
 import { render } from 'solid-js/web';
 import type { PanelApi, PanelDef, Permission } from '../../../contracts';
 import { isHighRiskPermission } from '../../../ext/permissions';
@@ -41,6 +41,12 @@ export interface ExtensionsManagerProps {
 export const ExtensionsManager: Component<ExtensionsManagerProps> = (props) => {
   const t = props.t;
   const grantsFor = (id: string): readonly Permission[] => props.controller.grants().get(id) ?? [];
+  // The extension id with an in-flight action; its row's buttons are disabled.
+  const [busyId, setBusyId] = createSignal<string | undefined>();
+  const runAction = (id: string, action: () => Promise<void>): void => {
+    setBusyId(id);
+    void action().finally(() => setBusyId((current) => (current === id ? undefined : current)));
+  };
 
   return (
     <section class="mvp-extmgr" data-screen="extensions" aria-label={t('extmgr.title')}>
@@ -85,8 +91,9 @@ export const ExtensionsManager: Component<ExtensionsManagerProps> = (props) => {
                         <button
                           type="button"
                           data-testid="ext-enable"
+                          disabled={busyId() === ext.id}
                           onClick={() => {
-                            void props.controller.enable(ext.id);
+                            runAction(ext.id, () => props.controller.enable(ext.id));
                           }}
                         >
                           {t('extmgr.enable')}
@@ -96,16 +103,18 @@ export const ExtensionsManager: Component<ExtensionsManagerProps> = (props) => {
                       <button
                         type="button"
                         data-testid="ext-disable"
+                        disabled={busyId() === ext.id}
                         onClick={() => {
-                          void props.controller.disable(ext.id);
+                          runAction(ext.id, () => props.controller.disable(ext.id));
                         }}
                       >
                         {t('extmgr.disable')}
                       </button>
                       <button
                         type="button"
+                        disabled={busyId() === ext.id}
                         onClick={() => {
-                          void props.controller.reload(ext.id);
+                          runAction(ext.id, () => props.controller.reload(ext.id));
                         }}
                       >
                         {t('extmgr.reload')}
@@ -114,8 +123,9 @@ export const ExtensionsManager: Component<ExtensionsManagerProps> = (props) => {
                     <button
                       type="button"
                       data-testid="ext-uninstall"
+                      disabled={busyId() === ext.id}
                       onClick={() => {
-                        void props.controller.uninstall(ext.id);
+                        runAction(ext.id, () => props.controller.uninstall(ext.id));
                       }}
                     >
                       {t('extmgr.uninstall')}
@@ -152,8 +162,9 @@ export const ExtensionsManager: Component<ExtensionsManagerProps> = (props) => {
                                 type="button"
                                 class="mvp-extmgr__revoke"
                                 aria-label={t('extmgr.revoke', { permission: perm })}
+                                disabled={busyId() === ext.id}
                                 onClick={() => {
-                                  void props.controller.revoke(ext.id, perm);
+                                  runAction(ext.id, () => props.controller.revoke(ext.id, perm));
                                 }}
                               >
                                 ×

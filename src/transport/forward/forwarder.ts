@@ -145,6 +145,7 @@ class DroppingByteSink {
   #pending = 0;
   #closed = false;
   #tail: Promise<void> = Promise.resolve();
+  #stopPromise: Promise<void> | undefined;
 
   constructor(
     writable: WritableStream<ByteChunk>,
@@ -187,17 +188,22 @@ class DroppingByteSink {
     return true;
   }
 
-  /** Stop accepting chunks and release the writer lock after queued work settles. */
-  stop(): void {
-    if (this.#closed) return;
+  /**
+   * Stop accepting chunks and release the writer lock after queued work
+   * settles. Resolves once the lock has been released, so a restart can wait
+   * before re-acquiring the writer (B6).
+   */
+  stop(): Promise<void> {
+    if (this.#stopPromise !== undefined) return this.#stopPromise;
     this.#closed = true;
-    void this.#tail.finally(() => {
+    this.#stopPromise = this.#tail.finally(() => {
       try {
         this.#writer.releaseLock();
       } catch {
         // The stream may already be errored/closed; there is nothing to close here.
       }
     });
+    return this.#stopPromise;
   }
 
   /** Current immutable counter snapshot. */
@@ -217,6 +223,7 @@ class ByteReadLoop {
 
   #active = false;
   #reader: ReadableStreamDefaultReader<ByteChunk> | undefined;
+  #done: Promise<void> = Promise.resolve();
 
   constructor(readable: ReadableStream<ByteChunk>, onError: (err: unknown) => void) {
     this.#readable = readable;
@@ -229,15 +236,17 @@ class ByteReadLoop {
     const reader = this.#readable.getReader();
     this.#reader = reader;
     this.#active = true;
-    void this.#pump(reader, onChunk);
+    this.#done = this.#pump(reader, onChunk);
   }
 
   /**
    * Stop after the current/pending read resolves, without cancelling the source
    * stream or closing any transport. This avoids surprising the link owner.
+   * Resolves once the reader lock has been released (B6).
    */
-  stop(): void {
+  stop(): Promise<void> {
     this.#active = false;
+    return this.#done;
   }
 
   async #pump(
@@ -311,12 +320,17 @@ class TargetRuntime {
     this.#reverseLoop = loop;
   }
 
-  /** Stop this target's forwarding directions; transports remain open. */
-  stop(): void {
-    this.#reverseLoop?.stop();
+  /**
+   * Stop this target's forwarding directions; transports remain open.
+   * Resolves once all stream locks held by this target are released (B6).
+   */
+  stop(): Promise<void> {
+    const waits: Promise<void>[] = [];
+    if (this.#reverseLoop !== undefined) waits.push(this.#reverseLoop.stop());
     this.#reverseLoop = undefined;
-    this.#sourceToTarget?.stop();
+    if (this.#sourceToTarget !== undefined) waits.push(this.#sourceToTarget.stop());
     this.#sourceToTarget = undefined;
+    return Promise.all(waits).then(() => undefined);
   }
 
   snapshot(): ForwardTargetStats {
@@ -343,6 +357,10 @@ export class MavlinkForwarder implements Forwarder {
   #running = false;
   #sourceSink: DroppingByteSink | undefined;
   #lastError: unknown;
+  /** Pending lock releases from a prior stop(); a restart waits on this (B6). */
+  #releasePending: Promise<void> | undefined;
+  /** Bumped on every stop() so a deferred restart can detect it was superseded. */
+  #generation = 0;
 
   constructor(options: CreateForwarderOptions) {
     this.#source = options.source;
@@ -360,7 +378,32 @@ export class MavlinkForwarder implements Forwarder {
   /** Start source → target forwarding and any configured reverse loops. */
   start(): void {
     if (this.#running) return;
+    this.#running = true;
 
+    const pending = this.#releasePending;
+    if (pending === undefined) {
+      this.#startLocked();
+      return;
+    }
+
+    // A prior stop() is still releasing its stream locks; wait for the
+    // releases before re-acquiring readers/writers so a quick stop→start
+    // cannot throw on locked streams (B6).
+    const generation = this.#generation;
+    void pending
+      .then(() => {
+        if (!this.#running || generation !== this.#generation) return;
+        this.#releasePending = undefined;
+        this.#startLocked();
+      })
+      .catch((err: unknown) => {
+        this.#lastError = err;
+        this.stop();
+      });
+  }
+
+  /** Acquire stream locks and begin pumping. Assumes locks are available. */
+  #startLocked(): void {
     try {
       for (const target of this.#targets.values()) {
         target.startForward();
@@ -377,7 +420,6 @@ export class MavlinkForwarder implements Forwarder {
           target.offerFromSource(chunk);
         }
       });
-      this.#running = true;
     } catch (err) {
       this.stop();
       throw err;
@@ -387,12 +429,17 @@ export class MavlinkForwarder implements Forwarder {
   /** Stop forwarding. Stream locks are released cooperatively; transports stay open. */
   stop(): void {
     this.#running = false;
-    this.#sourceLoop.stop();
+    this.#generation += 1;
+    const waits: Promise<void>[] = [this.#sourceLoop.stop()];
     for (const target of this.#targets.values()) {
-      target.stop();
+      waits.push(target.stop());
     }
-    this.#sourceSink?.stop();
-    this.#sourceSink = undefined;
+    if (this.#sourceSink !== undefined) {
+      waits.push(this.#sourceSink.stop());
+      this.#sourceSink = undefined;
+    }
+    const prior = this.#releasePending ?? Promise.resolve();
+    this.#releasePending = prior.then(() => Promise.all(waits)).then(() => undefined);
   }
 
   /** Add a secondary transport. */
@@ -422,7 +469,7 @@ export class MavlinkForwarder implements Forwarder {
         }
       } catch (err) {
         this.#targets.delete(target);
-        runtime.stop();
+        void runtime.stop();
         throw err;
       }
     }
@@ -432,10 +479,10 @@ export class MavlinkForwarder implements Forwarder {
   removeTarget(target: Transport): boolean {
     const runtime = this.#targets.get(target);
     if (runtime === undefined) return false;
-    runtime.stop();
+    void runtime.stop();
     this.#targets.delete(target);
     if (![...this.#targets.values()].some((entry) => entry.bidirectional)) {
-      this.#sourceSink?.stop();
+      void this.#sourceSink?.stop();
       this.#sourceSink = undefined;
     }
     return true;

@@ -13,7 +13,7 @@
  * confirm / telemetry writers and the busy/run storage pattern mirror the
  * legacy Settings screen (`ui/screens/config/settings/settings-screen.tsx`).
  */
-import { Show, createMemo, createSignal, onMount, type Component } from 'solid-js';
+import { Show, createMemo, createSignal, onCleanup, onMount, type Component } from 'solid-js';
 import { serializeSettings, parseSettingsBundle } from '../../../../core/settings-bundle';
 import {
   loadStorageReport,
@@ -28,6 +28,19 @@ const BYTE_UNITS: readonly string[] = ['KiB', 'MiB', 'GiB', 'TiB'];
 
 /** Placeholder telemetry rate surfaced when the field is left blank. */
 const DEFAULT_TELEMETRY_RATE_HZ = 4;
+
+/** Delay before the post-factory-reset reload so the status line can paint. */
+const RELOAD_DELAY_MS = 500;
+
+/** Reload the app (no-op outside a browser/happy-dom environment). */
+const reloadApp = (): void => {
+  if (typeof location !== 'undefined') location.reload();
+};
+
+/** A human-readable message for an unknown thrown value. */
+function errorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
+}
 
 /** Format a byte count as a compact binary human-readable size. */
 function formatBytes(bytes: number): string {
@@ -70,6 +83,15 @@ export const GeneralSection: Component<{ deps: AppSettingsSectionDeps }> = (prop
   // --- storage manager (busy/run pattern mirrors the legacy screen) ---------
   const [report, setReport] = createSignal<StorageReport | undefined>(undefined);
   const [busy, setBusy] = createSignal(false);
+  /** Inline failure line for storage/export/import actions (empty = none). */
+  const [actionError, setActionError] = createSignal('');
+  /** Post-factory-reset confirmation line (set just before the reload). */
+  const [resetDone, setResetDone] = createSignal(false);
+
+  let reloadTimer: ReturnType<typeof setTimeout> | undefined;
+  onCleanup(() => {
+    if (reloadTimer !== undefined) clearTimeout(reloadTimer);
+  });
 
   const refreshReport = async (): Promise<void> => {
     const deps = props.deps.storage;
@@ -80,9 +102,12 @@ export const GeneralSection: Component<{ deps: AppSettingsSectionDeps }> = (prop
     const deps = props.deps.storage;
     if (deps === undefined || busy()) return;
     setBusy(true);
+    setActionError('');
     void action(deps)
       .then(() => refreshReport())
-      .catch(() => undefined)
+      .catch((err: unknown) => {
+        setActionError(t('appsettings.general.actionFailed', { message: errorMessage(err) }));
+      })
       .finally(() => setBusy(false));
   };
 
@@ -94,7 +119,11 @@ export const GeneralSection: Component<{ deps: AppSettingsSectionDeps }> = (prop
         body: t('appsettings.general.factoryReset.confirm.body'),
         destructive: true,
       });
-      if (ok ?? true) await deps.clearAllData();
+      if (ok !== true) return; // fail CLOSED when the confirm seam is absent
+      await deps.clearAllData();
+      setResetDone(true);
+      if (reloadTimer !== undefined) clearTimeout(reloadTimer);
+      reloadTimer = setTimeout(reloadApp, RELOAD_DELAY_MS);
     });
 
   onMount(() => {
@@ -114,16 +143,21 @@ export const GeneralSection: Component<{ deps: AppSettingsSectionDeps }> = (prop
 
   // --- settings backup (export / import the portable bundle) ----------------
   const [importError, setImportError] = createSignal(false);
+  /** Inline failure line for export/import I/O errors (empty = none). */
+  const [bundleError, setBundleError] = createSignal('');
 
   const onExport = (): void => {
+    setBundleError('');
     const json = serializeSettings(props.deps.store.get().settings);
-    void props.deps.files.saveAs(
-      new Blob([json], { type: 'application/json' }),
-      'settings.mvpsettings.json',
-    );
+    void props.deps.files
+      .saveAs(new Blob([json], { type: 'application/json' }), 'settings.mvpsettings.json')
+      .catch((err: unknown) => {
+        setBundleError(t('appsettings.general.actionFailed', { message: errorMessage(err) }));
+      });
   };
   const onImport = (): void => {
     setImportError(false);
+    setBundleError('');
     void (async (): Promise<void> => {
       const picked = await props.deps.files.openForRead(['.json']);
       if (picked === undefined) return;
@@ -136,7 +170,9 @@ export const GeneralSection: Component<{ deps: AppSettingsSectionDeps }> = (prop
       props.deps.store.patch((d) => {
         Object.assign(d.settings, patch);
       });
-    })();
+    })().catch((err: unknown) => {
+      setBundleError(t('appsettings.general.actionFailed', { message: errorMessage(err) }));
+    });
   };
 
   return (
@@ -230,6 +266,20 @@ export const GeneralSection: Component<{ deps: AppSettingsSectionDeps }> = (prop
               {t('appsettings.general.factoryReset')}
             </button>
           </div>
+          <Show when={resetDone()}>
+            <p class="mvp-appsettings__hint" data-testid="appsettings-general-reset-done">
+              {t('appsettings.general.resetDone')}
+            </p>
+          </Show>
+          <Show when={actionError() !== ''}>
+            <p
+              class="mvp-appsettings__hint"
+              role="alert"
+              data-testid="appsettings-general-action-error"
+            >
+              {actionError()}
+            </p>
+          </Show>
         </div>
       </Show>
 
@@ -257,6 +307,15 @@ export const GeneralSection: Component<{ deps: AppSettingsSectionDeps }> = (prop
         <Show when={importError()}>
           <p class="mvp-appsettings__hint" data-testid="appsettings-general-import-error">
             {t('appsettings.general.importError')}
+          </p>
+        </Show>
+        <Show when={bundleError() !== ''}>
+          <p
+            class="mvp-appsettings__hint"
+            role="alert"
+            data-testid="appsettings-general-bundle-error"
+          >
+            {bundleError()}
           </p>
         </Show>
         <p class="mvp-appsettings__hint">{t('appsettings.general.persistenceNote')}</p>

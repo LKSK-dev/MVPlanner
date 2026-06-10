@@ -105,6 +105,8 @@ export const MapsSection: Component<{ deps: AppSettingsSectionDeps }> = (props) 
   // --- tile cache (Storage Manager, optional) -------------------------------
   const [report, setReport] = createSignal<StorageReport | undefined>(undefined);
   const [busy, setBusy] = createSignal(false);
+  /** Inline failure line for tile-cache actions (empty = none). */
+  const [actionError, setActionError] = createSignal('');
 
   const refresh = async (): Promise<void> => {
     const storage = props.deps.storage;
@@ -123,10 +125,14 @@ export const MapsSection: Component<{ deps: AppSettingsSectionDeps }> = (props) 
     const storage = props.deps.storage;
     if (storage === undefined || busy()) return;
     setBusy(true);
+    setActionError('');
     void storage
       .clearTileCache()
       .then(() => refresh())
-      .catch(() => undefined)
+      .catch((err: unknown) => {
+        const message = err instanceof Error ? err.message : String(err);
+        setActionError(t('appsettings.general.actionFailed', { message }));
+      })
       .finally(() => {
         setBusy(false);
       });
@@ -194,6 +200,15 @@ export const MapsSection: Component<{ deps: AppSettingsSectionDeps }> = (props) 
           >
             {t('appsettings.maps.clearCache')}
           </button>
+          <Show when={actionError() !== ''}>
+            <p
+              class="mvp-appsettings__hint"
+              role="alert"
+              data-testid="appsettings-maps-action-error"
+            >
+              {actionError()}
+            </p>
+          </Show>
         </div>
       </Show>
     </div>

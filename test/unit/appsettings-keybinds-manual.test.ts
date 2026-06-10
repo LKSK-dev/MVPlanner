@@ -39,13 +39,25 @@ describe('KeybindsSection manual entry', () => {
     expect(deps.persistKeybinds).toHaveBeenCalled();
   });
 
-  it('rejects an invalid manual chord', () => {
+  it('rejects an invalid manual chord and resets the input value', () => {
     const deps = makeDeps();
     const { container } = render(() => createComponent(KeybindsSection, { deps }));
     const input = container.querySelector('[data-testid="keybind-manual-b"]') as HTMLInputElement;
     input.value = 'shift+'; // no key
     fireEvent.change(input);
     expect(deps.keybinds.chordFor('b')).toBeUndefined();
+    expect(input.value).toBe(''); // unbound command → reset to empty
+  });
+
+  it('resets the input to the existing binding on a conflicting manual chord', () => {
+    const deps = makeDeps();
+    const { container } = render(() => createComponent(KeybindsSection, { deps }));
+    const input = container.querySelector('[data-testid="keybind-manual-b"]') as HTMLInputElement;
+    const before = input.value;
+    input.value = 'mod+k'; // already bound to Command A
+    fireEvent.change(input);
+    expect(deps.keybinds.chordFor('b')).toBeUndefined();
+    expect(input.value).toBe(before);
   });
 
   it('raises + lowers the capture lock when pressing to rebind', () => {

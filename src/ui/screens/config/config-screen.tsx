@@ -23,6 +23,7 @@ import { For, createSignal, onCleanup, onMount, type Component } from 'solid-js'
 import type {
   AppState,
   CommandClient,
+  ConfirmOptions,
   FileIo,
   PanelApi,
   PanelDef,
@@ -51,6 +52,8 @@ export interface ConfigScreenProps {
   meta: ParamMetaResolver;
   /** Command microservice for autotune (omit to hide autotune controls). */
   command?: CommandClient;
+  /** Destructive-action confirmation gate (optional; registration wires it). */
+  confirm?: (opts: ConfirmOptions) => Promise<boolean>;
   /** The shared app store (settings + active vehicle). */
   store: Store<AppState>;
   /** Storage `FileIo` for `.param` load/save (workbench Save/Compare). */
@@ -91,6 +94,12 @@ export const ConfigScreen: Component<ConfigScreenProps> = (props) => {
     if (s.activeSysid === undefined) return undefined;
     return s.vehicles[s.activeSysid];
   });
+  // Reactive accessors threaded into the sub-panels (which have no store):
+  // the destructive-confirm setting and the active sysid (a switch clears
+  // fetched/staged param state so stale values are never written).
+  const confirmDestructive = props.store.select<boolean>((s) => s.settings.confirmDestructive);
+  const activeSysid = props.store.select<number | undefined>((s) => s.activeSysid);
+  const confirmSeam = props.confirm !== undefined ? { confirm: props.confirm } : {};
 
   const tabs: readonly ConfigTab[] = [
     {
@@ -102,6 +111,9 @@ export const ConfigScreen: Component<ConfigScreenProps> = (props) => {
         t,
         onSave: (params: Param[]) => saveParamFile(props.files, params),
         onLoad: makeOnLoad(props.files),
+        confirmDestructive,
+        activeSysid,
+        ...confirmSeam,
       }),
     },
     {
@@ -112,6 +124,9 @@ export const ConfigScreen: Component<ConfigScreenProps> = (props) => {
         meta: props.meta,
         vehicle,
         t,
+        confirmDestructive,
+        activeSysid,
+        ...confirmSeam,
         ...(props.command !== undefined ? { command: props.command } : {}),
       }),
     },

@@ -119,6 +119,12 @@
   background: var(--mvp-ok);
 }
 
+.mvp-chip--armed {
+  color: var(--mvp-text);
+  background: color-mix(in srgb, var(--mvp-error) 18%, var(--mvp-surface));
+  border-color: var(--mvp-error);
+}
+
 .mvp-palette-btn {
   appearance: none;
   border: 1px solid var(--mvp-border);
@@ -343,6 +349,15 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
+  padding: var(--mvp-gap);
+  color: var(--mvp-text-dim);
+}
+.mvp-dock-panel__missing {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
   padding: var(--mvp-gap);
   color: var(--mvp-text-dim);
 }

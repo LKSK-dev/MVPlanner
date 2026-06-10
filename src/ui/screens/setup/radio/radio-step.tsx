@@ -99,6 +99,9 @@ export function createRadioStep(deps: RadioStepDeps): SetupStep {
   const [error, setError] = createSignal<string | undefined>(undefined);
 
   let controller: AbortController | undefined;
+  /** Bumped on every start — a stale save() completion must not clobber a
+   * restarted capture's state (E6). */
+  let runId = 0;
 
   const stopStream = (): void => {
     controller?.abort();
@@ -107,6 +110,7 @@ export function createRadioStep(deps: RadioStepDeps): SetupStep {
 
   const start = (): void => {
     stopStream();
+    runId += 1;
     const ac = new AbortController();
     controller = ac;
     setError(undefined);
@@ -135,15 +139,18 @@ export function createRadioStep(deps: RadioStepDeps): SetupStep {
     setFlow('saving');
     setError(undefined);
     const writes = radioParamWrites(capture().channels);
+    const savedRun = runId;
     void (async (): Promise<void> => {
       try {
         for (const write of writes) await deps.params.set(write.name, write.value);
+        if (savedRun !== runId) return; // a new capture started; don't clobber it
         setFlow('done');
       } catch (err) {
+        if (savedRun !== runId) return;
         setError(errorText(err));
         setFlow('warning');
       } finally {
-        stopStream();
+        if (savedRun === runId) stopStream();
       }
     })();
   };

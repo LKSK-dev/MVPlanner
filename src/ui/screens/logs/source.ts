@@ -22,6 +22,7 @@ import {
   DataFlashDecoder,
   chunksFrom,
   type DataFlashByteSource,
+  type DataFlashMetadata,
   type DataFlashRecord,
 } from '../../../data/dataflash';
 import { buildLogQueryIndex, type LogQueryIndex } from '../../../data/log-query';
@@ -55,30 +56,45 @@ export async function decodeDataFlashOnMainThread(
   return buildLogQueryIndex(records, { metadata: decoder.getMetadata() });
 }
 
+/** How many decoded records between two progress callbacks. */
+const PROGRESS_EVERY_RECORDS = 5000;
+
 /**
  * Build a query index by decoding a DataFlash source in the inlined log worker.
  * The worker bundle is loaded lazily so it stays out of the module graph until a
  * file is opened. Records are streamed back over RPC and collected; the worker
- * is terminated when the stream ends or errors.
+ * is terminated when the stream ends or errors. The worker's final `metadata`
+ * event (UNIT/MULT) is threaded into the index (mirroring the main-thread
+ * fallback) and `onProgress` is invoked every {@link PROGRESS_EVERY_RECORDS}
+ * decoded records with the running record count.
  */
-export async function decodeDataFlashInWorker(source: Blob | Uint8Array): Promise<LogQueryIndex> {
+export async function decodeDataFlashInWorker(
+  source: Blob | Uint8Array,
+  onProgress?: (records: number) => void,
+): Promise<LogQueryIndex> {
   const { default: LogWorker } = await import('../../../workers/log.worker.ts?worker&inline');
   const worker = new LogWorker();
   const rpc = createRpc(worker);
   const records: DataFlashRecord[] = [];
+  let metadata: DataFlashMetadata | undefined;
   try {
     await rpc.stream<DataFlashWorkerRequest, DataFlashWorkerEvent>(
       RPC_DATAFLASH_DECODE,
       { source },
       (event): void => {
-        if (event.kind === 'record') records.push(event.record);
+        if (event.kind === 'record') {
+          records.push(event.record);
+          if (records.length % PROGRESS_EVERY_RECORDS === 0) onProgress?.(records.length);
+        } else if (event.kind === 'metadata') {
+          metadata = event.metadata;
+        }
       },
     );
   } finally {
     rpc.dispose();
     worker.terminate();
   }
-  return buildLogQueryIndex(records);
+  return buildLogQueryIndex(records, metadata === undefined ? {} : { metadata });
 }
 
 /** True when the file name looks like a DataFlash log (`.bin`/`.log`). */

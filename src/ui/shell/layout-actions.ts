@@ -47,13 +47,22 @@ export function setActiveWorkspace(store: Store<AppState>, id: string): void {
   });
 }
 
-/** Reset the active workspace back to its built-in preset. */
-export function resetActiveWorkspace(store: Store<AppState>): void {
+/**
+ * Reset the active workspace back to its built-in preset. Returns `false`
+ * (without patching) when the active workspace has no preset — i.e. its id is
+ * not a screen id — so callers can surface feedback (audit D5).
+ */
+export function resetActiveWorkspace(store: Store<AppState>): boolean {
+  const id = readShellLayout(store.get().layout, t('workspace.default')).activeWorkspaceId;
+  if (!(SCREEN_ORDER as readonly string[]).includes(id)) return false;
   store.patch((s) => {
     const shell = readShellLayout(s.layout, t('workspace.default'));
-    const id = shell.activeWorkspaceId;
-    writeShellLayout(s.layout, resetWorkspaceToPreset(shell, id, t(`nav.${id}`)));
+    writeShellLayout(
+      s.layout,
+      resetWorkspaceToPreset(shell, shell.activeWorkspaceId, t(`nav.${shell.activeWorkspaceId}`)),
+    );
   });
+  return true;
 }
 
 /** Apply `fn` to the active workspace's root; an `undefined` result is refused. */

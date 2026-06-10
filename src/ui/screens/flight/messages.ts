@@ -31,6 +31,10 @@ export const FLIGHT_MESSAGES: Readonly<Record<string, string>> = {
   'flight.record.idle': 'Idle',
   'flight.record.recording': 'Recording',
   'flight.record.stats': '{frames} frames \u00b7 {size} \u00b7 {duration}',
+  'flight.record.exportFailed': 'Export failed: {message}',
+
+  // Action-failure surface (bar buttons + map-guided clicks).
+  'flight.actions.failed': '{action} failed: {message}',
 
   // Map click-intent + tools toolbar.
   'flight.tool.label': 'Map tool',

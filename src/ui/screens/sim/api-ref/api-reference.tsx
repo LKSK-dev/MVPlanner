@@ -5,7 +5,7 @@
  * by the pure parser in `model.ts`; this component only handles grouping,
  * filtering and the copy-signature affordance.
  */
-import { For, Show, createMemo, createSignal, type Component } from 'solid-js';
+import { For, Show, createMemo, createSignal, onCleanup, type Component } from 'solid-js';
 import './api-reference.css';
 import './messages';
 import {
@@ -33,7 +33,13 @@ interface ApiReferenceGroupView {
 /** Searchable/tree-style extension API reference. */
 export const ApiReference: Component<ApiReferenceProps> = (props) => {
   const [query, setQuery] = createSignal('');
-  const [copiedPath, setCopiedPath] = createSignal<string | undefined>();
+  const [copyState, setCopyState] = createSignal<
+    { readonly path: string; readonly ok: boolean } | undefined
+  >();
+  let copyTimer: ReturnType<typeof setTimeout> | undefined;
+  onCleanup(() => {
+    if (copyTimer !== undefined) clearTimeout(copyTimer);
+  });
 
   const filtered = createMemo<readonly ApiReferenceMember[]>(() =>
     filterApiReferenceMembers(props.members, query()),
@@ -42,14 +48,22 @@ export const ApiReference: Component<ApiReferenceProps> = (props) => {
   const groups = createMemo<readonly ApiReferenceGroupView[]>(() => groupMembers(filtered()));
 
   const copy = (member: ApiReferenceMember): void => {
-    void copySignature(member.signature).then((ok) => {
-      if (!ok) return;
-      setCopiedPath(member.path);
-      window.setTimeout(
-        () => setCopiedPath((current) => (current === member.path ? undefined : current)),
-        1200,
-      );
-    });
+    void copySignature(member.signature)
+      .catch(() => false)
+      .then((ok) => {
+        setCopyState({ path: member.path, ok });
+        if (copyTimer !== undefined) clearTimeout(copyTimer);
+        copyTimer = setTimeout(() => {
+          copyTimer = undefined;
+          setCopyState((current) => (current?.path === member.path ? undefined : current));
+        }, 1200);
+      });
+  };
+
+  const copyLabel = (path: string): string => {
+    const state = copyState();
+    if (state === undefined || state.path !== path) return props.t('apiref.copy');
+    return state.ok ? props.t('apiref.copy.done') : props.t('apiref.copy.failed');
   };
 
   return (
@@ -105,9 +119,7 @@ export const ApiReference: Component<ApiReferenceProps> = (props) => {
                           class="mvp-api-ref__copy"
                           onClick={() => copy(member)}
                         >
-                          {copiedPath() === member.path
-                            ? props.t('apiref.copy.done')
-                            : props.t('apiref.copy')}
+                          {copyLabel(member.path)}
                         </button>
                       </li>
                     )}

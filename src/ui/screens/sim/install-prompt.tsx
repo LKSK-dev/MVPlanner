@@ -69,12 +69,17 @@ export const InstallPromptHost: Component<InstallPromptHostProps> = (props) => {
   const t = props.t;
   const [checked, setChecked] = createSignal<ReadonlySet<Permission>>(new Set<Permission>());
 
-  // Reset the checked set (all pre-checked) whenever a new prompt surfaces.
-  createEffect(() => {
+  // Reset the checked set (all pre-checked) only when a *different* prompt
+  // surfaces (keyed by id), so enqueueing a second prompt behind the current
+  // one keeps the operator's un-checks.
+  createEffect<number | undefined>((prevId) => {
     const head = props.controller.pending();
-    if (head === undefined) return;
-    setChecked(new Set<Permission>(head.requests.map((r) => r.permission)));
-  });
+    if (head === undefined) return prevId;
+    if (head.id !== prevId) {
+      setChecked(new Set<Permission>(head.requests.map((r) => r.permission)));
+    }
+    return head.id;
+  }, undefined);
 
   const toggle = (perm: Permission, on: boolean): void => {
     setChecked((prev) => {

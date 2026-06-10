@@ -122,14 +122,15 @@ function bridgeTcp(ws, target, log) {
  */
 function bridgeUdpRemote(ws, target, log) {
   const sock = dgram.createSocket('udp4');
+  let sockClosed = false;
   sock.on('message', (chunk) => {
     if (ws.readyState === ws.OPEN) ws.send(chunk, { binary: true });
   });
   ws.on('message', (data, isBinary) => {
     if (!isBinary && typeof data === 'string') return;
+    if (sockClosed) return; // socket already closed; drop
     sock.send(/** @type {Buffer} */ (data), target.port, target.host);
   });
-  let sockClosed = false;
   const closeSock = () => {
     if (sockClosed) return;
     sockClosed = true;
@@ -162,6 +163,7 @@ class UdpListenHub {
     this.clients = new Set();
     /** @type {{ address: string, port: number } | undefined} */
     this.remote = undefined;
+    this.closed = false;
     this.sock = dgram.createSocket('udp4');
     this.sock.on('message', (chunk, rinfo) => {
       this.remote = { address: rinfo.address, port: rinfo.port };
@@ -180,6 +182,7 @@ class UdpListenHub {
     this.clients.add(ws);
     ws.on('message', (data, isBinary) => {
       if (!isBinary && typeof data === 'string') return;
+      if (this.closed) return; // socket already closed; drop
       if (!this.remote) return; // no peer learned yet; drop
       this.sock.send(/** @type {Buffer} */ (data), this.remote.port, this.remote.address);
     });
@@ -189,6 +192,8 @@ class UdpListenHub {
   }
 
   close() {
+    if (this.closed) return;
+    this.closed = true;
     for (const ws of this.clients) ws.close();
     this.clients.clear();
     this.sock.close();

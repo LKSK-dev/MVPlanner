@@ -105,6 +105,7 @@ export function createConfigScreenPanel(deps: ConfigScreenPanelDeps): PanelDef {
             files: deps.storage.files,
             api,
             t: api.t,
+            confirm: (opts) => deps.registry.confirm(opts),
             ...(deps.command !== undefined ? { command: deps.command } : {}),
           }),
         el,

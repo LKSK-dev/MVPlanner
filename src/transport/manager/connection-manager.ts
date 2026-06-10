@@ -237,7 +237,9 @@ export class ConnectionManager {
         this.streams = createStreamRateService({
           send: (name, fields) => this.host.sendMessage(name, fields),
         });
-        void this.streams.requestDefaultSet();
+        this.streams.requestDefaultSet().catch((err: unknown) => {
+          console.warn('connection-manager: default stream-rate request failed', err);
+        });
       }
     } else if (s.kind === 'closed') {
       // A closed link has no vehicles; clear so the UI does not show stale rows.

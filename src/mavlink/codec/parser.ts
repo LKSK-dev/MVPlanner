@@ -42,9 +42,9 @@ export interface ParserExtras {
 
 function rxTimeUs(): number {
   if (typeof performance !== 'undefined' && typeof performance.now === 'function') {
-    return Math.trunc(performance.now() * 1000);
+    return Math.trunc((performance.timeOrigin + performance.now()) * 1000);
   }
-  return 0;
+  return Date.now() * 1000;
 }
 
 function buildIndex(dialects: readonly DialectTable[]): Map<number, MessageMeta> {

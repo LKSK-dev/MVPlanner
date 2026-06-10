@@ -33,7 +33,7 @@ import type {
   VehicleClass,
   VehicleState,
 } from '../../../contracts';
-import { WizardShell, type SetupStep, type TFn } from './framework';
+import { WizardShell, type SettledStatus, type SetupStep, type TFn } from './framework';
 import { createFrameStep, FRAME_PARAM_NAMES } from './frame';
 import { createAccelStep } from './accel';
 import { createCompassStep } from './compass';
@@ -52,6 +52,15 @@ import './motors/motors.css';
 import './setup-screen.css';
 
 registerSetupScreenMessages();
+
+/**
+ * Module-level Setup session: the manual "Mark complete" overrides live here
+ * (mirroring the plan screen's session pattern) so they survive screen
+ * remounts — a wizard-local signal would reset on every Setup mount (E15).
+ */
+const [sessionOverrides, setSessionOverrides] = createSignal<ReadonlyMap<string, SettledStatus>>(
+  new Map<string, SettledStatus>(),
+);
 
 /**
  * Representative parameter names spanning the param-driven steps. If ANY is
@@ -184,7 +193,12 @@ export const SetupScreen: Component<SetupScreenProps> = (props) => {
           )}
         </Show>
       </header>
-      <WizardShell steps={steps} t={t} />
+      <WizardShell
+        steps={steps}
+        t={t}
+        overrides={sessionOverrides}
+        setOverrides={setSessionOverrides}
+      />
     </div>
   );
 };

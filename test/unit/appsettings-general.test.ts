@@ -205,6 +205,62 @@ describe('GeneralSection — storage actions', () => {
       expect(storage.clearAllData).toHaveBeenCalledTimes(1);
     });
   });
+
+  it('fails CLOSED: does NOT clear data when the confirm seam is absent', async () => {
+    const store = createAppStore();
+    const storage = fakeStorage();
+    const deps = makeDeps(store, fakeFiles('{}'), { storage }); // no confirm
+    const { getByTestId } = render(() => createComponent(GeneralSection, { deps }));
+
+    fireEvent.click(getByTestId('appsettings-general-factory-reset'));
+    await vi.waitFor(() =>
+      expect((getByTestId('appsettings-general-factory-reset') as HTMLButtonElement).disabled).toBe(
+        false,
+      ),
+    );
+    expect(storage.clearAllData).not.toHaveBeenCalled();
+  });
+
+  it('does NOT clear data when the confirm resolves false', async () => {
+    const store = createAppStore();
+    const storage = fakeStorage();
+    const confirm: ConfirmFn = vi.fn(() => Promise.resolve(false));
+    const deps = makeDeps(store, fakeFiles('{}'), { storage, confirm });
+    const { getByTestId } = render(() => createComponent(GeneralSection, { deps }));
+
+    fireEvent.click(getByTestId('appsettings-general-factory-reset'));
+    await vi.waitFor(() => expect(confirm).toHaveBeenCalledTimes(1));
+    expect(storage.clearAllData).not.toHaveBeenCalled();
+  });
+
+  it('shows the reset-done status after a confirmed factory reset', async () => {
+    const store = createAppStore();
+    const storage = fakeStorage();
+    const confirm: ConfirmFn = vi.fn(() => Promise.resolve(true));
+    const deps = makeDeps(store, fakeFiles('{}'), { storage, confirm });
+    const { getByTestId } = render(() => createComponent(GeneralSection, { deps }));
+
+    fireEvent.click(getByTestId('appsettings-general-factory-reset'));
+    await vi.waitFor(() => {
+      expect(storage.clearAllData).toHaveBeenCalledTimes(1);
+      expect(getByTestId('appsettings-general-reset-done')).toBeTruthy();
+    });
+  });
+
+  it('surfaces a storage action failure inline', async () => {
+    const store = createAppStore();
+    const storage = fakeStorage();
+    storage.clearTileCache.mockImplementation(() => Promise.reject(new Error('boom')));
+    const deps = makeDeps(store, fakeFiles('{}'), { storage });
+    const { getByTestId } = render(() => createComponent(GeneralSection, { deps }));
+
+    fireEvent.click(getByTestId('appsettings-general-clear-tiles'));
+    await vi.waitFor(() =>
+      expect(getByTestId('appsettings-general-action-error').textContent).toContain(
+        'appsettings.general.actionFailed',
+      ),
+    );
+  });
 });
 
 describe('AboutSection', () => {

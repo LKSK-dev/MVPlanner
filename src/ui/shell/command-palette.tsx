@@ -22,6 +22,7 @@ import {
 } from 'solid-js';
 import type { CommandDef } from '../../contracts';
 import { t } from '../../core/i18n';
+import { formatChord } from '../../core/keybinds';
 import { useShell } from './context';
 import { fuzzyFilter } from './fuzzy';
 
@@ -31,8 +32,16 @@ const optionId = (i: number): string => `mvp-pal-opt-${i}`;
 /** The mounted palette overlay. Only rendered while open so its lifecycle
  * (focus capture/restore) maps cleanly onto open/close. */
 const PaletteOverlay: Component<{ onClose: () => void }> = (props) => {
-  const { registry } = useShell();
+  const { registry, keybinds } = useShell();
   const [query, setQuery] = createSignal('');
+
+  // Shortcut label per command: live from the keybind registry when present
+  // (so rebinds show immediately), else the command's static literal (audit D10).
+  const shortcutFor = (cmd: CommandDef): string | undefined => {
+    const chord = keybinds?.chordFor(cmd.id);
+    if (chord !== undefined) return formatChord(chord);
+    return cmd.shortcut;
+  };
   const [active, setActive] = createSignal(0);
   let inputEl: HTMLInputElement | undefined;
 
@@ -129,8 +138,8 @@ const PaletteOverlay: Component<{ onClose: () => void }> = (props) => {
                 }}
               >
                 <span class="mvp-palette__title">{cmd.title}</span>
-                <Show when={cmd.shortcut}>
-                  <kbd class="mvp-palette__kbd">{cmd.shortcut}</kbd>
+                <Show when={shortcutFor(cmd)}>
+                  {(label) => <kbd class="mvp-palette__kbd">{label()}</kbd>}
                 </Show>
               </li>
             )}

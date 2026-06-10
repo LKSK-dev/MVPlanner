@@ -50,7 +50,10 @@ export function unprojectScreen(
   const [cx, cy] = lonLatToWorld(vp.lon, vp.lat, vp.zoom);
   const wx = px - vp.width / 2 + cx;
   const wy = py - vp.height / 2 + cy;
-  const [lon, lat] = worldToLonLat(wx, wy, vp.zoom);
+  const [rawLon, lat] = worldToLonLat(wx, wy, vp.zoom);
+  // Normalize longitude into [-180, 180) so wire encodings (deg ×1e7 int32)
+  // never overflow near the antimeridian.
+  const lon = ((((rawLon + 180) % 360) + 360) % 360) - 180;
   return { lat, lon };
 }
 
@@ -75,7 +78,10 @@ export function tileScreenRect(
   const scale = 2 ** (vp.zoom - tileZoom);
   const size = TILE_SIZE * scale;
   const [cx, cy] = lonLatToWorld(vp.lon, vp.lat, tileZoom);
-  const x = (tile.x * TILE_SIZE - cx) * scale + vp.width / 2;
+  // Wrap the horizontal delta so columns from `visibleTiles` (which wrap
+  // around the antimeridian) land on-canvas instead of a world away.
+  const dx = wrapWorldDelta(tile.x * TILE_SIZE - cx, worldSize(tileZoom));
+  const x = dx * scale + vp.width / 2;
   const y = (tile.y * TILE_SIZE - cy) * scale + vp.height / 2;
   return { x, y, size };
 }

@@ -66,6 +66,13 @@ export interface ReplayPlaybackTransport {
 export interface OpenableReplayTransport extends ReplayPlaybackTransport {
   /** Open the transport with the tlog bytes (mirrors `ReplayTransport.open`). */
   open(config: { data: ArrayBuffer | Uint8Array; speed?: number }): Promise<void>;
+  /**
+   * Replayed frame byte stream (one chunk per tlog frame). Present on the real
+   * `ReplayTransport`; optional so lightweight test doubles can omit it.
+   */
+  readonly readable?: ReadableStream<Uint8Array>;
+  /** Close the transport, ending the frame stream (real `ReplayTransport`). */
+  close?(): Promise<void>;
 }
 
 /** A {@link PlaybackController} that also accepts live position reports. */

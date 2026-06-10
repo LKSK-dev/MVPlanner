@@ -10,7 +10,11 @@ import { cleanup, render } from '@solidjs/testing-library';
 import { t } from '../../src/core/i18n';
 import type { CommandClient, ConfirmOptions, Param, ParamClient } from '../../src/contracts';
 import { WizardShell } from '../../src/ui/screens/setup/framework';
-import { createMotorsStep, MAV_CMD_DO_MOTOR_TEST } from '../../src/ui/screens/setup/motors';
+import {
+  createMotorsStep,
+  MAV_CMD_DO_MOTOR_TEST,
+  MOTOR_TEST_ORDER_SEQUENCE,
+} from '../../src/ui/screens/setup/motors';
 
 interface SentCommand {
   readonly cmd: number;
@@ -156,7 +160,7 @@ describe('createMotorsStep — safety gating', () => {
     expect(opts.armedAware).toBe(true);
   });
 
-  it('"test all" confirms once then iterates every motor', async () => {
+  it('"test all" confirms once then sends ONE sequential-test command', async () => {
     const command = new MockCommand();
     const { fn, calls } = makeConfirm(true);
     const container = mountMotors({ command, confirm: fn });
@@ -167,13 +171,17 @@ describe('createMotorsStep — safety gating', () => {
     click(container, 'motors-test-all');
     await settle();
 
-    // Copter default = 4 motors → one confirm, four DO_MOTOR_TEST sends.
+    // Copter default = 4 motors → one confirm, ONE DO_MOTOR_TEST encoding the
+    // whole sequence (param5 = motorCount, param6 = MOTOR_TEST_ORDER_SEQUENCE);
+    // N single-motor sends would spin every motor simultaneously.
     expect(calls.length).toBe(1);
-    expect(command.sent).toHaveLength(4);
-    expect(command.sent.map((s) => s.params[0])).toEqual([1, 2, 3, 4]);
-    for (const sent of command.sent) {
-      expect(sent.cmd).toBe(MAV_CMD_DO_MOTOR_TEST);
-    }
+    expect(command.sent).toHaveLength(1);
+    const sent = command.sent[0];
+    if (sent === undefined) throw new Error('no command sent');
+    expect(sent.cmd).toBe(MAV_CMD_DO_MOTOR_TEST);
+    expect(sent.params[0]).toBe(1);
+    expect(sent.params[4]).toBe(4);
+    expect(sent.params[5]).toBe(MOTOR_TEST_ORDER_SEQUENCE);
   });
 
   it('emergency stop sends zero-throttle DO_MOTOR_TEST without confirmation', async () => {

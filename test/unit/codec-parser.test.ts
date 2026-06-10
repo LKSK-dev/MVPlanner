@@ -55,6 +55,20 @@ describe('StreamingParser resync & robustness', () => {
     expect(hb!.seq).toBe(7);
   });
 
+  it('stamps rxTimeUs in epoch microseconds (not page-load-relative)', () => {
+    const parser = codec.parser({ dialects });
+    const before = Date.now() * 1000;
+    const msgs = parser.push(frameV2(3));
+    const after = Date.now() * 1000;
+    expect(msgs).toHaveLength(1);
+    const rx = msgs[0]!.rxTimeUs;
+    expect(Number.isInteger(rx)).toBe(true);
+    // Epoch scale: > 1e15 µs (~2001); a load-relative clock would be tiny.
+    expect(rx).toBeGreaterThan(1e15);
+    expect(rx).toBeGreaterThanOrEqual(before - 5_000_000);
+    expect(rx).toBeLessThanOrEqual(after + 5_000_000);
+  });
+
   it('decodes a valid frame split across multiple push() calls', () => {
     const parser = codec.parser({ dialects });
     const frame = frameV2(11);

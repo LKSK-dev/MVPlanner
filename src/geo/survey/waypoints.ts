@@ -9,6 +9,7 @@
  * stays decoupled and unit-testable.
  */
 import type { Mission, MissionItem } from '../../contracts';
+import { degToScaled } from '../mission';
 import type { SurveyGrid } from './types';
 
 /** `MAV_CMD_NAV_WAYPOINT` (16) — fly to a waypoint. */
@@ -70,7 +71,17 @@ export function surveyToMission(grid: SurveyGrid, opts: SurveyMissionOptions = {
   }
 
   for (const wp of grid.waypoints) {
-    items.push(item(seq, CMD_NAV_WAYPOINT, frame, [0, 0, 0, 0], wp.lat, wp.lon, altitudeM));
+    items.push(
+      item(
+        seq,
+        CMD_NAV_WAYPOINT,
+        frame,
+        [0, 0, 0, 0],
+        degToScaled(wp.lat),
+        degToScaled(wp.lon),
+        altitudeM,
+      ),
+    );
     seq += 1;
   }
 

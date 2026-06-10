@@ -558,6 +558,117 @@ describe('PlanScreen — measure status visibility', () => {
   });
 });
 
+describe('PlanScreen — transfer busy lock (E7)', () => {
+  it('disables all transfer buttons while an upload is in flight', async () => {
+    const h = makeHarness();
+    // Hanging upload: the promise never settles, so the busy lock stays on.
+    h.services = {
+      ...h.services,
+      mission: {
+        ...h.mission.client,
+        upload: vi.fn<MissionClient['upload']>(() => new Promise<void>(() => undefined)),
+      },
+    };
+    const c = mount(h);
+    await settle();
+
+    const btn = (id: string): HTMLButtonElement =>
+      c.querySelector(`[data-testid="${id}"]`) as HTMLButtonElement;
+    expect(btn('plan-upload-mission').disabled).toBe(false);
+    fireEvent.click(btn('plan-upload-mission'));
+    await settle();
+
+    expect(btn('plan-upload-mission').disabled).toBe(true);
+    expect(btn('plan-download-mission').disabled).toBe(true);
+    expect(btn('plan-upload-fence').disabled).toBe(true);
+    expect(btn('plan-upload-rally').disabled).toBe(true);
+  });
+
+  it('short-circuits with “Not connected” when the store link is not open', async () => {
+    const store = createAppStore();
+    const h = makeHarness();
+    const { container } = render(() =>
+      createComponent(PlanScreen, {
+        services: h.services,
+        t,
+        createEngine: () => offlineEngine(),
+        store,
+      }),
+    );
+    await settle();
+    fireEvent.click(
+      container.querySelector('[data-testid="plan-upload-mission"]') as HTMLButtonElement,
+    );
+    await settle();
+    expect(h.mission.client.upload).not.toHaveBeenCalled();
+    expect(container.querySelector('[data-testid="plan-status"]')?.textContent).toBe(
+      t('plan.status.notConnected'),
+    );
+  });
+});
+
+describe('PlanScreen — destructive-replace confirm (E8)', () => {
+  it('asks before survey-generate replaces a non-empty mission and aborts when declined', async () => {
+    const session = createPlanSession();
+    const confirm = vi.fn(() => Promise.resolve(false));
+    const engine = offlineEngine();
+    engine.setView({ lat: -35.36, lon: 149.16, zoom: 18 });
+    const h = makeHarness();
+    const { container } = render(() =>
+      createComponent(PlanScreen, {
+        services: h.services,
+        t,
+        createEngine: () => engine,
+        session,
+        confirm,
+      }),
+    );
+    await settle();
+    engine.setView({ lat: -35.36, lon: 149.16, zoom: 18 });
+
+    // Seed a non-empty mission via the table, then draw a survey polygon.
+    fireEvent.click(container.querySelector('[data-testid="wp-add"]') as HTMLButtonElement);
+    fireEvent.click(
+      container.querySelector('[data-testid="plan-tool-draw-survey-polygon"]') as HTMLButtonElement,
+    );
+    engine.clickAt(50, 50);
+    engine.clickAt(200, 50);
+    engine.clickAt(200, 200);
+    engine.clickAt(50, 200);
+    await settle();
+
+    fireEvent.click(
+      container.querySelector('[data-testid="plan-tab-survey"]') as HTMLButtonElement,
+    );
+    await settle();
+    fireEvent.click(
+      container.querySelector('[data-testid="survey-generate"]') as HTMLButtonElement,
+    );
+    await settle();
+
+    // The confirm seam was consulted, and the decline left the mission intact.
+    expect(confirm).toHaveBeenCalledTimes(1);
+    expect(session.mission().items).toHaveLength(1);
+  });
+});
+
+describe('PlanScreen — survey config persistence (E11)', () => {
+  it('keeps the survey form values across drawer-tab switches', async () => {
+    const c = mount(makeHarness());
+    await settle();
+    fireEvent.click(c.querySelector('[data-testid="plan-tab-survey"]') as HTMLButtonElement);
+    const alt = c.querySelector('[data-testid="survey-altitude"]') as HTMLInputElement;
+    fireEvent.input(alt, { target: { value: '123' } });
+    // Switch away and back: the value must persist (session-held config).
+    fireEvent.click(c.querySelector('[data-testid="plan-tab-fence"]') as HTMLButtonElement);
+    fireEvent.click(c.querySelector('[data-testid="plan-tab-survey"]') as HTMLButtonElement);
+    await settle();
+    expect((c.querySelector('[data-testid="survey-altitude"]') as HTMLInputElement).value).toBe(
+      '123',
+    );
+  });
+});
+
 // --------------------------------------------------------------------------
 // Shell integration: navigating to Plan mounts the real screen
 // --------------------------------------------------------------------------

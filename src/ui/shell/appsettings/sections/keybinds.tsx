@@ -71,16 +71,27 @@ export const KeybindsSection: Component<{ deps: AppSettingsSectionDeps }> = (pro
     return true;
   };
 
-  /** Commit a manually-typed shortcut (e.g. "Shift+1"). */
-  const commitManual = (commandId: string, raw: string): void => {
-    const trimmed = raw.trim();
-    if (trimmed === '') return;
+  /** Commit a manually-typed shortcut (e.g. "Shift+1"). On rejection (invalid
+   * or conflict) the input is reset to the actual binding so stale text never
+   * lingers. */
+  const commitManual = (commandId: string, input: HTMLInputElement): void => {
+    const resetInput = (): void => {
+      const chord = rows().find((r) => r.commandId === commandId)?.chord;
+      input.value = chord !== undefined ? formatChord(chord) : '';
+    };
+    const trimmed = input.value.trim();
+    if (trimmed === '') {
+      resetInput();
+      return;
+    }
     const chord = normalizeChord(trimmed);
     if (chord === undefined) {
       setMessage(t('appsettings.keybinds.invalid'));
+      resetInput();
       return;
     }
     if (tryBind(commandId, chord)) setMessage('');
+    else resetInput();
   };
 
   /**
@@ -151,11 +162,11 @@ export const KeybindsSection: Component<{ deps: AppSettingsSectionDeps }> = (pro
                   event.stopPropagation();
                   if (event.key === 'Enter') {
                     event.preventDefault();
-                    commitManual(row.commandId, event.currentTarget.value);
+                    commitManual(row.commandId, event.currentTarget);
                   }
                 }}
                 onChange={(event) => {
-                  commitManual(row.commandId, event.currentTarget.value);
+                  commitManual(row.commandId, event.currentTarget);
                 }}
               />
               <button

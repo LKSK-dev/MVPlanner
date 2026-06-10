@@ -95,6 +95,33 @@ describe('createRecentsStore', () => {
     expect(store.snapshot()).toHaveLength(0);
   });
 
+  it('serializes concurrent mutations so the list stays consistent (audit B8)', async () => {
+    let id = 0;
+    const store = createRecentsStore({
+      kv: fakeKv(),
+      blobs: fakeBlobs(),
+      makeId: () => `id${++id}`,
+    });
+    // Fire overlapping mutations without awaiting between them.
+    const [a, b] = await Promise.all([
+      store.record({ kind: 'plan', name: 'same', blob: blobOf(4) }),
+      store.record({ kind: 'plan', name: 'same', blob: blobOf(8) }),
+    ]);
+    expect(a.id).not.toBe(b.id);
+    // De-dup by kind+name held even under concurrency: exactly one survives.
+    const snap = store.snapshot();
+    expect(snap.filter((e) => e.name === 'same')).toHaveLength(1);
+    expect(snap[0]?.sizeBytes).toBe(8);
+  });
+
+  it('record() never returns cached:true for an entry uncached by budget eviction (audit B8)', async () => {
+    const store = createRecentsStore({ kv: fakeKv(), blobs: fakeBlobs(), maxCacheBytes: 100 });
+    await store.record({ kind: 'log', name: 'old', blob: blobOf(80) });
+    const fresh = await store.record({ kind: 'log', name: 'new', blob: blobOf(80) });
+    // The returned entry must agree with the post-eviction list.
+    expect(fresh.cached).toBe(store.snapshot().find((e) => e.id === fresh.id)?.cached);
+  });
+
   it('hydrates from persistence on load', async () => {
     const kv = fakeKv();
     const blobs = fakeBlobs();

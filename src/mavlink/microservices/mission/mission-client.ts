@@ -509,7 +509,7 @@ export class MissionClient implements MissionClientApi {
   private matchDownload(msg: DecodedMessage): DownloadOp | undefined {
     const mt = num(msg.fields, 'mission_type');
     const candidates = [...this.downloads].filter(
-      (op) => !op.settled && op.target.sysid === msg.sysid,
+      (op) => !op.settled && op.target.sysid === msg.sysid && op.target.compid === msg.compid,
     );
     if (canRelaxMissionType(msg, mt)) return candidates.length === 1 ? candidates[0] : undefined;
     return candidates.find((op) => op.missionType === mt);
@@ -519,7 +519,7 @@ export class MissionClient implements MissionClientApi {
   private matchUpload(msg: DecodedMessage): UploadOp | undefined {
     const mt = num(msg.fields, 'mission_type');
     const candidates = [...this.uploads].filter(
-      (op) => !op.settled && op.target.sysid === msg.sysid,
+      (op) => !op.settled && op.target.sysid === msg.sysid && op.target.compid === msg.compid,
     );
     if (canRelaxMissionType(msg, mt)) return candidates.length === 1 ? candidates[0] : undefined;
     return candidates.find((op) => op.missionType === mt);
@@ -647,7 +647,11 @@ export class MissionClient implements MissionClientApi {
     }
     const mt = num(msg.fields, 'mission_type') ?? 0;
     const clearOp = [...this.clears].find(
-      (c) => !c.settled && c.target.sysid === msg.sysid && c.missionType === mt,
+      (c) =>
+        !c.settled &&
+        c.target.sysid === msg.sysid &&
+        c.target.compid === msg.compid &&
+        c.missionType === mt,
     );
     if (clearOp !== undefined) this.finishClear(clearOp, result);
   }

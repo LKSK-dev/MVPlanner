@@ -267,6 +267,25 @@ describe('Shell — confirm dialog', () => {
     expect(container.querySelector('[role="alertdialog"]')).toBeNull();
   });
 
+  it('resolves a pending confirm with false when a second confirm arrives (D1)', async () => {
+    const { ctx, registry } = makeCtx();
+    const container = mount(ctx);
+
+    const first = registry.confirm({ title: 'First?', body: 'one' });
+    const second = registry.confirm({ title: 'Second?', body: 'two' });
+
+    // The first caller never hangs: it resolves false when replaced.
+    await expect(first).resolves.toBe(false);
+    await settle();
+
+    // The swapped request renders fresh content (keyed <Show>).
+    expect(container.querySelector('#mvp-confirm-title')?.textContent).toBe('Second?');
+    expect(container.querySelector('#mvp-confirm-body')?.textContent).toBe('two');
+
+    container.querySelector<HTMLButtonElement>('.mvp-btn--primary')!.click();
+    await expect(second).resolves.toBe(true);
+  });
+
   it('shows the armed warning when armedAware and a vehicle is armed', async () => {
     const { ctx, registry, store } = makeCtx();
     const container = mount(ctx);
@@ -378,6 +397,33 @@ describe('Shell — palette focus management', () => {
     const empty = container.querySelector('.mvp-palette__empty');
     expect(empty?.textContent).toBe(t('palette.noResults'));
     expect(input!.getAttribute('aria-activedescendant')).toBeNull();
+  });
+});
+
+describe('Shell — status chips', () => {
+  it('renders live armed/mode/battery for the active vehicle (D2)', async () => {
+    const { ctx, store } = makeCtx();
+    const container = mount(ctx);
+
+    // No vehicle: muted placeholders.
+    const status = container.querySelector('.mvp-status')!;
+    expect(status.textContent).toContain(t('status.disarmed'));
+    expect(status.textContent).toContain(t('status.unknown'));
+
+    store.patch((s) => {
+      s.activeSysid = 1;
+      s.vehicles[1] = makeVehicle({
+        armed: true,
+        mode: 'LOITER',
+        battery: { voltageV: 12.6, remainingPct: 81 },
+      });
+    });
+    await settle();
+
+    expect(status.textContent).toContain(t('status.armed'));
+    expect(status.textContent).toContain('LOITER');
+    expect(status.textContent).toContain('12.6 V');
+    expect(status.textContent).toContain('81%');
   });
 });
 

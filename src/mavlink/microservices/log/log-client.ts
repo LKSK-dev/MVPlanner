@@ -321,6 +321,8 @@ export class LogClient implements LogClientApi {
       target_system: target.sysid,
       target_component: target.compid,
     });
+    // Erase invalidates every cached LOG_ENTRY size: ids get recycled.
+    this.cache.clear();
   }
 
   /** Tear down: unsubscribe and reject in-flight operations. */

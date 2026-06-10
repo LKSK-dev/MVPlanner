@@ -171,7 +171,35 @@ export const ConnectionDrawer: Component = () => {
     if (e.key === 'Escape') {
       e.preventDefault();
       conn.closeDrawer();
+      return;
     }
+    if (e.key !== 'Tab') return;
+    // Trap Tab/Shift+Tab between the first and last focusable child (matches
+    // the alert-center / command-palette modal pattern).
+    const focusables = Array.from(
+      panelEl?.querySelectorAll<HTMLElement>(
+        'button:not([disabled]):not([tabindex="-1"]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      ) ?? [],
+    );
+    if (focusables.length === 0) return;
+    const first = focusables[0]!;
+    const last = focusables[focusables.length - 1]!;
+    const current = document.activeElement;
+    if (e.shiftKey) {
+      if (current === first || current === panelEl) {
+        e.preventDefault();
+        last.focus();
+      }
+    } else if (current === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  };
+
+  /** The transport-level error message when the link state is `error`. */
+  const stateErrorMessage = (): string | undefined => {
+    const state = conn.state();
+    return state.kind === 'error' ? state.message : undefined;
   };
 
   return (
@@ -308,10 +336,12 @@ export const ConnectionDrawer: Component = () => {
             </For>
           </div>
 
-          <Show when={error()}>
-            <p class="mvp-conn__error" role="alert">
-              {t('conn.error.title')}: {error()}
-            </p>
+          <Show when={error() ?? stateErrorMessage()}>
+            {(message) => (
+              <p class="mvp-conn__error" role="alert">
+                {t('conn.error.title')}: {message()}
+              </p>
+            )}
           </Show>
 
           <div class="mvp-conn__actions">

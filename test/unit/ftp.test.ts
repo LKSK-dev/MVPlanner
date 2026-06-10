@@ -668,3 +668,55 @@ describe('FtpClient.write and remove', () => {
     await expect(pr).rejects.toBeInstanceOf(FtpError);
   });
 });
+
+describe('FtpClient.dispose', () => {
+  it('rejects the in-flight transaction and cancels its retry timer', async () => {
+    const { host, clock, client } = setup();
+    const pr = client.list('/');
+    await tick();
+    expect(host.sent).toHaveLength(1);
+
+    client.dispose();
+    await expect(pr).rejects.toMatchObject({ name: 'FtpError', reason: 'aborted' });
+
+    // The retry timer is cancelled: no frames resent after dispose.
+    clock.advance(10_000);
+    expect(host.sent).toHaveLength(1);
+  });
+});
+
+describe('FtpClient operation serialization', () => {
+  it('serializes concurrent public operations through the op queue', async () => {
+    const { host, client } = setup();
+    const pr1 = client.remove('/a');
+    const pr2 = client.remove('/b');
+    await tick();
+
+    // Only the first op's request is on the wire; the second is queued.
+    expect(host.sent).toHaveLength(1);
+    expect(new TextDecoder().decode(host.last.data)).toBe('/a');
+    host.ackLast();
+    await expect(pr1).resolves.toBeUndefined();
+
+    await tick();
+    expect(host.sent).toHaveLength(2);
+    expect(new TextDecoder().decode(host.last.data)).toBe('/b');
+    host.ackLast();
+    await expect(pr2).resolves.toBeUndefined();
+  });
+
+  it('runs the next queued operation even when the previous one fails', async () => {
+    const { host, client } = setup();
+    const pr1 = client.remove('/missing');
+    const pr2 = client.remove('/ok');
+    await tick();
+
+    host.nakLast(FtpNak.FileNotFound);
+    await expect(pr1).rejects.toMatchObject({ reason: 'nak', nak: FtpNak.FileNotFound });
+
+    await tick();
+    expect(new TextDecoder().decode(host.last.data)).toBe('/ok');
+    host.ackLast();
+    await expect(pr2).resolves.toBeUndefined();
+  });
+});

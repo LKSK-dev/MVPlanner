@@ -175,6 +175,106 @@ describe('prefetch + basemap', () => {
   });
 });
 
+describe('stale in-flight tiles (generation counter)', () => {
+  interface StaleHarness {
+    engine: RasterMapEngine;
+    drawCalls: unknown[][];
+    release: () => void;
+    created: () => number;
+    closed: () => number;
+  }
+
+  /** Engine whose createBitmap is gated so loads can be invalidated mid-flight. */
+  function staleHarness(): StaleHarness {
+    const drawCalls: unknown[][] = [];
+    const ctx2d = {
+      clearRect: (): void => undefined,
+      drawImage: (...args: unknown[]): void => {
+        drawCalls.push(args);
+      },
+    };
+    const canvas = {
+      width: 512,
+      height: 512,
+      getContext: (): unknown => ctx2d,
+    } as unknown as HTMLCanvasElement;
+
+    let release: () => void = () => undefined;
+    const gate = new Promise<void>((r) => {
+      release = r;
+    });
+    let created = 0;
+    let closed = 0;
+
+    // Only the default source yields blobs, so post-swap redraws start no loads.
+    const cache: GeoTileCache = {
+      get: async (source) => (source.id === 'carto-dark' ? new Blob(['x']) : undefined),
+      getCached: async () => undefined,
+      put: async () => undefined,
+      has: async () => false,
+      prefetch: async () => ({ requested: 0, fetched: 0, cached: 0, failed: 0 }),
+      evict: async () => 0,
+      clear: async () => undefined,
+    };
+    const engine = createRasterMapEngine({
+      cache,
+      view: { lat: 0, lon: 0, zoom: 4 },
+      requestFrame: (cb) => {
+        cb();
+        return 0;
+      },
+      cancelFrame: () => undefined,
+      isOnline: () => false,
+      createBitmap: async () => {
+        created++;
+        await gate;
+        return {
+          width: 256,
+          height: 256,
+          close: (): void => {
+            closed++;
+          },
+        } as unknown as CanvasImageSource;
+      },
+    });
+    engine.attach(canvas);
+    return { engine, drawCalls, release, created: () => created, closed: () => closed };
+  }
+
+  const tick = (): Promise<void> => new Promise((r) => setTimeout(r, 0));
+
+  it('closes + drops tiles that resolve after setBasemap()', async () => {
+    const h = staleHarness();
+    await tick(); // blobs resolved; createBitmap awaiting the gate
+    expect(h.created()).toBeGreaterThan(0);
+
+    h.engine.setBasemap({ id: 'custom', kind: 'xyz', url: 'https://c/{z}/{x}/{y}.png' });
+    h.release();
+    await tick();
+    await tick();
+
+    // Every in-flight bitmap was closed instead of inserted…
+    expect(h.closed()).toBe(h.created());
+    // …and a redraw paints none of them (no stale 5-arg tile draws).
+    h.drawCalls.length = 0;
+    h.engine.redrawNow();
+    expect(h.drawCalls.filter((a) => a.length === 5)).toHaveLength(0);
+  });
+
+  it('closes + drops tiles that resolve after detach()', async () => {
+    const h = staleHarness();
+    await tick();
+    expect(h.created()).toBeGreaterThan(0);
+
+    h.engine.detach();
+    h.release();
+    await tick();
+    await tick();
+
+    expect(h.closed()).toBe(h.created());
+  });
+});
+
 describe('tile fallback (anti-flash)', () => {
   it('draws a scaled crop of a cached parent tile while the exact tile loads', async () => {
     const drawCalls: unknown[][] = [];

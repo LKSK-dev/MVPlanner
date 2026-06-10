@@ -175,6 +175,39 @@ describe('ActionsBar — dispatch', () => {
     await settle();
     expect(command.calls).toEqual([{ method: 'setMode', args: ['GUIDED'] }]);
   });
+
+  it('resets a stale mode selection when the vehicle class changes (E13)', async () => {
+    const command = mockCommand();
+    const audit = createAuditLog();
+    const [vehicle, setVehicle] = createSignal<ActionVehicle>({
+      vehicleClass: 'copter',
+      armed: false,
+    });
+    const { container } = render(() =>
+      createComponent(ActionsBar, {
+        command: command.client,
+        confirm: () => Promise.resolve(true),
+        audit,
+        vehicle,
+        t,
+      }),
+    );
+    const select = container.querySelector('.mvp-actions__mode-select') as HTMLSelectElement;
+    fireEvent.change(select, { target: { value: 'GUIDED' } });
+    await settle();
+    expect(select.value).toBe('GUIDED');
+
+    // Pick a copter-only mode so the class swap to plane invalidates it.
+    fireEvent.change(select, { target: { value: 'FLIP' } });
+    await settle();
+    setVehicle({ vehicleClass: 'plane', armed: false });
+    await settle();
+    expect(select.value).toBe('');
+    // Apply is disabled again — no stale mode can be sent.
+    expect((container.querySelector('[data-action="setMode"]') as HTMLButtonElement).disabled).toBe(
+      true,
+    );
+  });
 });
 
 describe('AuditPanel', () => {

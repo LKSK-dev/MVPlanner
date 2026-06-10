@@ -15,8 +15,17 @@
  * controlled view. The `ParamClient` + `ParamMetaStore` come in by injection so
  * tests drive it with mocks (no Worker, no host).
  */
-import { For, Show, createMemo, createSignal, onCleanup, onMount, type Component } from 'solid-js';
-import type { Param, ParamClient } from '../../../../contracts';
+import {
+  For,
+  Show,
+  createEffect,
+  createMemo,
+  createSignal,
+  onCleanup,
+  onMount,
+  type Component,
+} from 'solid-js';
+import type { ConfirmOptions, Param, ParamClient } from '../../../../contracts';
 import {
   ParamGrid,
   computeDiff,
@@ -40,6 +49,12 @@ export interface ParamWorkbenchProps extends ParamFileCallbacks {
   client: ParamClient;
   /** Metadata resolver (the `ParamMetaStore`, or a mock). */
   meta: ParamMetaResolver;
+  /** Destructive-action confirmation gate (threaded from the Config assembly). */
+  confirm?: (opts: ConfirmOptions) => Promise<boolean>;
+  /** Whether the "confirm destructive actions" setting is on (store accessor). */
+  confirmDestructive?: () => boolean;
+  /** Reactive active vehicle sysid — a switch clears fetched/staged state. */
+  activeSysid?: () => number | undefined;
   /** i18n translate function. */
   t: TFn;
 }
@@ -101,6 +116,38 @@ export const ParamWorkbench: Component<ParamWorkbenchProps> = (props) => {
     onCleanup(off);
   });
 
+  // A vehicle switch invalidates the fetched set + staged edits — without this
+  // a "Write" after switching would push vehicle A's values to vehicle B.
+  const sysidAccessor = props.activeSysid;
+  if (sysidAccessor !== undefined) {
+    createEffect<number | undefined>((prev) => {
+      const cur = sysidAccessor();
+      if (prev !== undefined && prev !== cur) {
+        setParams([]);
+        setPending(new Map());
+        setDiff(undefined);
+        setStatus('');
+      }
+      return cur;
+    }, sysidAccessor());
+  }
+
+  /**
+   * Gate a destructive parameter write behind the injected confirm seam when
+   * the user's `confirmDestructive` setting is on. Absent seam ⇒ allowed (the
+   * standalone-docked panel keeps its existing behaviour).
+   */
+  const confirmWrite = async (n: number): Promise<boolean> => {
+    const confirm = props.confirm;
+    if (confirm === undefined || props.confirmDestructive?.() !== true) return true;
+    return confirm({
+      title: t('config.confirm.write.title'),
+      body: t('config.confirm.write.body', { n }),
+      destructive: true,
+      armedAware: true,
+    });
+  };
+
   const onEdit = (name: string, value: number): void => {
     setPending((prev) => {
       const next = new Map(prev);
@@ -139,6 +186,10 @@ export const ParamWorkbench: Component<ParamWorkbenchProps> = (props) => {
     const base = baseMap();
     const entries = [...pending()].filter(([name, value]) => base.get(name) !== value);
     if (entries.length === 0) return;
+    if (!(await confirmWrite(entries.length))) {
+      setStatus(t('config.confirm.declined'));
+      return;
+    }
     setBusy(true);
     setStatus('');
     try {
@@ -157,6 +208,10 @@ export const ParamWorkbench: Component<ParamWorkbenchProps> = (props) => {
     if (busy()) return;
     const all = effectiveParams();
     if (all.length === 0) return;
+    if (!(await confirmWrite(all.length))) {
+      setStatus(t('config.confirm.declined'));
+      return;
+    }
     setBusy(true);
     setStatus('');
     try {

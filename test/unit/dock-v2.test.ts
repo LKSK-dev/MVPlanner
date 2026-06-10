@@ -125,4 +125,12 @@ describe('DockManager v2', () => {
     const c = mountDock(store, [widget('w.map', 'Map')]);
     expect(c.querySelector('[aria-label="' + t('dock.close') + '"]')).toBeNull();
   });
+
+  it('renders a missing-widget placeholder for an unregistered widget id (D13)', () => {
+    const store = storeWith(makePanel('w.ghost', 'A'));
+    const c = mountDock(store, []);
+    const missing = c.querySelector('.mvp-dock-panel__missing');
+    expect(missing).toBeTruthy();
+    expect(missing?.textContent).toBe(t('dock.widgetMissing'));
+  });
 });

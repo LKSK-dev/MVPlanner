@@ -259,6 +259,25 @@ describe('LogClient — erase', () => {
       target_component: 1,
     });
   });
+
+  it('clears the LOG_ENTRY size cache so recycled ids are re-listed', async () => {
+    const { host, client } = setup();
+
+    // Populate the cache with id 7 (size 6) via a list.
+    const list = client.list();
+    host.emitEntry({ id: 7, size: 6, numLogs: 1, lastLogNum: 7 });
+    await list;
+    expect(host.byName(LOG_REQUEST_LIST)).toHaveLength(1);
+
+    await client.erase();
+
+    // The stale size must not be reused: download(7) re-lists first instead of
+    // immediately requesting data with the cached size.
+    void client.download(7).catch(() => undefined);
+    await Promise.resolve();
+    expect(host.byName(LOG_REQUEST_DATA)).toHaveLength(0);
+    expect(host.byName(LOG_REQUEST_LIST)).toHaveLength(2);
+  });
 });
 
 describe('LogClient — timeout / abort', () => {

@@ -70,16 +70,18 @@ function useWidgetTitle(resolvedId: () => string): () => string {
 const WidgetHost: Component<{ node: PanelNode }> = (props) => {
   const { registry, panelApi } = useShell();
   const resolvedId = useResolvedWidgetId(props.node);
+  // Reactive lookup (registry.getPanel reads the panels signal) so the
+  // missing-widget placeholder swaps for the real body once installed.
+  const panelDef = createMemo(() => registry.getPanel(resolvedId()));
   let host: HTMLDivElement | undefined;
   let dispose: (() => void) | undefined;
 
   createEffect(() => {
-    const id = resolvedId();
+    const def = panelDef();
     dispose?.();
     dispose = undefined;
     if (!host) return;
     host.replaceChildren();
-    const def = registry.getPanel(id);
     if (!def) return;
     const api: PanelApi =
       props.node.settings !== undefined ? { ...panelApi, settings: props.node.settings } : panelApi;
@@ -98,7 +100,18 @@ const WidgetHost: Component<{ node: PanelNode }> = (props) => {
         </div>
       )}
     >
-      <div class="mvp-dock-panel__body" ref={host} />
+      <Show
+        when={panelDef() !== undefined}
+        fallback={
+          <div class="mvp-dock-panel__body">
+            <p class="mvp-dock-panel__missing" role="note">
+              {t('dock.widgetMissing')}
+            </p>
+          </div>
+        }
+      >
+        <div class="mvp-dock-panel__body" ref={host} />
+      </Show>
     </ErrorBoundary>
   );
 };

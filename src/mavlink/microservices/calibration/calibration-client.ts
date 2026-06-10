@@ -317,10 +317,11 @@ export class CalibrationClient implements CalibrationClientApi {
           );
         }
       });
-      cleanup.cancelTimer = this.clock.setTimeout(
-        () => rejectWith(new CalibrationError('compass calibration timed out', 'timeout')),
-        this.compassTimeoutMs,
-      );
+      cleanup.cancelTimer = this.clock.setTimeout(() => {
+        // Best-effort: stop the onboard calibration before giving up locally.
+        cancelMag();
+        rejectWith(new CalibrationError('compass calibration timed out', 'timeout'));
+      }, this.compassTimeoutMs);
 
       void this.command
         .send(CMD_DO_START_MAG_CAL, [...START_MAG_PARAMS], sendOpts(signal))

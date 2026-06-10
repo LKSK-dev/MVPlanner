@@ -13,7 +13,15 @@
  * `role="slider"`) with an `aria-valuetext` timecode; every control is labelled,
  * and the time readout is an `aria-live` region announcing position changes.
  */
-import { For, createMemo, createSignal, onCleanup, onMount, type Component } from 'solid-js';
+import {
+  For,
+  createEffect,
+  createMemo,
+  createSignal,
+  onCleanup,
+  onMount,
+  type Component,
+} from 'solid-js';
 import './messages';
 import type { PlaybackController, PlaybackProgress } from './controller';
 import {
@@ -25,6 +33,7 @@ import {
   stepped as steppedTl,
   togglePlay,
   withProgress,
+  withTotal,
   type TimelineState,
 } from './timeline';
 import {
@@ -46,6 +55,8 @@ export interface PlaybackControlsProps {
   t: TFn;
   /** Known total log duration in µs before the first progress report (default 0). */
   totalUs?: number;
+  /** Externally disable every control (e.g. while a new log is loading). */
+  disabled?: boolean;
   /** Speed steps to offer (default {@link PLAYBACK_SPEEDS}). */
   speeds?: readonly number[];
   /** Preset analyses to offer (default {@link ANALYSIS_PRESETS}). */
@@ -76,7 +87,14 @@ export const PlaybackControls: Component<PlaybackControlsProps> = (props) => {
     onCleanup(off);
   });
 
-  const disabled = createMemo<boolean>(() => timeline().totalUs <= 0);
+  // Keep the timeline's total in sync when the prop changes after mount
+  // (e.g. a new tlog is opened while the controls stay mounted).
+  createEffect(() => {
+    const total = props.totalUs ?? 0;
+    setTimeline((s) => withTotal(s, total));
+  });
+
+  const disabled = createMemo<boolean>(() => props.disabled === true || timeline().totalUs <= 0);
 
   const onTogglePlay = (): void => {
     const next = togglePlay(timeline());

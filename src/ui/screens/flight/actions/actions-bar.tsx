@@ -14,7 +14,7 @@
  * layer via {@link runAction}; the bar exposes their state-free siblings
  * (`changeAlt`, `clearRoi`) plus the buttons that need no map pick.
  */
-import { For, Show, createMemo, createSignal, type Component } from 'solid-js';
+import { For, Show, createEffect, createMemo, createSignal, type Component } from 'solid-js';
 import { ACTIONS, modeNamesFor } from './catalog';
 import { gateContextFor, runAction } from './run';
 import type {
@@ -95,6 +95,13 @@ export const ActionsBar: Component<ActionsBarProps> = (props) => {
   const gate = createMemo(() => gateContextFor(props.vehicle()));
   const enabled = (id: ActionId): boolean => ACTIONS[id].isEnabled(gate());
   const modes = createMemo<readonly string[]>(() => modeNamesFor(props.vehicle()?.vehicleClass));
+
+  // E13: a vehicle-class change swaps the mode list; drop a selection that no
+  // longer exists so Apply cannot send a stale mode name.
+  createEffect(() => {
+    const mode = selectedMode();
+    if (mode !== '' && !modes().includes(mode)) setSelectedMode('');
+  });
 
   const promptFn = (): PromptFn => props.prompt ?? defaultPrompt;
 

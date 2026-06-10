@@ -3,6 +3,34 @@
 All notable changes to MVPlanner are documented here. This project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [0.4.2] — 2026-06-02
+
+### Fixed (full-repository audit, two passes — ~95 findings)
+
+- **Survey missions are correct again**: generated waypoints were written un-scaled
+  and collapsed to (0,0); they now round-trip exactly.
+- **Recorded tlogs use real timestamps** (epoch microseconds — they previously
+  read as 1970 in Mission Planner/pymavlink) and **tlog playback now advances**
+  (position/timecode were frozen; old replays no longer leak as ghost telemetry).
+- **Top bar shows live armed/mode/battery** for the active vehicle (was
+  hardcoded “Disarmed / unknown”).
+- **Motor “Test all in sequence” now actually runs sequentially** (it spun all
+  motors at once).
+- **Parameter safety**: Write all/changed and autotune are confirm-gated and the
+  parameter set clears on vehicle switch (no cross-vehicle writes).
+- **Plan**: transfer buttons lock while busy, fail fast when not connected, and
+  replacing an edited mission (download/open/survey) asks first; fence parameter
+  failures are reported.
+- **Reliability**: FTP transactions serialize + cancel on dispose; mission ops
+  match component ids; compass-cal timeout cancels the onboard cal; log-erase
+  clears stale sizes; replay/bridge/host connection edge cases; persisted-store
+  write ordering; map tile loads cancel on basemap switch/detach.
+- **UX polish**: dialogs trap focus; concurrent confirms no longer hang; factory
+  reset fails closed, reports errors, and reloads; shortcut labels follow
+  rebinds; missing widgets show a placeholder; stale measure paths clear;
+  plotter keeps your zoom; extension actions show busy/errors; antimeridian
+  rendering fixed.
+
 ## [0.4.1] — 2026-06-02
 
 ### Fixed (UI-remake audit — see `docs/ui-remake/AUDIT.md`)

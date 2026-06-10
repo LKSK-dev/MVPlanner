@@ -14,7 +14,7 @@
  */
 import { createComponent } from 'solid-js';
 import { render } from 'solid-js/web';
-import type { PanelApi, PanelDef, ParamClient } from '../../../../contracts';
+import type { ConfirmOptions, PanelApi, PanelDef, ParamClient } from '../../../../contracts';
 import type { ParamMetaResolver, TFn } from '../../../widgets/paramgrid';
 import { ParamWorkbench, type ParamFileCallbacks } from './workbench';
 
@@ -27,6 +27,12 @@ export interface ParamWorkbenchPanelDeps extends ParamFileCallbacks {
   readonly client: ParamClient;
   /** Metadata resolver (the singleton `ParamMetaStore`). */
   readonly meta: ParamMetaResolver;
+  /** Destructive-action confirmation gate (optional; Config assembly wires it). */
+  readonly confirm?: (opts: ConfirmOptions) => Promise<boolean>;
+  /** "Confirm destructive actions" setting accessor (optional). */
+  readonly confirmDestructive?: () => boolean;
+  /** Reactive active vehicle sysid (optional; clears state on switch). */
+  readonly activeSysid?: () => number | undefined;
   /** i18n translate function. */
   readonly t: TFn;
 }
@@ -46,6 +52,11 @@ export function createParamWorkbenchPanel(deps: ParamWorkbenchPanelDeps): PanelD
             t: api.t,
             ...(deps.onSave ? { onSave: deps.onSave } : {}),
             ...(deps.onLoad ? { onLoad: deps.onLoad } : {}),
+            ...(deps.confirm !== undefined ? { confirm: deps.confirm } : {}),
+            ...(deps.confirmDestructive !== undefined
+              ? { confirmDestructive: deps.confirmDestructive }
+              : {}),
+            ...(deps.activeSysid !== undefined ? { activeSysid: deps.activeSysid } : {}),
           }),
         el,
       );

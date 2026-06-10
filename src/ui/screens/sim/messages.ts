@@ -48,6 +48,7 @@ export const SIM_MESSAGES: Readonly<Record<string, string>> = {
   'extmgr.status.disabled': 'Disabled',
   'extmgr.status.error': 'Error (paused)',
   'extmgr.installError': 'Could not install extension: {message}',
+  'extmgr.actionError': 'Extension action failed: {message}',
   'extmgr.importUnsupported':
     'Unsupported import. Provide a JSON bundle ({ "manifest": …, "code": … }); untrusted .js source import runs in the sandboxed browser build.',
 

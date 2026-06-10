@@ -143,6 +143,22 @@ describe('viewport math', () => {
     expect(rect.y).toBeCloseTo(0, 6);
   });
 
+  it('keeps every visible tile rect on-canvas at the antimeridian', () => {
+    const anti: Viewport = { lat: 0, lon: -180, zoom: 2, width: 512, height: 512 };
+    for (const tile of visibleTiles(anti, 2)) {
+      const rect = tileScreenRect(tile, anti, 2);
+      expect(rect.x).toBeGreaterThanOrEqual(-256);
+      expect(rect.x).toBeLessThanOrEqual(768);
+    }
+  });
+
+  it('normalizes unprojected longitude into [-180, 180) near the antimeridian', () => {
+    const anti: Viewport = { lat: 0, lon: 179, zoom: 2, width: 512, height: 512 };
+    const ll = unprojectScreen(400, 256, anti);
+    expect(ll.lon).toBeGreaterThanOrEqual(-180);
+    expect(ll.lon).toBeLessThan(180);
+  });
+
   it('lists tiles intersecting a bbox', () => {
     const tiles = tilesInBbox([-1, -1, 1, 1], 4);
     expect(tiles.length).toBeGreaterThan(0);

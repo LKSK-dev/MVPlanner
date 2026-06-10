@@ -127,6 +127,13 @@ export interface PlanScreenProps {
    */
   session?: PlanSession;
   /**
+   * Optional destructive-replace confirmation seam (the shell
+   * `UiRegistry.confirm`). When supplied, replacing a non-empty edited mission
+   * (download / file open / pending open / survey generate) asks first —
+   * honouring `settings.confirmDestructive` when a store is supplied.
+   */
+  confirm?: (opts: { title: string; body: string; destructive?: boolean }) => Promise<boolean>;
+  /**
    * Test seam: build the map engine. Defaults to a raster engine over a
    * storage-backed tile cache; tests inject an offline engine.
    */
@@ -229,6 +236,8 @@ export const PlanScreen: Component<PlanScreenProps> = (props) => {
   const [drawerTab, setDrawerTab] = createSignal<DrawerTab>('fence');
   const [verify, setVerify] = createSignal(true);
   const [status, setStatus] = createSignal<string>(t('plan.status.idle'));
+  // E7: one transfer at a time — buttons disable while a transfer is in flight.
+  const [transferBusy, setTransferBusy] = createSignal(false);
   const [profilePoints, setProfilePoints] = createSignal<readonly TerrainProfilePoint[]>([]);
 
   // --- map engine + editor + measure tools ----------------------------------
@@ -365,9 +374,35 @@ export const PlanScreen: Component<PlanScreenProps> = (props) => {
   // --- transfer + file helpers ----------------------------------------------
   const errMsg = (e: unknown): string => (e instanceof Error ? e.message : String(e));
 
+  // E7: refuse to start a transfer when the link is not open (store-supplied
+  // mounts only); without a store the mock/offline path stays permissive.
+  const transferReady = (): boolean => {
+    if (planStore !== undefined && planStore.get().connection.kind !== 'open') {
+      setStatus(t('plan.status.notConnected'));
+      return false;
+    }
+    return true;
+  };
+
+  // E8: ask before replacing a non-empty edited mission. Permissive when no
+  // confirm seam is wired, or when the user disabled destructive confirms.
+  const confirmReplace = async (): Promise<boolean> => {
+    const confirm = props.confirm;
+    if (confirm === undefined) return true;
+    if (mission().items.length === 0) return true;
+    if (planStore !== undefined && !planStore.get().settings.confirmDestructive) return true;
+    return confirm({
+      title: t('plan.confirm.replaceTitle'),
+      body: t('plan.confirm.replaceBody'),
+      destructive: true,
+    });
+  };
+
   const uploadMission = (): void => {
+    if (transferBusy() || !transferReady()) return;
     const wire = missionToWire(mission());
     setStatus(t('plan.status.uploading', { what: t('plan.what.mission'), i: 0, n: wire.items.length }));
+    setTransferBusy(true);
     void services.mission
       .upload(wire, {
         verify: verify(),
@@ -379,44 +414,65 @@ export const PlanScreen: Component<PlanScreenProps> = (props) => {
       )
       .catch((e: unknown) =>
         setStatus(t('plan.status.error', { what: t('plan.what.mission'), message: errMsg(e) })),
-      );
+      )
+      .finally(() => setTransferBusy(false));
   };
 
   const downloadMission = (): void => {
-    setStatus(t('plan.status.downloading', { what: t('plan.what.mission'), i: 0, n: 0 }));
-    void services.mission
-      .download('mission', (i, n) =>
-        setStatus(t('plan.status.downloading', { what: t('plan.what.mission'), i, n })),
-      )
-      .then((m) => {
+    if (transferBusy() || !transferReady()) return;
+    setTransferBusy(true);
+    void confirmReplace()
+      .then(async (ok) => {
+        if (!ok) {
+          setStatus(t('plan.status.idle'));
+          return;
+        }
+        setStatus(t('plan.status.downloading', { what: t('plan.what.mission'), i: 0, n: 0 }));
+        const m = await services.mission.download('mission', (i, n) =>
+          setStatus(t('plan.status.downloading', { what: t('plan.what.mission'), i, n })),
+        );
         setMission(missionFromWire(m));
         setStatus(t('plan.status.downloaded', { what: t('plan.what.mission'), n: m.items.length }));
       })
       .catch((e: unknown) =>
         setStatus(t('plan.status.error', { what: t('plan.what.mission'), message: errMsg(e) })),
-      );
+      )
+      .finally(() => setTransferBusy(false));
   };
 
   const uploadFence = (): void => {
+    if (transferBusy() || !transferReady()) return;
     const f = fence();
     const wire = fenceToMission(f);
     setStatus(t('plan.status.uploading', { what: t('plan.what.fence'), i: 0, n: wire.items.length }));
+    setTransferBusy(true);
     void services.mission
       .upload(wire, { verify: verify() })
       .then(async () => {
+        // E9: count failed FENCE_* parameter writes and surface them instead of
+        // claiming an unconditional success.
+        let failed = 0;
         for (const p of fenceParams(f)) {
-          await services.param.set(p.name, p.value).catch(() => undefined);
+          await services.param.set(p.name, p.value).catch(() => {
+            failed += 1;
+          });
         }
-        setStatus(t('plan.status.uploaded', { what: t('plan.what.fence'), n: wire.items.length }));
+        const uploaded = t('plan.status.uploaded', { what: t('plan.what.fence'), n: wire.items.length });
+        setStatus(
+          failed > 0 ? `${uploaded} — ${t('plan.status.fenceParamsFailed', { n: failed })}` : uploaded,
+        );
       })
       .catch((e: unknown) =>
         setStatus(t('plan.status.error', { what: t('plan.what.fence'), message: errMsg(e) })),
-      );
+      )
+      .finally(() => setTransferBusy(false));
   };
 
   const uploadRally = (): void => {
+    if (transferBusy() || !transferReady()) return;
     const wire = rallyToMission(rally());
     setStatus(t('plan.status.uploading', { what: t('plan.what.rally'), i: 0, n: wire.items.length }));
+    setTransferBusy(true);
     void services.mission
       .upload(wire, { verify: verify() })
       .then(() =>
@@ -424,7 +480,8 @@ export const PlanScreen: Component<PlanScreenProps> = (props) => {
       )
       .catch((e: unknown) =>
         setStatus(t('plan.status.error', { what: t('plan.what.rally'), message: errMsg(e) })),
-      );
+      )
+      .finally(() => setTransferBusy(false));
   };
 
   // Parse an in-hand mission blob into the shared mission signal (the common
@@ -438,6 +495,7 @@ export const PlanScreen: Component<PlanScreenProps> = (props) => {
 
   const openFile = (): void => {
     void (async (): Promise<void> => {
+      if (!(await confirmReplace())) return;
       const picked = await services.files.openForRead([...MISSION_FILE_ACCEPT]);
       if (picked === undefined) return;
       await loadMissionBlob(picked.name, picked.blob);
@@ -470,7 +528,10 @@ export const PlanScreen: Component<PlanScreenProps> = (props) => {
   createEffect(() => {
     const pending = props.pendingOpen?.();
     if (pending === undefined) return;
-    void loadMissionBlob(pending.name, pending.blob)
+    void (async (): Promise<void> => {
+      if (!(await confirmReplace())) return;
+      await loadMissionBlob(pending.name, pending.blob);
+    })()
       .catch((e: unknown) =>
         setStatus(t('plan.status.error', { what: t('plan.what.mission'), message: errMsg(e) })),
       )
@@ -478,7 +539,9 @@ export const PlanScreen: Component<PlanScreenProps> = (props) => {
   });
 
   const onSurveyGenerate = (m: Mission): void => {
-    setMission(missionFromWire(m));
+    void confirmReplace().then((ok) => {
+      if (ok) setMission(missionFromWire(m));
+    });
   };
 
   const hintKey = (): string => {
@@ -508,16 +571,16 @@ export const PlanScreen: Component<PlanScreenProps> = (props) => {
           />
           <span>{t('plan.toolbar.verify')}</span>
         </label>
-        <button type="button" class="mvp-plan__btn mvp-plan__btn--primary" data-testid="plan-upload-mission" onClick={uploadMission}>
+        <button type="button" class="mvp-plan__btn mvp-plan__btn--primary" data-testid="plan-upload-mission" disabled={transferBusy()} onClick={uploadMission}>
           {t('plan.toolbar.uploadMission')}
         </button>
-        <button type="button" class="mvp-plan__btn" data-testid="plan-download-mission" onClick={downloadMission}>
+        <button type="button" class="mvp-plan__btn" data-testid="plan-download-mission" disabled={transferBusy()} onClick={downloadMission}>
           {t('plan.toolbar.downloadMission')}
         </button>
-        <button type="button" class="mvp-plan__btn" data-testid="plan-upload-fence" onClick={uploadFence}>
+        <button type="button" class="mvp-plan__btn" data-testid="plan-upload-fence" disabled={transferBusy()} onClick={uploadFence}>
           {t('plan.toolbar.uploadFence')}
         </button>
-        <button type="button" class="mvp-plan__btn" data-testid="plan-upload-rally" onClick={uploadRally}>
+        <button type="button" class="mvp-plan__btn" data-testid="plan-upload-rally" disabled={transferBusy()} onClick={uploadRally}>
           {t('plan.toolbar.uploadRally')}
         </button>
         <span class="mvp-plan__sep" aria-hidden="true" />
@@ -601,7 +664,13 @@ export const PlanScreen: Component<PlanScreenProps> = (props) => {
               {drawerTab() === 'fence' && <FencePanel value={fence} onChange={setFence} t={t} />}
               {drawerTab() === 'rally' && <RallyPanel model={rally} onChange={setRally} t={t} />}
               {drawerTab() === 'survey' && (
-                <SurveyPanel polygon={surveyPolygonArray()} onGenerate={onSurveyGenerate} t={t} />
+                <SurveyPanel
+                  polygon={surveyPolygonArray()}
+                  onGenerate={onSurveyGenerate}
+                  t={t}
+                  config={session.surveyConfig}
+                  setConfig={session.setSurveyConfig}
+                />
               )}
             </div>
           </div>

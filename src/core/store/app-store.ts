@@ -89,6 +89,11 @@ export function createAppStore(initial?: Partial<AppState>, persist?: KvStore): 
     // --- debounced persistence (driven from the write path) ---------------
     let persistTimer: ReturnType<typeof setTimeout> | undefined;
     let lastPersistKey = persistKey(initialState);
+    // Serializes KV writes so overlapping completions cannot regress
+    // `lastPersistKey` or land out of order (audit B7). When the chain is
+    // idle the write starts synchronously (the pagehide flush relies on it).
+    let persistChain: Promise<void> = Promise.resolve();
+    let persistWritesInFlight = 0;
 
     const writePersistSnapshot = (snap: AppState): void => {
       if (!persist) return;
@@ -96,14 +101,18 @@ export function createAppStore(initial?: Partial<AppState>, persist?: KvStore): 
       const settings = snapshot(persistableSettings(snap.settings));
       const layout = snapshot(snap.layout);
       const writtenKey = JSON.stringify({ settings, layout });
-      void Promise.all([
-        kv.set<AppSettings>(PERSIST_NS, KEY_SETTINGS, settings),
-        kv.set<LayoutState>(PERSIST_NS, KEY_LAYOUT, layout),
-      ])
-        .then(() => {
+      const run = (): Promise<void> =>
+        Promise.all([
+          kv.set<AppSettings>(PERSIST_NS, KEY_SETTINGS, settings),
+          kv.set<LayoutState>(PERSIST_NS, KEY_LAYOUT, layout),
+        ]).then(() => {
           lastPersistKey = writtenKey;
-        })
-        .catch(reportPersistError);
+        });
+      const tail = persistWritesInFlight === 0 ? run() : persistChain.then(run);
+      persistWritesInFlight += 1;
+      persistChain = tail.catch(reportPersistError).finally(() => {
+        persistWritesInFlight -= 1;
+      });
     };
 
     const persistNowIfChanged = (): void => {

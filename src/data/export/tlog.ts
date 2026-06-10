@@ -21,7 +21,7 @@ export interface TlogDecodeOptions {
 
 /** A decoded MAVLink message paired with its tlog timestamp. */
 export interface ExtractedTlogMessage {
-  /** Raw tlog timestamp in 100 ns ticks. */
+  /** Raw tlog timestamp in microseconds since the Unix epoch. */
   readonly timeTicks: bigint;
   /** Relative time in microseconds from the first tlog frame. */
   readonly timeUs: number;

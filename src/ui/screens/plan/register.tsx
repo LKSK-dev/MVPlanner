@@ -40,6 +40,12 @@ export interface PlanScreenPanelDeps {
   readonly onPendingConsumed?: () => void;
   /** App-lifetime plan session so the plan persists across Plan-tab switches. */
   readonly session?: PlanSession;
+  /** Destructive-replace confirmation seam (the shell `UiRegistry.confirm`). */
+  readonly confirm?: (opts: {
+    title: string;
+    body: string;
+    destructive?: boolean;
+  }) => Promise<boolean>;
 }
 
 /** Build the real `screen.plan` {@link PanelDef} bound to the services. */
@@ -60,6 +66,7 @@ export function createPlanScreenPanel(deps: PlanScreenPanelDeps): PanelDef {
               ? { onPendingConsumed: deps.onPendingConsumed }
               : {}),
             ...(deps.session !== undefined ? { session: deps.session } : {}),
+            ...(deps.confirm !== undefined ? { confirm: deps.confirm } : {}),
           }),
         el,
       );

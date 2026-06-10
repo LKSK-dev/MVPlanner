@@ -15,6 +15,7 @@ import './messages';
 
 export {
   SurveyPanel,
+  DEFAULT_SURVEY_CONFIG,
   type SurveyPanelProps,
   type SurveyConfig,
   type TFn,

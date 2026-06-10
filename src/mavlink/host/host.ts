@@ -116,8 +116,20 @@ export class MavlinkHost {
     this.transportUnsub = transport.onState((s) => this.emitState(s));
 
     this.emitState({ kind: 'opening' });
-    await this.rpc.call(RPC_RESET, undefined);
-    await transport.open(config);
+    try {
+      await this.rpc.call(RPC_RESET, undefined);
+      await transport.open(config);
+    } catch (err) {
+      this.transportUnsub?.();
+      this.transportUnsub = undefined;
+      this.transport = undefined;
+      try {
+        await transport.close();
+      } catch {
+        /* best-effort cleanup of a transport that failed to open */
+      }
+      throw err;
+    }
 
     this.startTelemetry();
     this.startOutgoing(transport);

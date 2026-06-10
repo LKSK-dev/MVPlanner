@@ -285,10 +285,8 @@ export function createModesStep(deps: ModesStepDeps): SetupStep {
     setRevision((value) => value + 1);
   };
 
-  deps.params.onChange((param) => {
-    if (isModesParamName(param.name)) refresh();
-  });
-
+  // NOTE: the params.onChange subscription lives in ModesStepPanel (with
+  // onCleanup) — a factory-level subscription would leak per Setup mount (E5).
   const mapping = (): FlightModeMapping => readMapping(deps, revision);
   const status = (): SettledStatus => mapping().status;
 

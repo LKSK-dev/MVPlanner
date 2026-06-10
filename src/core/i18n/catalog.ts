@@ -70,10 +70,16 @@ export const EN_MESSAGES: MessageCatalog = {
   'dock.widgetError': 'This widget stopped responding.',
   'dock.reload': 'Reload widget',
   'dock.empty': 'Empty workspace',
+  'dock.widgetMissing': 'This widget is not installed.',
   'workspace.default': 'Default',
+  'workspace.savedToast': 'Workspace saved as {name}',
+  'workspace.noPreset': 'This workspace has no built-in preset to reset to.',
+  'workspace.resetConfirmTitle': 'Reset workspace layout?',
+  'workspace.resetConfirmBody':
+    'This replaces the current workspace layout with its built-in preset. This cannot be undone.',
 
   // --- T1.10 connection drawer + diagnostics (additive) ------------------
-  'cmd.connection': 'Connect / Disconnect',
+  'cmd.connection': 'Open connection drawer',
   'conn.drawer.title': 'Connection',
   'conn.drawer.close': 'Close connection panel',
   'conn.transport': 'Transport',

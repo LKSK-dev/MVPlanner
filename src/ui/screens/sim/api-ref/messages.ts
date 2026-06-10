@@ -14,6 +14,7 @@ export const API_REFERENCE_MESSAGES: Readonly<Record<string, string>> = {
   'apiref.permission.unlisted': 'Not listed',
   'apiref.copy': 'Copy signature',
   'apiref.copy.done': 'Copied',
+  'apiref.copy.failed': 'Copy failed',
   'apiref.command.open': 'Open Extension API Reference',
   'apiref.openHint': 'Dock the Extension API Reference panel from the workspace panel list.',
   'apiref.group.connection': 'Connection',

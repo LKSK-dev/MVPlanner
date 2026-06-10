@@ -28,6 +28,7 @@ import {
   MAX_MOTOR_COUNT,
   MAX_MOTOR_TEST_THROTTLE_PCT,
   MAX_MOTOR_TEST_TIMEOUT_S,
+  MOTOR_TEST_ORDER_SEQUENCE,
   clampMotorCount,
   clampThrottlePct,
   clampTimeoutS,
@@ -135,7 +136,7 @@ const MotorsPanel: Component<MotorsPanelProps> = (props) => {
     }
   };
 
-  /** Gated "test all in sequence": confirm once → send one command per motor. */
+  /** Gated "test all in sequence": confirm once → ONE sequential-test command. */
   const testAll = async (): Promise<void> => {
     if (!canTest()) return;
     const motors = instances();
@@ -154,9 +155,18 @@ const MotorsPanel: Component<MotorsPanelProps> = (props) => {
       return;
     }
     try {
-      for (const instance of motors) {
-        await sendOne(instance);
-      }
+      // ONE command encoding the whole sequence: per-command tests would all
+      // start at once and spin every motor simultaneously (audit E2).
+      await command.send(
+        MAV_CMD_DO_MOTOR_TEST,
+        motorTestCommandParams({
+          instance: 1,
+          throttlePct: throttle(),
+          timeoutS: timeout(),
+          motorCount: motors.length,
+          testOrder: MOTOR_TEST_ORDER_SEQUENCE,
+        }),
+      );
       setStatus(
         t('setup.motors.status.sentAll', {
           count: motors.length,

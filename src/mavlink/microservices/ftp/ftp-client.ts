@@ -210,6 +210,10 @@ export class FtpClient implements FtpClientApi {
   private readonly chunkSize: number;
   private readonly unsubscribe: () => void;
   private pending: Pending | undefined;
+  /** Fail hook for the in-flight transaction (cancels its retry timer too). */
+  private pendingFail: ((err: FtpError) => void) | undefined;
+  /** Serializes public operations so they cannot clobber the `pending` slot. */
+  private opQueue: Promise<unknown> = Promise.resolve();
   /** Next request sequence number; each transaction reserves a fresh pair. */
   private seq = 0;
   private disposed = false;
@@ -229,7 +233,11 @@ export class FtpClient implements FtpClientApi {
    * server reports end-of-listing. Rejects with an {@link FtpError} on a
    * non-EOF NAK, timeout, or abort.
    */
-  async list(path: string): Promise<FtpEntry[]> {
+  list(path: string): Promise<FtpEntry[]> {
+    return this.enqueue(() => this.listInner(path));
+  }
+
+  private async listInner(path: string): Promise<FtpEntry[]> {
     this.ensureLive();
     const pathBytes = ENCODER.encode(path);
     const entries: FtpEntry[] = [];
@@ -262,7 +270,15 @@ export class FtpClient implements FtpClientApi {
    * server does not report a size). A `signal` abort rejects promptly; the
    * session is still terminated on a best-effort basis.
    */
-  async read(
+  read(
+    path: string,
+    onProgress?: (done: number, total: number) => void,
+    signal?: AbortSignal,
+  ): Promise<Uint8Array> {
+    return this.enqueue(() => this.readInner(path, onProgress, signal));
+  }
+
+  private async readInner(
     path: string,
     onProgress?: (done: number, total: number) => void,
     signal?: AbortSignal,
@@ -314,7 +330,11 @@ export class FtpClient implements FtpClientApi {
    * Rejects on any server NAK; once `CreateFile` returns a session, session
    * termination is attempted in a `finally`.
    */
-  async write(path: string, data: Uint8Array, signal?: AbortSignal): Promise<void> {
+  write(path: string, data: Uint8Array, signal?: AbortSignal): Promise<void> {
+    return this.enqueue(() => this.writeInner(path, data, signal));
+  }
+
+  private async writeInner(path: string, data: Uint8Array, signal?: AbortSignal): Promise<void> {
     this.ensureLive();
     const open = await this.transact(
       { opcode: FtpOpcode.CreateFile, session: 0, offset: 0, data: ENCODER.encode(path) },
@@ -344,7 +364,11 @@ export class FtpClient implements FtpClientApi {
   }
 
   /** Remove file `path` with one `RemoveFile` transaction, rejecting on NAK. */
-  async remove(path: string, signal?: AbortSignal): Promise<void> {
+  remove(path: string, signal?: AbortSignal): Promise<void> {
+    return this.enqueue(() => this.removeInner(path, signal));
+  }
+
+  private async removeInner(path: string, signal?: AbortSignal): Promise<void> {
     this.ensureLive();
     const reply = await this.transact(
       { opcode: FtpOpcode.RemoveFile, session: 0, offset: 0, data: ENCODER.encode(path) },
@@ -364,10 +388,22 @@ export class FtpClient implements FtpClientApi {
     if (this.disposed) return;
     this.disposed = true;
     this.unsubscribe();
+    this.pendingFail?.(new FtpError('FTP client disposed', 'aborted'));
+    this.pendingFail = undefined;
     this.pending = undefined;
   }
 
   // --- internals ----------------------------------------------------------
+
+  /** Chain `run` after all prior public operations (success or failure). */
+  private enqueue<T>(run: () => Promise<T>): Promise<T> {
+    const next = this.opQueue.then(run, run);
+    this.opQueue = next.then(
+      () => undefined,
+      () => undefined,
+    );
+    return next;
+  }
 
   /** Throw if the client has been disposed. */
   private ensureLive(): void {
@@ -535,7 +571,10 @@ export class FtpClient implements FtpClientApi {
         cancelTimer?.();
         if (onAbort !== undefined && signal !== undefined)
           signal.removeEventListener('abort', onAbort);
-        if (this.pending?.expectedSeq === expectedSeq) this.pending = undefined;
+        if (this.pending?.expectedSeq === expectedSeq) {
+          this.pending = undefined;
+          this.pendingFail = undefined;
+        }
       };
       const fail = (err: FtpError): void => {
         cleanup();
@@ -554,6 +593,7 @@ export class FtpClient implements FtpClientApi {
         highestSeq: expectedSeq,
         resolve: succeed,
       };
+      this.pendingFail = fail;
 
       const attempt = (): void => {
         attempts++;
@@ -634,6 +674,7 @@ export class FtpClient implements FtpClientApi {
         if (pending?.expectedSeq === expectedSeq) {
           this.advanceSeqPast(pending.highestSeq);
           this.pending = undefined;
+          this.pendingFail = undefined;
         }
       };
       const fail = (err: FtpError): void => {
@@ -705,6 +746,7 @@ export class FtpClient implements FtpClientApi {
           }
         },
       };
+      this.pendingFail = fail;
 
       if (signal !== undefined) {
         onAbort = (): void => fail(new FtpError('FTP operation aborted', 'aborted'));

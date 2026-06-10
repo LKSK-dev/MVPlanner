@@ -12,6 +12,7 @@ import {
   DataFlashDecoder,
   type DataFlashByteSource,
   type DataFlashFormatDefinition,
+  type DataFlashMetadata,
   type DataFlashRecord,
   type DataFlashTypeInfo,
 } from '../data/dataflash';
@@ -34,6 +35,7 @@ export interface DataFlashWorkerRequest {
 export type DataFlashWorkerEvent =
   | { readonly kind: 'format'; readonly format: DataFlashFormatDefinition }
   | { readonly kind: 'record'; readonly record: DataFlashRecord }
+  | { readonly kind: 'metadata'; readonly metadata: DataFlashMetadata }
   | { readonly kind: 'index'; readonly types: readonly DataFlashTypeInfo[] };
 
 const DEFAULT_CHUNK_BYTES = 64 * 1024;
@@ -59,7 +61,11 @@ rpc.handleStream<DataFlashWorkerRequest, DataFlashWorkerEvent>(
       }
     }
     decoder.finish();
-    if (!signal.aborted) send({ kind: 'index', types: decoder.getTypes() });
+    if (!signal.aborted) {
+      // Final UNIT/MULT metadata so the main thread can build unit-aware series.
+      send({ kind: 'metadata', metadata: decoder.getMetadata() });
+      send({ kind: 'index', types: decoder.getTypes() });
+    }
   },
 );
 

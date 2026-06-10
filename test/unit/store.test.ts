@@ -376,6 +376,61 @@ describe('createAppStore — persistence', () => {
     expect(kv.peek('app', 'layout')).toBeUndefined();
   });
 
+  it('serializes overlapping persist writes so the newest snapshot wins (audit B7)', async () => {
+    // A KvStore whose FIRST settings write only completes when released,
+    // simulating a slow IndexedDB transaction overlapped by a faster later one.
+    const data = new Map<string, unknown>();
+    let release: (() => void) | undefined;
+    let calls = 0;
+    const kv: KvStore & { peek<T>(ns: string, key: string): T | undefined } = {
+      get: async <T>(ns: string, key: string): Promise<T | undefined> =>
+        data.get(`${ns}::${key}`) as T | undefined,
+      set: <T>(ns: string, key: string, value: T): Promise<void> => {
+        const commit = (): void => {
+          data.set(`${ns}::${key}`, JSON.parse(JSON.stringify(value)));
+        };
+        if (key === 'settings' && ++calls === 1) {
+          return new Promise<void>((resolve) => {
+            release = (): void => {
+              commit();
+              resolve();
+            };
+          });
+        }
+        commit();
+        return Promise.resolve();
+      },
+      del: async (ns: string, key: string): Promise<void> => {
+        data.delete(`${ns}::${key}`);
+      },
+      peek: <T>(ns: string, key: string): T | undefined =>
+        data.get(`${ns}::${key}`) as T | undefined,
+    };
+
+    const store = createAppStore(undefined, kv);
+
+    store.patch((d) => {
+      d.settings.theme = 'light';
+    });
+    await settle();
+    window.dispatchEvent(new Event('pagehide')); // write #1 starts, held open
+
+    store.patch((d) => {
+      d.settings.theme = 'field';
+    });
+    await settle();
+    window.dispatchEvent(new Event('pagehide')); // write #2 queued behind #1
+
+    // The chained write #2 must not have run yet (write #1 still pending).
+    expect(kv.peek<AppSettings>('app', 'settings')).toBeUndefined();
+
+    release?.(); // complete the slow first write
+    await vi.waitFor(() => {
+      // The serialized chain applies #1 then #2: the newest snapshot wins.
+      expect(kv.peek<AppSettings>('app', 'settings')?.theme).toBe('field');
+    });
+  });
+
   it('rehydrates settings + layout from the KvStore on init', async () => {
     const kv = makeFakeKv();
     await kv.set<AppSettings>('app', 'settings', {

@@ -19,7 +19,7 @@
  * content (its `onCleanup` runs), which is the right default for live setup
  * flows (e.g. a calibration must stop when you navigate away).
  */
-import { For, Show, createMemo, createSignal, type Component } from 'solid-js';
+import { For, Show, createMemo, createSignal, type Accessor, type Component } from 'solid-js';
 import { SafetyCallout } from './safety-callout';
 import {
   navTargetId,
@@ -47,6 +47,15 @@ export interface WizardShellProps {
   initialStepId?: string;
   /** Notified whenever the active step changes (for screen-level wiring). */
   onActiveStepChange?: (id: string) => void;
+  /**
+   * Optional EXTERNAL completion-overrides accessor. When supplied together
+   * with {@link WizardShellProps.setOverrides}, manual "Mark complete" state
+   * lives outside the shell (e.g. a screen-session signal) and survives
+   * remounts; otherwise the shell keeps it in a local signal.
+   */
+  overrides?: Accessor<ReadonlyMap<string, SettledStatus>>;
+  /** Setter paired with {@link WizardShellProps.overrides}. */
+  setOverrides?: (next: ReadonlyMap<string, SettledStatus>) => void;
 }
 
 /** The setup wizard shell: left step list + right guided pane. */
@@ -56,9 +65,25 @@ export const WizardShell: Component<WizardShellProps> = (props) => {
   const [activeId, setActiveId] = createSignal<string | undefined>(
     resolveInitialStepId(props.steps, props.initialStepId),
   );
-  const [overrides, setOverrides] = createSignal<ReadonlyMap<string, SettledStatus>>(
+  const [localOverrides, setLocalOverrides] = createSignal<ReadonlyMap<string, SettledStatus>>(
     new Map<string, SettledStatus>(),
   );
+  // External (session) overrides win when both accessors are supplied (E15).
+  const externalOverrides = props.overrides;
+  const externalSetOverrides = props.setOverrides;
+  const overrides: Accessor<ReadonlyMap<string, SettledStatus>> =
+    externalOverrides !== undefined && externalSetOverrides !== undefined
+      ? externalOverrides
+      : localOverrides;
+  const setOverrides = (
+    update: (prev: ReadonlyMap<string, SettledStatus>) => ReadonlyMap<string, SettledStatus>,
+  ): void => {
+    if (externalOverrides !== undefined && externalSetOverrides !== undefined) {
+      externalSetOverrides(update(externalOverrides()));
+    } else {
+      setLocalOverrides(update);
+    }
+  };
 
   const tabEls = new Map<string, HTMLButtonElement>();
 

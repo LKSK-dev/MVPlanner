@@ -67,6 +67,13 @@ export const PLAN_SCREEN_MESSAGES: Readonly<Record<string, string>> = {
   'plan.status.loaded': 'Loaded {name} ({n} items)',
   'plan.status.saved': 'Saved {name}',
   'plan.status.noTarget': 'No vehicle connected',
+  'plan.status.notConnected': 'Not connected',
+  'plan.status.fenceParamsFailed': '{n} fence parameter write(s) failed',
+
+  // Destructive-replace confirmation.
+  'plan.confirm.replaceTitle': 'Replace current mission?',
+  'plan.confirm.replaceBody':
+    'The mission being edited will be replaced. This cannot be undone.',
   'plan.what.mission': 'mission',
   'plan.what.fence': 'fence',
   'plan.what.rally': 'rally',

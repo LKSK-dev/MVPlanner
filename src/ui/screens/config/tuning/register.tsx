@@ -14,7 +14,13 @@
  */
 import { createComponent, type Accessor } from 'solid-js';
 import { render } from 'solid-js/web';
-import type { CommandClient, PanelApi, PanelDef, ParamClient } from '../../../../contracts';
+import type {
+  CommandClient,
+  ConfirmOptions,
+  PanelApi,
+  PanelDef,
+  ParamClient,
+} from '../../../../contracts';
 import type { ParamMetaResolver, TFn } from '../../../widgets/paramgrid';
 import { TuningPanel, type TuningVehicle } from './tuning-panel';
 import './messages';
@@ -32,6 +38,12 @@ export interface TuningPanelDeps {
   readonly command?: CommandClient;
   /** Reactive active vehicle (selects the per-class parameter groups). */
   readonly vehicle: Accessor<TuningVehicle | undefined>;
+  /** Destructive-action confirmation gate (optional; Config assembly wires it). */
+  readonly confirm?: (opts: ConfirmOptions) => Promise<boolean>;
+  /** "Confirm destructive actions" setting accessor (optional). */
+  readonly confirmDestructive?: () => boolean;
+  /** Reactive active vehicle sysid (optional; clears state on switch). */
+  readonly activeSysid?: () => number | undefined;
   /** i18n translate function. */
   readonly t: TFn;
 }
@@ -51,6 +63,11 @@ export function createTuningPanel(deps: TuningPanelDeps): PanelDef {
             vehicle: deps.vehicle,
             t: api.t,
             ...(deps.command !== undefined ? { command: deps.command } : {}),
+            ...(deps.confirm !== undefined ? { confirm: deps.confirm } : {}),
+            ...(deps.confirmDestructive !== undefined
+              ? { confirmDestructive: deps.confirmDestructive }
+              : {}),
+            ...(deps.activeSysid !== undefined ? { activeSysid: deps.activeSysid } : {}),
           }),
         el,
       );

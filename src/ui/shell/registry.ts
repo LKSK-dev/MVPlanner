@@ -98,6 +98,10 @@ export function createUiRegistry(): ShellRegistry {
     },
     confirm(opts: ConfirmOptions): Promise<boolean> {
       return new Promise<boolean>((resolve) => {
+        // A second concurrent confirm replaces the first: resolve the pending
+        // request with `false` so its caller never hangs (audit D1).
+        const pending = confirmRequest();
+        if (pending !== undefined) pending.resolve(false);
         const requestId = id();
         setConfirmRequest({
           id: requestId,

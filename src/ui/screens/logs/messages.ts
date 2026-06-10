@@ -26,6 +26,7 @@ export const LOGS_MESSAGES: Readonly<Record<string, string>> = {
   'logs.source.openBin': 'Open DataFlash log…',
   'logs.source.openTlog': 'Open telemetry log…',
   'logs.source.loading': 'Decoding log…',
+  'logs.source.loadingProgress': 'Decoding… {n} records',
   'logs.source.loaded': 'Loaded {name} ({series} series)',
   'logs.source.tlogLoaded': 'Loaded {name}',
   'logs.source.empty': 'No log opened',

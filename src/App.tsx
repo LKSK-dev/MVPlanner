@@ -254,6 +254,7 @@ export const App: Component<AppProps> = (props) => {
         pendingOpen: planPendingOpen,
         onPendingConsumed: clearPendingOpen,
         session: planSession,
+        confirm: (opts) => registry.confirm(opts),
       }),
     );
     // M5 keystone: install the real Setup screen (frame/accel/compass/radio/

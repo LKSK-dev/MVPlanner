@@ -55,6 +55,28 @@ export const AppSettingsPane: Component<AppSettingsPaneProps> = (props) => {
     if (e.key === 'Escape') {
       e.stopPropagation();
       control.close();
+      return;
+    }
+    if (e.key !== 'Tab') return;
+    // Trap Tab/Shift+Tab between the first and last focusable child (matches
+    // the alert-center / command-palette modal pattern).
+    const focusables = Array.from(
+      panelEl?.querySelectorAll<HTMLElement>(
+        'button:not([disabled]):not([tabindex="-1"]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      ) ?? [],
+    );
+    if (focusables.length === 0) return;
+    const first = focusables[0]!;
+    const last = focusables[focusables.length - 1]!;
+    const current = document.activeElement;
+    if (e.shiftKey) {
+      if (current === first || current === panelEl) {
+        e.preventDefault();
+        last.focus();
+      }
+    } else if (current === last) {
+      e.preventDefault();
+      first.focus();
     }
   };
 
