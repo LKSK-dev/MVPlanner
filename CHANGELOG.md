@@ -3,6 +3,29 @@
 All notable changes to MVPlanner are documented here. This project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [0.5.0] — 2026-06-02
+
+### Changed — repository-wide refactor (clean & consistent code; behavior-neutral)
+
+- **Redundancy eliminated first**: one canonical `TFn` translate type (was declared
+  34×), one `ConfirmFn` (10×), one `formatBytes` (4×), one shared dialog focus
+  trap (4 inline copies), one pointer-drag lifecycle helper, one MAVLink decoded-
+  field accessor (6×), shared duration/byte/error formatters, and a shared test
+  helper module adopted across ~50 test files (hundreds of duplicated lines
+  removed).
+- **Dead code removed**: the migrated legacy Settings screen, its preview model,
+  46 orphaned i18n keys, the superseded map aspect-clamp, and the never-used
+  `@/` path alias.
+- **Structure**: the storage-manager + network egress modules moved next to
+  their only consumer (the MVPlanner Settings pane); i18n-only `register.ts`
+  files renamed to `messages.ts`; inspector strings moved out of the central
+  catalog; import-path styles normalized.
+- **Size budget extended**: single-file artifact target ≤ 20 MB, hard limit
+  ≤ 25 MB (was 5/8).
+
+Contracts 1.8.0 (type-only additive: canonical `ConfirmFn`). No functional
+changes intended; the full regression suite + live SITL gate verify behavior.
+
 ## [0.4.2] — 2026-06-02
 
 ### Fixed (full-repository audit, two passes — ~95 findings)
