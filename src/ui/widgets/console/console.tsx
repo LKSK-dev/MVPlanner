@@ -20,9 +20,10 @@ import { createMvpCompletionSource } from './completion';
 import { type ConsoleEditorHandle, mountConsoleEditor } from './editor';
 import './messages';
 import type { ConsoleController } from './controller';
+import type { TFn } from '../../../core/i18n';
 
 /** i18n translate fn (matches the shell's `t`). */
-export type TFn = (k: string, vars?: Record<string, string | number>) => string;
+export type { TFn };
 
 /** Props for {@link ScriptingConsole}. */
 export interface ScriptingConsoleProps {

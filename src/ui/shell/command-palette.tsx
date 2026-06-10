@@ -24,6 +24,7 @@ import type { CommandDef } from '../../contracts';
 import { t } from '../../core/i18n';
 import { formatChord } from '../../core/keybinds';
 import { useShell } from './context';
+import { trapTabKey } from '../util/focus-trap';
 import { fuzzyFilter } from './fuzzy';
 
 /** Stable DOM id for a result option (used for `aria-activedescendant`). */
@@ -44,6 +45,7 @@ const PaletteOverlay: Component<{ onClose: () => void }> = (props) => {
   };
   const [active, setActive] = createSignal(0);
   let inputEl: HTMLInputElement | undefined;
+  let dialogEl: HTMLDivElement | undefined;
 
   const results = createMemo<readonly CommandDef[]>(() =>
     fuzzyFilter(registry.commands(), query(), (c) => c.title),
@@ -89,14 +91,14 @@ const PaletteOverlay: Component<{ onClose: () => void }> = (props) => {
       runActive();
     } else if (e.key === 'Tab') {
       // The input is the only tabbable child; keep focus inside the modal.
-      e.preventDefault();
-      inputEl?.focus();
+      trapTabKey(e, dialogEl);
     }
   };
 
   return (
     <div class="mvp-palette-backdrop" onClick={() => props.onClose()}>
       <div
+        ref={dialogEl}
         class="mvp-palette"
         role="dialog"
         aria-modal="true"

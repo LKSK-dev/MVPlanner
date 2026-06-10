@@ -27,6 +27,7 @@
 import type { ParamClient as ParamClientApi, Param } from '../../../contracts';
 import type { DecodedMessage, FieldValue } from '../../../contracts';
 import { MAV_PARAM_TYPE, PARAM_ID_LEN, PARAM_INDEX_NONE } from './constants';
+import { numField as num } from '../fields';
 
 /** Encode + send a message out the active link (bound to host `sendMessage`). */
 export type ParamSendFn = (name: string, fields: Record<string, unknown>) => void | Promise<void>;
@@ -99,14 +100,6 @@ const DEFAULT_CLOCK: ParamClock = {
     return () => clearTimeout(id);
   },
 };
-
-/** Read a scalar field as a number (coercing bigint); `undefined` otherwise. */
-function num(fields: Record<string, FieldValue>, key: string): number | undefined {
-  const v = fields[key];
-  if (typeof v === 'number') return v;
-  if (typeof v === 'bigint') return Number(v);
-  return undefined;
-}
 
 /** Whether `msg` belongs to `target` for parameter protocol state/cache updates. */
 function fromTarget(msg: DecodedMessage, target: ParamTarget): boolean {

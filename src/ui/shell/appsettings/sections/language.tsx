@@ -9,20 +9,10 @@
  * unit-tests with a fresh `createAppStore()`.
  */
 import { For, type Component } from 'solid-js';
-import { listLocales } from '../../../../core/i18n';
+import { listLocales, localeLabel } from '../../../../core/i18n';
 import type { AppSettingsSectionDeps } from '../context';
 import '../messages';
 import '../appsettings.css';
-
-/** Best-effort human language name for a locale code (falls back to the code). */
-function localeLabel(code: string): string {
-  try {
-    const display = new Intl.DisplayNames([code], { type: 'language' });
-    return display.of(code) ?? code;
-  } catch {
-    return code;
-  }
-}
 
 /** The Language section body. */
 export const LanguageSection: Component<{ deps: AppSettingsSectionDeps }> = (props) => {

@@ -33,7 +33,7 @@ import {
   type Accessor,
   type Component,
 } from 'solid-js';
-import { t as defaultT } from '../../../core/i18n';
+import { t as defaultT, type TFn } from '../../../core/i18n';
 import type { AppState, Store, VehicleState } from '../../../contracts';
 import { Hud } from '../../../ui/widgets/hud';
 import { InstrumentPanel, unitsFromResolved, type RcState } from '../../../ui/widgets/gauges';
@@ -88,8 +88,7 @@ import '../../../ui/widgets/quickwatch/quickwatch.css';
 import './actions/actions.css';
 import './flight.css';
 
-/** The i18n translate function (matches `core/i18n` `t` and `PanelApi.t`). */
-export type TFn = (key: string, vars?: Record<string, string | number>) => string;
+export type { TFn };
 
 /** Default guided-target altitude (m, relative) when the vehicle alt is unknown. */
 const DEFAULT_GUIDED_ALT_M = 50;

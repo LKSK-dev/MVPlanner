@@ -20,8 +20,7 @@ import type { StorageManagerDeps } from '../../src/ui/screens/config/settings/st
 import type { AppSettingsSectionDeps, ConfirmFn } from '../../src/ui/shell/appsettings/context';
 import { GeneralSection } from '../../src/ui/shell/appsettings/sections/general';
 import { AboutSection } from '../../src/ui/shell/appsettings/sections/about';
-
-const settle = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
+import { settle } from '../helpers';
 
 afterEach(cleanup);
 

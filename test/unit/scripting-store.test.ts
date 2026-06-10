@@ -8,7 +8,7 @@
  * event-triggered macro.
  */
 import { describe, it, expect, vi } from 'vitest';
-import type { CommandDef, KvStore, UiRegistry } from '../../src/contracts';
+import type { CommandDef, UiRegistry } from '../../src/contracts';
 import {
   type Macro,
   bindMacros,
@@ -19,24 +19,7 @@ import {
   DEFAULT_SCRIPTING_GRANTS,
 } from '../../src/ext/scripting';
 import { buildExtApiDts } from '../../src/ext/api';
-
-function fakeKv(): KvStore {
-  const store = new Map<string, unknown>();
-  const k = (ns: string, key: string): string => `${ns}\u0000${key}`;
-  return {
-    get<T>(ns: string, key: string): Promise<T | undefined> {
-      return Promise.resolve(store.get(k(ns, key)) as T | undefined);
-    },
-    set<T>(ns: string, key: string, v: T): Promise<void> {
-      store.set(k(ns, key), v);
-      return Promise.resolve();
-    },
-    del(ns: string, key: string): Promise<void> {
-      store.delete(k(ns, key));
-      return Promise.resolve();
-    },
-  };
-}
+import { fakeKv } from '../helpers';
 
 describe('snippet store', () => {
   it('saves, lists, gets and removes', async () => {

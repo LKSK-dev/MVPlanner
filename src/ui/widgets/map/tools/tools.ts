@@ -33,6 +33,7 @@ import {
   type MeasureSystem,
 } from '../layers/geometry';
 import '../layers/messages';
+import type { TFn } from '../../../../core/i18n';
 
 /** The active map-tool mode. `none` means clicks are guided-intent relays. */
 export type ToolMode = 'none' | 'measure-distance' | 'measure-area' | 'drop-marker';
@@ -57,7 +58,7 @@ export interface MapToolHost {
 }
 
 /** Translate function shape (matches `core/i18n`'s `t`). */
-export type TFn = (key: string, vars?: Record<string, string | number>) => string;
+export type { TFn };
 
 /** Options for {@link createMapTools}. */
 export interface MapToolsOptions {

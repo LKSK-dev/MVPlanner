@@ -9,11 +9,12 @@
  * so the grid is trivially testable with plain objects (no Worker, no host).
  */
 import type { Param, ParamMeta } from '../../../contracts';
+import type { TFn } from '../../../core/i18n';
 
 export type { Param, ParamMeta } from '../../../contracts';
 
 /** The i18n translate function (matches `core/i18n` `t` and `PanelApi.t`). */
-export type TFn = (key: string, vars?: Record<string, string | number>) => string;
+export type { TFn };
 
 /**
  * The minimal lookup the grid needs to render type-aware editors:

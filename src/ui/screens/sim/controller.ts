@@ -17,9 +17,9 @@ import type { ExtManifest, FileIo, Permission } from '../../../contracts';
 import type { ExtensionSystem } from '../../../ext/api';
 import type { ExtModule, ExtState } from '../../../ext/host';
 import { type GrantPrompt, requestGrants } from '../../../ext/permissions';
+import type { TFn } from '../../../core/i18n';
 
-/** i18n translate fn (for human-readable error toasts). */
-export type TFn = (k: string, vars?: Record<string, string | number>) => string;
+export type { TFn };
 
 /** A bundled example module (carries its manifest, per `extensions/index.js`). */
 export type ExampleModule = ExtModule;

@@ -29,7 +29,7 @@ import {
   type Accessor,
   type Component,
 } from 'solid-js';
-import { t as defaultT } from '../../../core/i18n';
+import { t as defaultT, type TFn } from '../../../core/i18n';
 import { resolveUnits } from '../../../core/units';
 import type { AppState, BlobStore, FileIo, Store } from '../../../contracts';
 import type { RecentsStore } from '../../../core/recents';
@@ -80,8 +80,7 @@ import '../../../ui/widgets/inspector/inspector.css';
 import '../../../ui/widgets/msg-sender/msg-sender.css';
 import './logs.css';
 
-/** The i18n translate function (matches `core/i18n` `t` / `PanelApi.t`). */
-export type TFn = (key: string, vars?: Record<string, string | number>) => string;
+export type { TFn };
 
 /** Max points per plotted series (≈ plot width; the engine downsamples to this). */
 const MAX_PLOT_POINTS = 1200;

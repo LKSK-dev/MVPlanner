@@ -7,33 +7,9 @@
  * saved command-macro binds to the registry and runs its code against `mvp`.
  */
 import { describe, it, expect, vi } from 'vitest';
-import type {
-  CommandDef,
-  ExtContext,
-  KvStore,
-  Param,
-  Permission,
-  UiRegistry,
-} from '../../src/contracts';
+import type { CommandDef, ExtContext, Param, Permission, UiRegistry } from '../../src/contracts';
 import { createConsoleController } from '../../src/ui/widgets/console';
-
-function fakeKv(): KvStore {
-  const store = new Map<string, unknown>();
-  const k = (ns: string, key: string): string => `${ns}\u0000${key}`;
-  return {
-    get<T>(ns: string, key: string): Promise<T | undefined> {
-      return Promise.resolve(store.get(k(ns, key)) as T | undefined);
-    },
-    set<T>(ns: string, key: string, v: T): Promise<void> {
-      store.set(k(ns, key), v);
-      return Promise.resolve();
-    },
-    del(ns: string, key: string): Promise<void> {
-      store.delete(k(ns, key));
-      return Promise.resolve();
-    },
-  };
-}
+import { fakeKv } from '../helpers';
 
 function fakeContext(notifications: string[]): ExtContext {
   const param: Param = { name: 'A', value: 5, type: 9 };

@@ -26,30 +26,7 @@ const REACTIVE: boolean = createRoot((dispose) => {
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** Macrotask turn: flushes the patch microtask + synchronous reactive updates. */
-const settle = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
-
-/** In-memory {@link KvStore} (no IndexedDB) with a peek into stored values. */
-function makeFakeKv(): KvStore & { peek<T>(ns: string, key: string): T | undefined } {
-  const data = new Map<string, unknown>();
-  const k = (ns: string, key: string): string => `${ns}::${key}`;
-  return {
-    get<T>(ns: string, key: string): Promise<T | undefined> {
-      return Promise.resolve(data.get(k(ns, key)) as T | undefined);
-    },
-    set<T>(ns: string, key: string, v: T): Promise<void> {
-      data.set(k(ns, key), v);
-      return Promise.resolve();
-    },
-    del(ns: string, key: string): Promise<void> {
-      data.delete(k(ns, key));
-      return Promise.resolve();
-    },
-    peek<T>(ns: string, key: string): T | undefined {
-      return data.get(k(ns, key)) as T | undefined;
-    },
-  };
-}
+import { fakeKv as makeFakeKv, settle } from '../helpers';
 
 /** In-memory {@link KvStore} whose first settings write rejects without storing. */
 function makeFlakySettingsKv(): KvStore & {

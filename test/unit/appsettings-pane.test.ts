@@ -18,18 +18,11 @@ import {
   createAppSettingsControl,
   type AppSettingsSectionDeps,
 } from '../../src/ui/shell/appsettings';
-import type { BlobStore, FileIo, KvStore } from '../../src/contracts';
+import type { BlobStore } from '../../src/contracts';
+import { fakeFiles, fakeKv } from '../helpers';
 
 afterEach(cleanup);
 
-function fakeKv(): KvStore {
-  const m = new Map<string, unknown>();
-  return {
-    get: async <T>(ns: string, k: string): Promise<T | undefined> => m.get(`${ns}/${k}`) as T,
-    set: async <T>(ns: string, k: string, v: T): Promise<void> => void m.set(`${ns}/${k}`, v),
-    del: async (ns: string, k: string): Promise<void> => void m.delete(`${ns}/${k}`),
-  };
-}
 function fakeBlobs(): BlobStore {
   return {
     put: async () => undefined,
@@ -39,10 +32,6 @@ function fakeBlobs(): BlobStore {
     del: async () => undefined,
   };
 }
-function fakeFiles(): FileIo {
-  return { openForRead: async () => undefined, saveAs: async () => undefined };
-}
-
 function makeDeps(): AppSettingsSectionDeps {
   const store = createAppStore();
   return {

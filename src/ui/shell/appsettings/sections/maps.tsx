@@ -14,27 +14,13 @@
  */
 import { For, Show, createMemo, createSignal, onMount, type Component } from 'solid-js';
 import type { AppState } from '../../../../contracts';
+import { formatBytes } from '../../../../core/units';
 import { BASEMAP_PRESETS, CUSTOM_PRESET_ID, presetIdForSettings } from '../../../widgets/map';
 import {
   loadStorageReport,
   type StorageReport,
 } from '../../../screens/config/settings/storage-manager';
 import type { AppSettingsSectionDeps } from '../context';
-
-/** Binary byte-size unit ladder for {@link formatBytes}. */
-const BYTE_UNITS: readonly string[] = ['KiB', 'MiB', 'GiB', 'TiB'];
-
-/** Format a byte count as a compact binary human-readable size. */
-function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  let value = bytes / 1024;
-  let i = 0;
-  while (value >= 1024 && i < BYTE_UNITS.length - 1) {
-    value /= 1024;
-    i += 1;
-  }
-  return `${value.toFixed(1)} ${BYTE_UNITS[i] ?? 'TiB'}`;
-}
 
 /**
  * The Maps section: basemap preset picker, custom tile source fields, and the

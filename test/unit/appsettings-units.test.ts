@@ -16,8 +16,7 @@ import { registerLocale, t } from '../../src/core/i18n';
 import type { AppSettingsSectionDeps } from '../../src/ui/shell/appsettings/context';
 import { UnitsSection } from '../../src/ui/shell/appsettings/sections/units';
 import { LanguageSection } from '../../src/ui/shell/appsettings/sections/language';
-
-const settle = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
+import { settle } from '../helpers';
 
 afterEach(cleanup);
 

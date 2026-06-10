@@ -15,7 +15,6 @@ import type {
   Store,
   Transport,
   TransportFactory,
-  VehicleState,
 } from '../../src/contracts';
 import { createAppStore } from '../../src/core/store';
 import { createUiRegistry } from '../../src/ui/shell';
@@ -33,25 +32,9 @@ import {
   createForwardController,
 } from '../../src/ui/shell/connection/forward-control';
 
-const settle = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
+import { makeVehicle, settle } from '../helpers';
 
 afterEach(() => cleanup());
-
-function makeVehicle(over: Partial<VehicleState> = {}): VehicleState {
-  return {
-    sysid: 1,
-    compid: 1,
-    mavType: 2,
-    autopilot: 3,
-    vehicleClass: 'copter',
-    armed: false,
-    mode: 'STABILIZE',
-    attitude: { rollRad: 0, pitchRad: 0, yawRad: 0 },
-    link: { bytesIn: 0, bytesOut: 0, packetsIn: 0, lossPct: 0, rateHz: 0, signed: false },
-    lastHeartbeatMs: 0,
-    ...over,
-  };
-}
 
 function zeroLink(): LinkStats {
   return { bytesIn: 0, bytesOut: 0, packetsIn: 0, lossPct: 0, rateHz: 0, signed: false };

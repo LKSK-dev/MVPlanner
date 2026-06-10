@@ -13,7 +13,7 @@
  * (T4.10) can convert it (`fenceToMission` + `fenceParams`) and upload it.
  */
 import { For, Index, Show, createMemo, createSignal, type Component } from 'solid-js';
-import { t as defaultT } from '../../../../core/i18n';
+import { t as defaultT, type TFn } from '../../../../core/i18n';
 import {
   FENCE_BREACH_ACTIONS,
   addCircle,
@@ -32,8 +32,7 @@ import {
 import './messages';
 import './fence.css';
 
-/** The i18n translate function (matches `core/i18n` `t` and `PanelApi.t`). */
-export type TFn = (key: string, vars?: Record<string, string | number>) => string;
+export type { TFn };
 
 /** {@link FencePanel} props. */
 export interface FencePanelProps {

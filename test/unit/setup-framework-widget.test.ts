@@ -14,8 +14,7 @@ import { cleanup, render } from '@solidjs/testing-library';
 import { t } from '../../src/core/i18n';
 import { WizardShell, type SettledStatus } from '../../src/ui/screens/setup/framework';
 import type { SetupStep } from '../../src/ui/screens/setup/framework';
-
-const settle = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
+import { settle } from '../helpers';
 
 afterEach(() => cleanup());
 

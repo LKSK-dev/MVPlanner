@@ -12,8 +12,7 @@ import { createComponent, createSignal } from 'solid-js';
 import { cleanup, render } from '@solidjs/testing-library';
 import type { VehicleState } from '../../src/contracts';
 import { Hud } from '../../src/ui/widgets/hud';
-
-const settle = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
+import { settle } from '../helpers';
 
 function makeVehicle(over: Partial<VehicleState> = {}): VehicleState {
   return {

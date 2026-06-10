@@ -1,7 +1,9 @@
 # `ui/screens/config` — Config screen assembly (M3 keystone)
 
-The tabbed Config screen composing the three committed sub-panels. Spec:
-plan/04 §4.5, plan/05 §5.4 Config.
+The tabbed Config screen composing the two committed sub-panels. Spec:
+plan/04 §4.5, plan/05 §5.4 Config. (App settings migrated to the App Settings
+pane, `ui/shell/appsettings`; `./settings` now only hosts its injectable
+models — Storage Manager, preview, Network section.)
 
 ## Tabs
 
@@ -9,11 +11,10 @@ plan/04 §4.5, plan/05 §5.4 Config.
 | ---------- | ---------------------------------- | ------------- |
 | Parameters | `createParamWorkbenchPanel` (T3.4) | `./params`    |
 | Tuning     | `createTuningPanel` (T3.6)         | `./tuning`    |
-| Settings   | `createSettingsPanel` (T3.7)       | `./settings`  |
 
-`ConfigScreen` mounts the three sub-panels ONCE into hidden host containers and
-toggles them by tab, so each panel's state (fetched params, staged edits, the
-storage report) survives tab switches. Only the active panel is visible.
+`ConfigScreen` mounts the sub-panels ONCE into hidden host containers and
+toggles them by tab, so each panel's state (fetched params, staged edits)
+survives tab switches. Only the active panel is visible.
 
 ## Shared singletons (wired in `App.tsx`)
 
@@ -36,7 +37,7 @@ storage foundation into `createConfigScreenPanel` and installs the panel via
 ## Tests
 
 `test/unit/config-screen.test.ts` mounts `ConfigScreen` over mocks and asserts
-the three tabs render + switch, and that the workbench Save/Compare route through
+the two tabs render + switch, and that the workbench Save/Compare route through
 a mock `FileIo`. `test/unit/tuning-panel.test.ts` covers the Tuning tab and
 `test/unit/flight-screen.test.ts`-style shell integration asserts navigating to
 Config mounts the real screen.

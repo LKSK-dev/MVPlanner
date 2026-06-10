@@ -11,7 +11,7 @@
  * so the panel unit-tests without a map or mission service.
  */
 import { For, Show, createMemo, createSignal, type Accessor, type Component, type Setter } from 'solid-js';
-import { t as defaultT } from '../../../../core/i18n';
+import { t as defaultT, type TFn } from '../../../../core/i18n';
 import type { Mission } from '../../../../contracts';
 import type { LatLon } from '../../../../geo/format';
 import {
@@ -25,8 +25,7 @@ import {
 import './messages';
 import './survey.css';
 
-/** The i18n translate function (matches `core/i18n` `t` and `PanelApi.t`). */
-export type TFn = (key: string, vars?: Record<string, string | number>) => string;
+export type { TFn };
 
 /** {@link SurveyPanel} props. */
 export interface SurveyPanelProps {

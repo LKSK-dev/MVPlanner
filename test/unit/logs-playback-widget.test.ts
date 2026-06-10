@@ -19,8 +19,7 @@ import {
   type PlaybackController,
   type PlaybackProgress,
 } from '../../src/ui/screens/logs/playback';
-
-const settle = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
+import { settle } from '../helpers';
 
 /** A mock controller whose captured subscriber the test drives via `push`. */
 function makeController(): {

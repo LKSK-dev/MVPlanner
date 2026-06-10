@@ -12,7 +12,6 @@ import type {
   CommandClient,
   DecodedMessage,
   ExtContext,
-  KvStore,
   MapLayer,
   Mission,
   MissionClient,
@@ -52,6 +51,7 @@ import {
   type VehiclesPort,
 } from '../../src/ext/api';
 import { EXT_API_VERSION } from '../../src/version';
+import { fakeKv } from '../helpers';
 
 const EXT_ID = 'com.example.conformance';
 const TEST_VERSION = '7.7.0';
@@ -126,25 +126,6 @@ interface MethodCase {
   readonly brokerArgs: readonly unknown[];
   /** Assert that the expected backing fake observed the call. */
   verify(h: Harness): void;
-}
-
-/** In-memory {@link KvStore} keyed by `namespace\0key`. */
-function fakeKv(): KvStore {
-  const store = new Map<string, unknown>();
-  const keyFor = (namespace: string, key: string): string => `${namespace}\u0000${key}`;
-  return {
-    get<T>(namespace: string, key: string): Promise<T | undefined> {
-      return Promise.resolve(store.get(keyFor(namespace, key)) as T | undefined);
-    },
-    set<T>(namespace: string, key: string, value: T): Promise<void> {
-      store.set(keyFor(namespace, key), value);
-      return Promise.resolve();
-    },
-    del(namespace: string, key: string): Promise<void> {
-      store.delete(keyFor(namespace, key));
-      return Promise.resolve();
-    },
-  };
 }
 
 const vehicleStub: VehicleState = {

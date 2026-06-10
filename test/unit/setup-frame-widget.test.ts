@@ -10,6 +10,7 @@ import type { Param, ParamClient } from '../../src/contracts';
 import type { VehicleClass } from '../../src/contracts';
 import { WizardShell } from '../../src/ui/screens/setup/framework';
 import { createFrameStep, type FrameParamName } from '../../src/ui/screens/setup/frame';
+import { settle } from '../helpers';
 
 const PARAM_TYPE_INT32 = 6;
 
@@ -49,8 +50,6 @@ class MockParamClient implements ParamClient {
     };
   }
 }
-
-const settle = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
 
 afterEach(() => {
   cleanup();

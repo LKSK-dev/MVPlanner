@@ -15,6 +15,7 @@ import { createComponent, type Accessor } from 'solid-js';
 import { render } from 'solid-js/web';
 import type { AppState, BlobStore, FileIo, PanelApi, PanelDef, Store } from '../../../contracts';
 import type { RecentsStore } from '../../../core/recents';
+import type { TFn } from '../../../core/i18n';
 import { screenPanelId } from '../../shell';
 import type { InspectorSource } from '../../../ui/widgets/inspector';
 import type { MsgSenderSend } from '../../../ui/widgets/msg-sender';
@@ -24,8 +25,7 @@ import './messages';
 /** Stable panel id for the Logs screen (`screen.logs`). */
 export const LOGS_SCREEN_PANEL_ID = screenPanelId('logs');
 
-/** The i18n translate function (matches `core/i18n` `t` / `PanelApi.t`). */
-export type TFn = (key: string, vars?: Record<string, string | number>) => string;
+export type { TFn };
 
 /** Construction dependencies for the Logs screen panel. */
 export interface LogsScreenPanelDeps {

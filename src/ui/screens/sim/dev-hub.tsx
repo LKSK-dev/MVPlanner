@@ -10,10 +10,10 @@
  */
 import { For, createSignal, onCleanup, onMount, type Accessor, type Component } from 'solid-js';
 import type { PanelApi, PanelDef } from '../../../contracts';
+import type { TFn } from '../../../core/i18n';
 import './messages';
 
-/** i18n translate fn (matches the shell's `t`). */
-export type TFn = (k: string, vars?: Record<string, string | number>) => string;
+export type { TFn };
 
 /** Props for {@link SimDevHub}. */
 export interface SimDevHubProps {

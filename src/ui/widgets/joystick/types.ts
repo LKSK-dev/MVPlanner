@@ -9,9 +9,10 @@
  * browser Gamepad API.
  */
 import type { GamepadSource, ManualControlService } from '../../../mavlink/microservices/manual';
+import type { TFn } from '../../../core/i18n';
 
 /** The i18n translate function (matches `core/i18n` `t` and `PanelApi.t`). */
-export type TFn = (key: string, vars?: Record<string, string | number>) => string;
+export type { TFn };
 
 /** A `window`-like target for the focus-loss failsafe (only the bits we use). */
 export interface FailsafeTarget {

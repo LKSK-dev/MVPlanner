@@ -22,7 +22,6 @@ import type {
   Param,
   ParamClient,
   Store,
-  VehicleState,
 } from '../../src/contracts';
 import type { ElevationProvider } from '../../src/geo/terrain';
 import { createParamMetaStore } from '../../src/mavlink/param-meta';
@@ -51,8 +50,7 @@ import {
   setScreenPanel,
   type ShellContextValue,
 } from '../../src/ui/shell';
-
-const settle = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
+import { makeVehicle, settle } from '../helpers';
 
 // --------------------------------------------------------------------------
 // Mocks / harness
@@ -282,22 +280,6 @@ function makeHarness(): Harness {
     recorder,
     setStatus,
     saved,
-  };
-}
-
-function makeVehicle(overrides: Partial<VehicleState> = {}): VehicleState {
-  return {
-    sysid: 1,
-    compid: 1,
-    mavType: 2,
-    autopilot: 3,
-    vehicleClass: 'copter',
-    armed: false,
-    mode: 'STABILIZE',
-    attitude: { rollRad: 0, pitchRad: 0, yawRad: 0 },
-    link: { bytesIn: 0, bytesOut: 0, packetsIn: 0, lossPct: 0, rateHz: 0, signed: false },
-    lastHeartbeatMs: 0,
-    ...overrides,
   };
 }
 

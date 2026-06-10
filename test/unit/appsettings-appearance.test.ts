@@ -18,8 +18,7 @@ import { createAppStore } from '../../src/core/store';
 import { AppearanceSection } from '../../src/ui/shell/appsettings/sections/appearance';
 import type { AppSettingsSectionDeps } from '../../src/ui/shell/appsettings/context';
 import '../../src/ui/shell/appsettings/messages';
-
-const settle = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
+import { settle } from '../helpers';
 
 interface Harness {
   readonly container: HTMLElement;

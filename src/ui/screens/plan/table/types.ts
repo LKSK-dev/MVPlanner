@@ -9,12 +9,12 @@
  */
 import type { AltFrame, MavCmdMeta, MissionModel } from '../../../../geo/mission';
 import type { UnitSystem } from '../../../../contracts';
+import type { TFn } from '../../../../core/i18n';
 
 export type { AltFrame, MavCmdMeta, MissionModel } from '../../../../geo/mission';
 export type { UnitSystem } from '../../../../contracts';
 
-/** The i18n translate function (matches `core/i18n` `t` and `PanelApi.t`). */
-export type TFn = (key: string, vars?: Record<string, string | number>) => string;
+export type { TFn };
 
 /**
  * A flattened, display-ready view of one mission item. Pure projection of a

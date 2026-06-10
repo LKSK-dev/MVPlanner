@@ -15,10 +15,9 @@ import {
   deriveFailsafeSections,
 } from '../../src/ui/screens/setup/failsafe';
 import type { Param, ParamClient, VehicleClass } from '../../src/contracts';
+import { settle } from '../helpers';
 
 const PARAM_TYPE_REAL32 = 9;
-
-const settle = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
 
 function param(name: string, value: number): Param {
   return { name, value, type: PARAM_TYPE_REAL32 };

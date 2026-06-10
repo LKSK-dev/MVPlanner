@@ -47,11 +47,7 @@ import {
   type MakeContext,
 } from '../../widgets/console';
 import { createApiReferencePanel, registerApiReference } from './api-ref';
-import {
-  createExtensionsManagerPanel,
-  EXTENSIONS_MANAGER_COMMAND_ID,
-  type ExtensionsManagerProps,
-} from './extensions-manager';
+import { createExtensionsManagerPanel, EXTENSIONS_MANAGER_COMMAND_ID } from './extensions-manager';
 import { createExtensionsController, type ExtensionsController } from './controller';
 import { SimDevHub } from './dev-hub';
 import './messages';
@@ -59,10 +55,10 @@ import './sim.css';
 import './extensions-manager.css';
 import './install-prompt.css';
 import './api-ref/api-reference.css';
+import type { TFn } from '../../../core/i18n';
 import '../../widgets/console/console.css';
 
-/** i18n translate fn (matches the shell's `t`). */
-export type TFn = ExtensionsManagerProps['t'];
+export type { TFn };
 
 /** Construction dependencies for {@link createSimDevTools}. */
 export interface SimDevToolsDeps {

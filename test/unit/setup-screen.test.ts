@@ -28,8 +28,7 @@ import {
   setScreenPanel,
   type ShellContextValue,
 } from '../../src/ui/shell';
-
-const settle = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
+import { settle } from '../helpers';
 
 afterEach(() => cleanup());
 

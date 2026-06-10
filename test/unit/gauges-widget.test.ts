@@ -19,8 +19,7 @@ import {
   metricUnits,
   type RcState,
 } from '../../src/ui/widgets/gauges';
-
-const settle = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
+import { settle } from '../helpers';
 
 function vehicle(over: Partial<VehicleState> = {}): VehicleState {
   return {

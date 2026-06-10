@@ -15,9 +15,10 @@
 import type { LinkStats } from '../../../contracts';
 import type { VehicleState } from '../../../contracts';
 import type { UnitHook } from './units';
+import type { TFn } from '../../../core/i18n';
 
 /** The i18n translate function (matches `core/i18n` `t` and `PanelApi.t`). */
-export type TFn = (key: string, vars?: Record<string, string | number>) => string;
+export type { TFn };
 
 /** Interpolation variables for a translated label. */
 export type LabelVars = Record<string, string | number>;

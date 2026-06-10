@@ -9,7 +9,7 @@
  * the default (module) spawner, and the watchdog terminate hook.
  */
 import { describe, it, expect, vi } from 'vitest';
-import type { ExtContext, ExtManifest, KvStore } from '../../src/contracts';
+import type { ExtContext, ExtManifest } from '../../src/contracts';
 import { createAuditLog } from '../../src/core/audit';
 import { ExtensionHost, type ExtLoadRecord, type ExtModule } from '../../src/ext/host';
 import {
@@ -26,24 +26,7 @@ import {
   type GuestEvaluate,
   type SandboxCtx,
 } from '../../src/ext/sandbox';
-
-function fakeKv(): KvStore {
-  const store = new Map<string, unknown>();
-  const k = (ns: string, key: string): string => `${ns}\u0000${key}`;
-  return {
-    get<T>(ns: string, key: string): Promise<T | undefined> {
-      return Promise.resolve(store.get(k(ns, key)) as T | undefined);
-    },
-    set<T>(ns: string, key: string, v: T): Promise<void> {
-      store.set(k(ns, key), v);
-      return Promise.resolve();
-    },
-    del(ns: string, key: string): Promise<void> {
-      store.delete(k(ns, key));
-      return Promise.resolve();
-    },
-  };
-}
+import { fakeKv } from '../helpers';
 
 const manifest: ExtManifest = {
   id: 'a',

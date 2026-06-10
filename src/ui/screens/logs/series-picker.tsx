@@ -10,10 +10,10 @@
  */
 import { For, Show, createMemo, createSignal, type Component } from 'solid-js';
 import type { LogSeriesDescriptor } from '../../../data/log-query';
+import type { TFn } from '../../../core/i18n';
 import './messages';
 
-/** The i18n translate function (matches `core/i18n` `t` / `PanelApi.t`). */
-export type TFn = (key: string, vars?: Record<string, string | number>) => string;
+export type { TFn };
 
 /** A currently-plotted series shown in the "selected" list. */
 export interface SelectedSeriesSummary {

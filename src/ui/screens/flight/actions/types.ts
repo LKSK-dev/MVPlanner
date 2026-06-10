@@ -13,14 +13,14 @@
  * active-vehicle accessor — so the whole flow unit-tests against mocks with no
  * real host (spec plan/04 §4.2 "disabled when unsafe", §8.3 gating).
  */
-import type { CommandClient, ConfirmOptions, VehicleClass } from '../../../../contracts';
+import type { CommandClient, ConfirmFn, VehicleClass } from '../../../../contracts';
 import type { AuditLog, AuditOrigin } from '../../../../core/audit';
+import type { TFn } from '../../../../core/i18n';
 
-/** The i18n translate function (matches `core/i18n` `t` and `PanelApi.t`). */
-export type TFn = (key: string, vars?: Record<string, string | number>) => string;
+export type { TFn };
 
 /** Re-export the confirm seam shape for callers wiring the actions bar. */
-export type ConfirmFn = (opts: ConfirmOptions) => Promise<boolean>;
+export type { ConfirmFn };
 
 /** Stable identifier for each quick action (spec plan/04 §4.2 list). */
 export type ActionId =

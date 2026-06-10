@@ -10,8 +10,7 @@ import { cleanup, render } from '@solidjs/testing-library';
 import type { DialectTable } from '../../src/contracts';
 import { t } from '../../src/core/i18n';
 import { MessageSender, type MsgSenderSend } from '../../src/ui/widgets/msg-sender';
-
-const settle = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
+import { settle } from '../helpers';
 
 const TEST_DIALECT: DialectTable = {
   name: 'test',

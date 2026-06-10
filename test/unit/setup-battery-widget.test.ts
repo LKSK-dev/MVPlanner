@@ -9,6 +9,7 @@ import { t } from '../../src/core/i18n';
 import type { Param, ParamClient } from '../../src/contracts';
 import { WizardShell } from '../../src/ui/screens/setup/framework';
 import { createBatteryStep } from '../../src/ui/screens/setup/battery';
+import { settle } from '../helpers';
 
 interface ParamWrite {
   readonly name: string;
@@ -21,8 +22,6 @@ interface MockParamClient extends ParamClient {
 }
 
 type ParamListener = (param: Param) => void;
-
-const settle = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
 
 function param(name: string, value: number): Param {
   return { name, value, type: 9 };

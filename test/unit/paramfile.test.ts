@@ -11,28 +11,8 @@ import {
   type ParamFileEntry,
   type Preset,
 } from '../../src/data/paramfile';
-import type { FileIo, KvStore } from '../../src/contracts';
-
-// ---------------------------------------------------------------------------
-// In-memory fakes
-// ---------------------------------------------------------------------------
-
-/** Minimal in-memory {@link KvStore} keyed by `ns\u0000key`. */
-function fakeKv(): KvStore {
-  const map = new Map<string, unknown>();
-  const id = (ns: string, key: string): string => `${ns}\u0000${key}`;
-  return {
-    async get<T>(ns: string, key: string): Promise<T | undefined> {
-      return map.get(id(ns, key)) as T | undefined;
-    },
-    async set<T>(ns: string, key: string, v: T): Promise<void> {
-      map.set(id(ns, key), v);
-    },
-    async del(ns: string, key: string): Promise<void> {
-      map.delete(id(ns, key));
-    },
-  };
-}
+import type { FileIo } from '../../src/contracts';
+import { fakeKv } from '../helpers';
 
 // ---------------------------------------------------------------------------
 // parseParamFile

@@ -12,8 +12,7 @@ import { cleanup, render } from '@solidjs/testing-library';
 import { t } from '../../src/core/i18n';
 import { QuickWatch } from '../../src/ui/widgets/quickwatch';
 import type { QuickWatchField, QuickWatchSource } from '../../src/ui/widgets/quickwatch';
-
-const settle = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
+import { settle } from '../helpers';
 
 /** A mock source whose values + notifications the test drives. */
 function makeSource(fields: QuickWatchField[]): {

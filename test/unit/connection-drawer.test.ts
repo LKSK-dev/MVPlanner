@@ -15,12 +15,11 @@ import { ConnectionProvider } from '../../src/ui/shell/connection';
 import { normalizeConfigSchema } from '../../src/ui/shell/connection';
 import { BUILTIN_TRANSPORT_FACTORIES } from '../../src/transport';
 import type { HostTelemetry, MavlinkHostLike } from '../../src/transport/manager';
+import { settle } from '../helpers';
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-const settle = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
 
 function zeroLink(): LinkStats {
   return { bytesIn: 0, bytesOut: 0, packetsIn: 0, lossPct: 0, rateHz: 0, signed: false };

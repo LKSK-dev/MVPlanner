@@ -13,7 +13,6 @@ import type {
   CommandClient,
   ExtContext,
   ExtManifest,
-  KvStore,
   MissionClient,
   Param,
   ParamClient,
@@ -38,24 +37,7 @@ import {
   registerExtApi,
   type ExtApiServices,
 } from '../../src/ext/api';
-
-function fakeKv(): KvStore {
-  const store = new Map<string, unknown>();
-  const k = (ns: string, key: string): string => `${ns}\u0000${key}`;
-  return {
-    get<T>(ns: string, key: string): Promise<T | undefined> {
-      return Promise.resolve(store.get(k(ns, key)) as T | undefined);
-    },
-    set<T>(ns: string, key: string, v: T): Promise<void> {
-      store.set(k(ns, key), v);
-      return Promise.resolve();
-    },
-    del(ns: string, key: string): Promise<void> {
-      store.delete(k(ns, key));
-      return Promise.resolve();
-    },
-  };
-}
+import { fakeKv } from '../helpers';
 
 const vehicleStub: VehicleState = {
   sysid: 1,

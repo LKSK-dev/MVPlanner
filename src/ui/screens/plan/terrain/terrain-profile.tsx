@@ -10,13 +10,12 @@
  * purely from data and unit-tests without a provider, map or network.
  */
 import { For, Show, createMemo, type Component } from 'solid-js';
-import { t as defaultT } from '../../../../core/i18n';
+import { t as defaultT, type TFn } from '../../../../core/i18n';
 import { collisionCheck, type CollisionMarker, type TerrainProfilePoint } from '../../../../geo/terrain';
 import './messages';
 import './terrain.css';
 
-/** The i18n translate function (matches `core/i18n` `t` and `PanelApi.t`). */
-export type TFn = (key: string, vars?: Record<string, string | number>) => string;
+export type { TFn };
 
 /** {@link TerrainProfile} props. */
 export interface TerrainProfileProps {

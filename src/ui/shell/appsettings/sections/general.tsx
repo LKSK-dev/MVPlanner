@@ -15,6 +15,7 @@
  */
 import { Show, createMemo, createSignal, onCleanup, onMount, type Component } from 'solid-js';
 import { serializeSettings, parseSettingsBundle } from '../../../../core/settings-bundle';
+import { formatBytes } from '../../../../core/units';
 import {
   loadStorageReport,
   type StorageManagerDeps,
@@ -22,9 +23,6 @@ import {
 } from '../../../screens/config/settings/storage-manager';
 import { NetworkSection } from '../../../screens/config/settings/network';
 import type { AppSettingsSectionDeps } from '../context';
-
-/** Binary byte-size unit ladder for {@link formatBytes}. */
-const BYTE_UNITS: readonly string[] = ['KiB', 'MiB', 'GiB', 'TiB'];
 
 /** Placeholder telemetry rate surfaced when the field is left blank. */
 const DEFAULT_TELEMETRY_RATE_HZ = 4;
@@ -40,18 +38,6 @@ const reloadApp = (): void => {
 /** A human-readable message for an unknown thrown value. */
 function errorMessage(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
-}
-
-/** Format a byte count as a compact binary human-readable size. */
-function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  let value = bytes / 1024;
-  let i = 0;
-  while (value >= 1024 && i < BYTE_UNITS.length - 1) {
-    value /= 1024;
-    i += 1;
-  }
-  return `${value.toFixed(1)} ${BYTE_UNITS[i] ?? 'TiB'}`;
 }
 
 /** The App Settings General / Advanced section. */

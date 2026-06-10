@@ -10,8 +10,7 @@ import { createComponent } from 'solid-js';
 import { cleanup, fireEvent, render } from '@solidjs/testing-library';
 import { MapWidget, createRasterMapEngine, type RasterMapEngine } from '../../src/ui/widgets/map';
 import type { TileCache } from '../../src/geo/tiles';
-
-const settle = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
+import { settle } from '../helpers';
 
 function fakeCache(): TileCache {
   return {

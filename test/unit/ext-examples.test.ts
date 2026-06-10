@@ -12,7 +12,6 @@ import type {
   DecodedMessage,
   ExtManifest,
   FieldValue,
-  KvStore,
   MissionClient,
   PanelApi,
   Param,
@@ -24,6 +23,7 @@ import { createExtensionSystem, createEventsBus, type ExtApiServices } from '../
 import type { ConfirmFn } from '../../src/ext/permissions';
 import type { ExtModule } from '../../src/ext/host';
 import { examples } from '../../extensions/index.js';
+import { fakeKv } from '../helpers';
 
 interface ExampleModule extends ExtModule {
   manifest: ExtManifest;
@@ -38,24 +38,6 @@ interface ServiceHarness {
   transports: Parameters<NonNullable<ExtApiServices['transports']>['register']>[0][];
   disposals: string[];
   emitMavlink(name: string, fields: Record<string, FieldValue>): void;
-}
-
-function fakeKv(): KvStore {
-  const store = new Map<string, unknown>();
-  const key = (ns: string, k: string): string => `${ns}\u0000${k}`;
-  return {
-    get<T>(ns: string, k: string): Promise<T | undefined> {
-      return Promise.resolve(store.get(key(ns, k)) as T | undefined);
-    },
-    set<T>(ns: string, k: string, value: T): Promise<void> {
-      store.set(key(ns, k), value);
-      return Promise.resolve();
-    },
-    del(ns: string, k: string): Promise<void> {
-      store.delete(key(ns, k));
-      return Promise.resolve();
-    },
-  };
 }
 
 const vehicleStub: VehicleState = {

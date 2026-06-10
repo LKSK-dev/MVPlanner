@@ -15,14 +15,11 @@ import type {
   AppState,
   BasemapSource,
   BlobStore,
-  FileIo,
-  KvStore,
   Mission,
   MissionClient,
   Param,
   ParamClient,
   Store,
-  VehicleState,
 } from '../../src/contracts';
 import { createRecentsStore } from '../../src/core/recents';
 import type { ElevationProvider } from '../../src/geo/terrain';
@@ -55,8 +52,7 @@ import {
   setScreenPanel,
   type ShellContextValue,
 } from '../../src/ui/shell';
-
-const settle = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
+import { fakeFiles, fakeKv, makeVehicle, settle } from '../helpers';
 
 // --------------------------------------------------------------------------
 // Mocks / harness
@@ -112,25 +108,6 @@ function fakeBlobs(): BlobStore {
     size: async () => 0,
     list: async () => [],
     del: async () => undefined,
-  };
-}
-
-function fakeFiles(): FileIo {
-  return { openForRead: async () => undefined, saveAs: async () => undefined };
-}
-
-/** In-memory KV fake for the recents store. */
-function fakeKv(): KvStore {
-  const map = new Map<string, unknown>();
-  return {
-    get: async <T>(ns: string, key: string): Promise<T | undefined> =>
-      map.get(`${ns}/${key}`) as T | undefined,
-    set: async <T>(ns: string, key: string, v: T): Promise<void> => {
-      map.set(`${ns}/${key}`, v);
-    },
-    del: async (ns: string, key: string): Promise<void> => {
-      map.delete(`${ns}/${key}`);
-    },
   };
 }
 
@@ -225,22 +202,6 @@ function makeServices(mission: MissionSpy): FlightServices {
 function makeHarness(): Harness {
   const mission = mockMission();
   return { services: makeServices(mission), mission };
-}
-
-function makeVehicle(overrides: Partial<VehicleState> = {}): VehicleState {
-  return {
-    sysid: 1,
-    compid: 1,
-    mavType: 2,
-    autopilot: 3,
-    vehicleClass: 'copter',
-    armed: false,
-    mode: 'STABILIZE',
-    attitude: { rollRad: 0, pitchRad: 0, yawRad: 0 },
-    link: { bytesIn: 0, bytesOut: 0, packetsIn: 0, lossPct: 0, rateHz: 0, signed: false },
-    lastHeartbeatMs: 0,
-    ...overrides,
-  };
 }
 
 function mount(h: Harness, engine?: RasterMapEngine): HTMLElement {

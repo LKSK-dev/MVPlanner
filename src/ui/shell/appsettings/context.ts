@@ -4,19 +4,20 @@
  * command/keybind. Mirrors the connection-drawer context pattern.
  */
 import { createContext, createSignal, useContext, type Accessor } from 'solid-js';
-import type { AppState, ConfirmOptions, FileIo, Store } from '../../../contracts';
+import type { AppState, ConfirmFn, FileIo, Store } from '../../../contracts';
 import type { ShellRegistry } from '../registry';
 import type { KeybindRegistry } from '../../../core/keybinds';
 import type { RecentEntry, RecentsStore } from '../../../core/recents';
 import type { StorageManagerDeps } from '../../screens/config/settings/storage-manager';
 import type { NetworkSectionDeps } from '../../screens/config/settings/network';
 import type { ExtensionsController } from '../../screens/sim';
+import type { TFn } from '../../../core/i18n';
 
 /** i18n translate function. */
-export type TFn = (key: string, vars?: Record<string, string | number>) => string;
+export type { TFn };
 
 /** Safety-confirm seam (the shell `UiRegistry.confirm`). */
-export type ConfirmFn = (opts: ConfirmOptions) => Promise<boolean>;
+export type { ConfirmFn };
 
 /** Shared dependencies passed to every App Settings section. */
 export interface AppSettingsSectionDeps {

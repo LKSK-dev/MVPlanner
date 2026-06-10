@@ -11,26 +11,9 @@
 import { For, Show, createMemo, createSignal, onCleanup, onMount, type Component } from 'solid-js';
 import type { AppSettingsSectionDeps } from '../context';
 import type { RecentEntry } from '../../../../core/recents';
+import { formatBytes } from '../../../../core/units';
 
-/** Size unit ladder (binary, 1024-step). */
-const SIZE_UNITS = ['B', 'KB', 'MB', 'GB', 'TB'] as const;
-
-/**
- * Format a byte count as a short human-readable string (binary units).
- * Pure: `formatBytes(1536) === '1.5 KB'`, `formatBytes(0) === '0 B'`.
- */
-export function formatBytes(bytes: number): string {
-  if (!Number.isFinite(bytes) || bytes <= 0) return '0 B';
-  let value = bytes;
-  let unitIndex = 0;
-  while (value >= 1024 && unitIndex < SIZE_UNITS.length - 1) {
-    value /= 1024;
-    unitIndex += 1;
-  }
-  const unit = SIZE_UNITS[unitIndex] ?? 'B';
-  const rounded = unitIndex === 0 ? Math.round(value) : Math.round(value * 10) / 10;
-  return `${rounded} ${unit}`;
-}
+export { formatBytes };
 
 /**
  * Format the gap between `nowMs` and `thenMs` as a compact relative time.

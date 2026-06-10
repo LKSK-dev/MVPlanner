@@ -7,11 +7,10 @@
  * + the handlers are injected by the Plan screen, which owns the shared signal.
  */
 import { For, type Component } from 'solid-js';
-import { t as defaultT } from '../../../core/i18n';
+import { t as defaultT, type TFn } from '../../../core/i18n';
 import type { PlanToolMode } from './map-edit';
 
-/** The i18n translate function (matches `core/i18n` `t`). */
-export type TFn = (key: string, vars?: Record<string, string | number>) => string;
+export type { TFn };
 
 /** {@link ToolRail} props. */
 export interface ToolRailProps {

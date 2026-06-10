@@ -4,13 +4,8 @@ import {
   TrackerService,
   createTrackerService,
 } from '../../src/ui/screens/setup/tracker';
-import type {
-  DecodedMessage,
-  FieldValue,
-  Param,
-  ParamClient,
-  VehicleState,
-} from '../../src/contracts';
+import type { DecodedMessage, FieldValue, Param, ParamClient } from '../../src/contracts';
+import { makeVehicle } from '../helpers';
 
 // ---------------------------------------------------------------------------
 // Mock host: records sent messages and replays decoded messages into the tap.
@@ -89,21 +84,7 @@ class MockParamClient implements ParamClient {
   onChange = vi.fn<ParamClient['onChange']>(() => () => undefined);
 }
 
-function makeVehicle(position?: VehicleState['position']): VehicleState {
-  return {
-    sysid: 1,
-    compid: 1,
-    mavType: 2,
-    autopilot: 3,
-    vehicleClass: 'copter',
-    armed: false,
-    mode: 'STABILIZE',
-    attitude: { rollRad: 0, pitchRad: 0, yawRad: Math.PI / 2 },
-    ...(position !== undefined ? { position } : {}),
-    link: { bytesIn: 0, bytesOut: 0, packetsIn: 0, lossPct: 0, rateHz: 0, signed: false },
-    lastHeartbeatMs: 0,
-  };
-}
+const EAST_ATTITUDE = { rollRad: 0, pitchRad: 0, yawRad: Math.PI / 2 };
 
 const flush = async (): Promise<void> => {
   await Promise.resolve();
@@ -177,7 +158,10 @@ describe('TrackerService detection', () => {
 
   it('computes a pointing solution from tracker position toward the vehicle', () => {
     const host = new MockHost();
-    const vehicle = makeVehicle({ lat: 47.001, lon: 8, altRelM: 100, altAmslM: 600 });
+    const vehicle = makeVehicle({
+      attitude: EAST_ATTITUDE,
+      position: { lat: 47.001, lon: 8, altRelM: 100, altAmslM: 600 },
+    });
     const service = createTrackerService({
       sendMessage: host.sendMessage,
       onMessage: host.onMessage,
@@ -199,7 +183,10 @@ describe('TrackerService position feed', () => {
   it('rate-limits the GLOBAL_POSITION_INT sent to the tracker', () => {
     let now = 0;
     const host = new MockHost();
-    const vehicle = makeVehicle({ lat: 47.5, lon: 8.25, altRelM: 120, altAmslM: 620 });
+    const vehicle = makeVehicle({
+      attitude: EAST_ATTITUDE,
+      position: { lat: 47.5, lon: 8.25, altRelM: 120, altAmslM: 620 },
+    });
     const service = createTrackerService({
       sendMessage: host.sendMessage,
       onMessage: host.onMessage,
@@ -241,7 +228,7 @@ describe('TrackerService position feed', () => {
     const service = createTrackerService({
       sendMessage: host.sendMessage,
       onMessage: host.onMessage,
-      getActiveVehicle: () => makeVehicle(undefined),
+      getActiveVehicle: () => makeVehicle({ attitude: EAST_ATTITUDE }),
       now: () => 0,
     });
     host.emit('HEARTBEAT', { type: MAV_TYPE_ANTENNA_TRACKER }, 71, 1);

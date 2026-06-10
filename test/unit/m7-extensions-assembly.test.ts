@@ -55,7 +55,7 @@ import {
   type ExtHost,
 } from '../../src/ui/screens/sim';
 
-const settle = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
+import { fakeFiles, settle } from '../helpers';
 
 function memKv(): KvStore {
   const m = new Map<string, unknown>();
@@ -118,13 +118,6 @@ function mockMission(): MissionClient {
     setCurrent: () => Promise.resolve(),
     onCurrent: () => () => undefined,
     onReached: () => () => undefined,
-  };
-}
-
-function fakeFiles(): FileIo {
-  return {
-    openForRead: () => Promise.resolve(undefined),
-    saveAs: () => Promise.resolve(),
   };
 }
 

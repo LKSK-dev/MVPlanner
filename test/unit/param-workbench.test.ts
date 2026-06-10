@@ -16,11 +16,10 @@ import { ParamWorkbench } from '../../src/ui/screens/config/params';
 import type { Param, ParamClient } from '../../src/contracts';
 import type { ParamMeta, ParamMetaResolver } from '../../src/ui/widgets/paramgrid';
 import { MAV_PARAM_TYPE } from '../../src/mavlink/microservices/param';
+import { settle } from '../helpers';
 
 const REAL = MAV_PARAM_TYPE.REAL32;
 const INT = MAV_PARAM_TYPE.INT32;
-
-const settle = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
 
 function param(name: string, value: number, type = REAL): Param {
   return { name, value, type };

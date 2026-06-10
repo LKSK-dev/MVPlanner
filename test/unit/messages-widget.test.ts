@@ -9,8 +9,7 @@ import { createComponent, createSignal } from 'solid-js';
 import { cleanup, fireEvent, render } from '@solidjs/testing-library';
 import { t } from '../../src/core/i18n';
 import { MessagesConsole, type StatusMessage } from '../../src/ui/widgets/messages';
-
-const settle = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
+import { settle } from '../helpers';
 
 function msg(over: Partial<StatusMessage> = {}): StatusMessage {
   return { severity: 6, text: 'Info line', sysid: 1, compid: 1, tMs: 1000, seq: 1, ...over };

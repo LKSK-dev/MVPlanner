@@ -12,7 +12,7 @@
 import { afterEach, describe, it, expect } from 'vitest';
 import { createComponent } from 'solid-js';
 import { cleanup, fireEvent, render, screen } from '@solidjs/testing-library';
-import type { ExtContext, KvStore, Permission } from '../../src/contracts';
+import type { ExtContext, Permission } from '../../src/contracts';
 import { t } from '../../src/core/i18n';
 import {
   ScriptingConsole,
@@ -20,28 +20,9 @@ import {
   mountConsoleEditor,
   type ConsoleController,
 } from '../../src/ui/widgets/console';
+import { fakeKv, settle } from '../helpers';
 
 afterEach(cleanup);
-
-const settle = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
-
-function fakeKv(): KvStore {
-  const store = new Map<string, unknown>();
-  const k = (ns: string, key: string): string => `${ns}\u0000${key}`;
-  return {
-    get<T>(ns: string, key: string): Promise<T | undefined> {
-      return Promise.resolve(store.get(k(ns, key)) as T | undefined);
-    },
-    set<T>(ns: string, key: string, v: T): Promise<void> {
-      store.set(k(ns, key), v);
-      return Promise.resolve();
-    },
-    del(ns: string, key: string): Promise<void> {
-      store.delete(k(ns, key));
-      return Promise.resolve();
-    },
-  };
-}
 
 function makeController(): ConsoleController {
   const makeContext = (_g: readonly Permission[]): ExtContext =>

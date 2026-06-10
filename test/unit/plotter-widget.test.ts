@@ -5,8 +5,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { t } from '../../src/core/i18n';
 import { Plotter } from '../../src/ui/widgets/plotter';
 import type { PlotterSeriesInput } from '../../src/ui/widgets/plotter';
-
-const settle = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
+import { settle } from '../helpers';
 
 function point(t: number, value: number) {
   return { t, min: value, max: value, first: value, last: value, mean: value, count: 1, value };

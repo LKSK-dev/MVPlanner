@@ -13,8 +13,7 @@ import { createAppStore } from '../../src/core/store';
 import { MapsSection } from '../../src/ui/shell/appsettings/sections/maps';
 import type { AppSettingsSectionDeps } from '../../src/ui/shell/appsettings/context';
 import type { StorageManagerDeps } from '../../src/ui/screens/config/settings/storage-manager';
-
-const settle = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
+import { settle } from '../helpers';
 
 afterEach(cleanup);
 

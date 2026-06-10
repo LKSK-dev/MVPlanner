@@ -1,7 +1,7 @@
 import { afterEach, describe, it, expect } from 'vitest';
 import { createComponent } from 'solid-js';
 import { cleanup, render } from '@solidjs/testing-library';
-import type { AppState, Store, VehicleState } from '../../src/contracts';
+import type { AppState, Store } from '../../src/contracts';
 import type { Capabilities } from '../../src/core/capabilities';
 import { createAppStore } from '../../src/core/store';
 import { t } from '../../src/core/i18n';
@@ -16,25 +16,7 @@ import {
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** Macrotask turn: flush the store's coalesced patch microtask + effects. */
-const settle = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
-
-/** Minimal armed/disarmed vehicle for confirm `armedAware` coverage. */
-function makeVehicle(overrides: Partial<VehicleState> = {}): VehicleState {
-  return {
-    sysid: 1,
-    compid: 1,
-    mavType: 2,
-    autopilot: 3,
-    vehicleClass: 'copter',
-    armed: false,
-    mode: 'STABILIZE',
-    attitude: { rollRad: 0, pitchRad: 0, yawRad: 0 },
-    link: { bytesIn: 0, bytesOut: 0, packetsIn: 0, lossPct: 0, rateHz: 0, signed: false },
-    lastHeartbeatMs: 0,
-    ...overrides,
-  };
-}
+import { makeVehicle, settle } from '../helpers';
 
 function makeCaps(overrides: Partial<Capabilities> = {}): Capabilities {
   return {

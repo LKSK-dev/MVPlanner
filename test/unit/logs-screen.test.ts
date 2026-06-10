@@ -16,7 +16,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createComponent, createSignal } from 'solid-js';
 import { cleanup, fireEvent, render } from '@solidjs/testing-library';
 import { t } from '../../src/core/i18n';
-import type { BasemapSource, BlobStore, FileIo, KvStore } from '../../src/contracts';
+import type { BasemapSource, BlobStore, FileIo } from '../../src/contracts';
 import { createRecentsStore } from '../../src/core/recents';
 import type { LogSeriesData } from '../../src/data/log-query';
 import type { InspectorSnapshot } from '../../src/ui/widgets/inspector';
@@ -44,8 +44,7 @@ import {
   type ShellContextValue,
 } from '../../src/ui/shell';
 import type { Capabilities } from '../../src/core/capabilities';
-
-const settle = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
+import { fakeKv, settle } from '../helpers';
 
 // --------------------------------------------------------------------------
 // Synthetic DataFlash .bin fixture (GPS + ATT messages with TimeUS)
@@ -199,21 +198,6 @@ function fakeFiles(blob: Blob | undefined): FilesHarness {
     },
   };
   return { files, saved };
-}
-
-/** In-memory KV fake for the recents store. */
-function fakeKv(): KvStore {
-  const map = new Map<string, unknown>();
-  return {
-    get: async <T>(ns: string, key: string): Promise<T | undefined> =>
-      map.get(`${ns}/${key}`) as T | undefined,
-    set: async <T>(ns: string, key: string, v: T): Promise<void> => {
-      map.set(`${ns}/${key}`, v);
-    },
-    del: async (ns: string, key: string): Promise<void> => {
-      map.delete(`${ns}/${key}`);
-    },
-  };
 }
 
 /** In-memory blob store fake for the recents store (round-trippable). */

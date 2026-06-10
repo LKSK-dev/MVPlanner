@@ -17,10 +17,13 @@
 import { For, Show, createMemo, createSignal, onCleanup, onMount, type Accessor } from 'solid-js';
 import type { JSX } from 'solid-js';
 import type { AppState, Store } from '../../../../../contracts';
+import type { TFn } from '../../../../../core/i18n';
 import type { EgressEntry, EgressLog } from './egress-log';
+// The shared `mvp-settings__*` styles (previously loaded transitively via the
+// removed legacy SettingsScreen; this section is now their only consumer).
+import '../settings.css';
 
-/** i18n translate function (matches the Settings screen `t`). */
-export type TFn = (key: string, vars?: Record<string, string | number>) => string;
+export type { TFn };
 
 /** An active link destination (a connected ws/wss bridge or WebRTC endpoint). */
 export interface LinkDestination {

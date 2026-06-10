@@ -9,11 +9,12 @@
  * a lightweight mock — no Worker is spun).
  */
 import type { InspectorSnapshot } from '../../../mavlink/host';
+import type { TFn } from '../../../core/i18n';
 
 export type { InspectorSnapshot, InspectorRow } from '../../../mavlink/host';
 
 /** The i18n translate function (matches `core/i18n` `t` and `PanelApi.t`). */
-export type TFn = (key: string, vars?: Record<string, string | number>) => string;
+export type { TFn };
 
 /**
  * The minimal surface the inspector needs to receive live data: subscribe to

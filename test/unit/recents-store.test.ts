@@ -4,40 +4,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { createRecentsStore } from '../../src/core/recents';
-import type { BlobStore, KvStore } from '../../src/contracts';
-
-function fakeKv(): KvStore {
-  const map = new Map<string, unknown>();
-  return {
-    get: async <T>(ns: string, key: string): Promise<T | undefined> =>
-      map.get(`${ns}/${key}`) as T | undefined,
-    set: async <T>(ns: string, key: string, v: T): Promise<void> => {
-      map.set(`${ns}/${key}`, v);
-    },
-    del: async (ns: string, key: string): Promise<void> => {
-      map.delete(`${ns}/${key}`);
-    },
-  };
-}
-
-function fakeBlobs(): BlobStore {
-  const map = new Map<string, Uint8Array>();
-  return {
-    put: async (ns, key, data): Promise<void> => {
-      map.set(`${ns}/${key}`, new Uint8Array(await data.arrayBuffer()));
-    },
-    getRange: async (ns, key, start, end): Promise<Uint8Array> => {
-      const d = map.get(`${ns}/${key}`);
-      if (d === undefined) throw new Error('missing');
-      return d.slice(start, end);
-    },
-    size: async (ns, key): Promise<number> => map.get(`${ns}/${key}`)?.byteLength ?? 0,
-    list: async (): Promise<never[]> => [],
-    del: async (ns, key): Promise<void> => {
-      map.delete(`${ns}/${key}`);
-    },
-  };
-}
+import { fakeBlobs, fakeKv } from '../helpers';
 
 function blobOf(bytes: number): Blob {
   return new Blob([new Uint8Array(bytes)]);

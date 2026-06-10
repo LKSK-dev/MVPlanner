@@ -20,8 +20,9 @@
  * the client unit-tests against a mock host and a fake clock with no worker.
  */
 import type { CommandClient as CommandClientApi } from '../../../contracts';
-import type { DecodedMessage, FieldValue, VehicleClass } from '../../../contracts';
+import type { DecodedMessage, VehicleClass } from '../../../contracts';
 import { arduMapForClass } from '../../../vehicle';
+import { numField as num } from '../fields';
 import {
   ARM_FORCE_MAGIC,
   CMD_COMPONENT_ARM_DISARM,
@@ -136,14 +137,6 @@ export interface CommandSendOpts {
 export interface CommandResult {
   result: number;
   progressPct?: number;
-}
-
-/** Read a scalar field as a number (coercing bigint); `undefined` otherwise. */
-function num(fields: Record<string, FieldValue>, key: string): number | undefined {
-  const v = fields[key];
-  if (typeof v === 'number') return v;
-  if (typeof v === 'bigint') return Number(v);
-  return undefined;
 }
 
 /** Pad/truncate a param array to the 7 COMMAND_LONG/INT slots. */

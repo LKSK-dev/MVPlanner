@@ -17,8 +17,7 @@ import type {
   InspectorSnapshot,
   InspectorSource,
 } from '../../src/ui/widgets/inspector';
-
-const settle = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
+import { settle } from '../helpers';
 
 /** A tiny deterministic dialect so enum decoding does not depend on bundles. */
 const TEST_DIALECT: DialectTable = {

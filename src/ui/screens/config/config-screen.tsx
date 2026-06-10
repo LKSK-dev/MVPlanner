@@ -1,11 +1,10 @@
 /**
  * Config screen assembly (M3 keystone; spec plan/04 §4.5, plan/05 §5.4 Config).
  *
- * A tabbed screen composing the three committed Config sub-panels — Parameters
- * (the {@link createParamWorkbenchPanel} workbench), Tuning (the
- * {@link createTuningPanel} PID tables) and Settings (the
- * {@link createSettingsPanel} app settings + Storage Manager) — over the shared
- * singletons:
+ * A tabbed screen composing the two committed Config sub-panels — Parameters
+ * (the {@link createParamWorkbenchPanel} workbench) and Tuning (the
+ * {@link createTuningPanel} PID tables) — over the shared singletons (app
+ * settings live in the App Settings pane, `ui/shell/appsettings`):
  *
  *  - the app/connection-scoped {@link ParamClient} + {@link ParamMetaResolver}
  *    (fetched once, shared by both Parameters and Tuning);
@@ -13,9 +12,9 @@
  *  - the store (settings + active vehicle) and the storage foundation.
  *
  * Save/Load for the workbench are wired here to the param-file module (T3.5): the
- * sub-panels never import `data/paramfile`. The three sub-panels are mounted ONCE
+ * sub-panels never import `data/paramfile`. The sub-panels are mounted ONCE
  * into hidden host containers and toggled by tab so their state (fetched params,
- * staged edits, storage report) survives tab switches; only the active panel is
+ * staged edits) survives tab switches; only the active panel is
  * visible. Each sub-panel mounts a fresh Solid root, so the screen never relies
  * on a provider an imperative mount cannot see.
  */

@@ -7,9 +7,10 @@
  * helpers.
  */
 import type { DialectTable, EnumEntryMeta, FieldMeta, MessageMeta } from '../../../contracts';
+import type { TFn } from '../../../core/i18n';
 
 /** The i18n translate function (matches `core/i18n` `t` and `PanelApi.t`). */
-export type TFn = (key: string, vars?: Record<string, string | number>) => string;
+export type { TFn };
 
 /** Optional per-send flags supported by the sender seam. */
 export interface MsgSenderSendOptions {

@@ -17,10 +17,10 @@ import { For, Show, createEffect, createSignal, type Accessor, type Component } 
 import type { ExtManifest, Permission } from '../../../contracts';
 import type { GrantPrompt, PermissionRequest } from '../../../ext/permissions';
 import { describePermissionRequests } from '../../../ext/permissions';
+import type { TFn } from '../../../core/i18n';
 import './messages';
 
-/** i18n translate fn (matches the shell's `t`). */
-export type TFn = (k: string, vars?: Record<string, string | number>) => string;
+export type { TFn };
 
 /** A queued prompt awaiting operator resolution. */
 interface PromptRequest {

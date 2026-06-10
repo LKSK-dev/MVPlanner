@@ -19,6 +19,7 @@ import type {
   DecodedMessage,
   FieldValue,
 } from '../../../contracts';
+import { numField as num } from '../fields';
 import {
   ACCEL_FACES,
   CMD_ACCELCAL_VEHICLE_POS,
@@ -90,14 +91,6 @@ const PREFLIGHT_LEVEL_PARAMS = [0, 0, 0, 0, 2, 0, 0] as const;
 const PREFLIGHT_ACCEL_PARAMS = [0, 0, 0, 0, 1, 0, 0] as const;
 const START_MAG_PARAMS = [0, 0, 1, 0, 0, 0, 0] as const;
 const CANCEL_MAG_PARAMS = [0, 0, 0, 0, 0, 0, 0] as const;
-
-/** Read a scalar field as a number (coercing bigint); `undefined` otherwise. */
-function num(fields: Record<string, FieldValue>, key: string): number | undefined {
-  const v = fields[key];
-  if (typeof v === 'number') return v;
-  if (typeof v === 'bigint') return Number(v);
-  return undefined;
-}
 
 /** Decode `STATUSTEXT.text` from string or char-code array forms. */
 function text(fields: Record<string, FieldValue>, key: string): string | undefined {

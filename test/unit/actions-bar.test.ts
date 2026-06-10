@@ -11,8 +11,7 @@ import { t } from '../../src/core/i18n';
 import type { CommandClient } from '../../src/contracts';
 import { createAuditLog } from '../../src/core/audit';
 import { ActionsBar, AuditPanel, type ActionVehicle } from '../../src/ui/screens/flight/actions';
-
-const settle = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
+import { settle } from '../helpers';
 
 interface Call {
   method: string;

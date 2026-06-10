@@ -8,11 +8,12 @@
  * map editing (T4.4) can drive them from the same editing model.
  */
 import type { MavCmdMeta, MissionItemModel } from '../../../geo/mission';
+import type { TFn } from '../../../core/i18n';
 
 export type { MavCmdMeta, MavCmdCategory, MissionItemModel } from '../../../geo/mission';
 
 /** The i18n translate function (matches `core/i18n` `t` and `PanelApi.t`). */
-export type TFn = (key: string, vars?: Record<string, string | number>) => string;
+export type { TFn };
 
 /** A resolved editor field for one of the seven command slots. */
 export interface EditorSlot {

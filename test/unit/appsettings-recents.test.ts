@@ -6,26 +6,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createComponent } from 'solid-js';
 import { cleanup, fireEvent, render, waitFor } from '@solidjs/testing-library';
-import type { BlobStore, KvStore } from '../../src/contracts';
+import type { BlobStore } from '../../src/contracts';
 import { createRecentsStore, type RecentEntry, type RecentsStore } from '../../src/core/recents';
 import type { AppSettingsSectionDeps, TFn } from '../../src/ui/shell/appsettings/context';
 import { RecentsSection } from '../../src/ui/shell/appsettings/sections/recents';
+import { fakeKv } from '../helpers';
 
 afterEach(cleanup);
-
-function fakeKv(): KvStore {
-  const map = new Map<string, unknown>();
-  return {
-    get: async <T>(ns: string, key: string): Promise<T | undefined> =>
-      map.get(`${ns}/${key}`) as T | undefined,
-    set: async <T>(ns: string, key: string, v: T): Promise<void> => {
-      map.set(`${ns}/${key}`, v);
-    },
-    del: async (ns: string, key: string): Promise<void> => {
-      map.delete(`${ns}/${key}`);
-    },
-  };
-}
 
 function fakeBlobs(): BlobStore {
   const map = new Map<string, Uint8Array>();

@@ -12,6 +12,7 @@
 import { For, Show, onCleanup, onMount, type Component } from 'solid-js';
 import { t } from '../../core/i18n';
 import { useShell } from './context';
+import { trapTabKey } from '../util/focus-trap';
 
 /** True when any known vehicle is currently armed (best-effort, M0). */
 function anyArmed(vehicles: Record<number, { armed: boolean }>): boolean {
@@ -76,21 +77,7 @@ export const AlertCenter: Component = () => {
               request.resolve(false);
               return;
             }
-            if (e.key !== 'Tab') return;
-            // Trap Tab/Shift+Tab between Cancel and Confirm.
-            const focusables = [cancelEl, confirmEl].filter(
-              (el): el is HTMLButtonElement => el != null,
-            );
-            if (focusables.length === 0) return;
-            const first = focusables[0]!;
-            const last = focusables[focusables.length - 1]!;
-            const current = document.activeElement;
-            e.preventDefault();
-            if (e.shiftKey) {
-              (current === first ? last : first).focus();
-            } else {
-              (current === last ? first : last).focus();
-            }
+            trapTabKey(e, dialogEl);
           };
 
           return (

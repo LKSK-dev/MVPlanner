@@ -22,6 +22,7 @@
 import { CELLS_PER_BLOCK, encodeElevation, maskBits, subBlockSamplePoints } from './grid';
 import type { LatLon } from '../../../geo/format';
 import type { DecodedMessage, FieldValue } from '../../../contracts';
+import { numField as num } from '../fields';
 
 /** Encode + send a message out the active link (bound to host `sendMessage`). */
 export type TerrainSendFn = (name: string, fields: Record<string, unknown>) => void | Promise<void>;
@@ -68,14 +69,6 @@ export interface TerrainServiceDeps {
   readonly onMessage: TerrainMessageTap;
   /** Elevation source sampled to fill `TERRAIN_DATA`. */
   readonly elevation: TerrainElevationSource;
-}
-
-/** Read a scalar field as a number (coercing bigint); `undefined` otherwise. */
-function num(fields: Record<string, FieldValue>, key: string): number | undefined {
-  const v = fields[key];
-  if (typeof v === 'number') return v;
-  if (typeof v === 'bigint') return Number(v);
-  return undefined;
 }
 
 /** Read a field as a `bigint` (the `uint64` mask); `0n` when absent/non-numeric. */

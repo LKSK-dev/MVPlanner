@@ -35,6 +35,7 @@ import type {
   MissionType,
 } from '../../../contracts';
 import { MAV_MISSION_ACCEPTED, missionResultName, missionTypeValue } from './constants';
+import { numField as num } from '../fields';
 
 /** Encode + send a message out the active link (bound to host `sendMessage`). */
 export type MissionSendFn = (name: string, fields: Record<string, unknown>) => void | Promise<void>;
@@ -115,14 +116,6 @@ const DEFAULT_CLOCK: MissionClock = {
     return () => clearTimeout(id);
   },
 };
-
-/** Read a scalar field as a number (coercing bigint); `undefined` otherwise. */
-function num(fields: Record<string, FieldValue>, key: string): number | undefined {
-  const v = fields[key];
-  if (typeof v === 'number') return v;
-  if (typeof v === 'bigint') return Number(v);
-  return undefined;
-}
 
 /** Whether an incoming frame is MAVLink v1, where mission_type extension data is absent. */
 function isMavlinkV1(msg: DecodedMessage): boolean {

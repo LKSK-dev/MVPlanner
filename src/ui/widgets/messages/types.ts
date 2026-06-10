@@ -1,3 +1,4 @@
+import type { TFn } from '../../../core/i18n';
 /**
  * Public view types for the STATUSTEXT messages console (task T2.8; spec
  * plan/04 §4.2, plan/05 §5.4/§5.8).
@@ -12,7 +13,7 @@
  */
 
 /** The i18n translate function (matches `core/i18n` `t` and `PanelApi.t`). */
-export type TFn = (key: string, vars?: Record<string, string | number>) => string;
+export type { TFn };
 
 /**
  * One STATUSTEXT entry as the console renders it. `severity` is the raw

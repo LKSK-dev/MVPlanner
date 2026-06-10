@@ -1,3 +1,4 @@
+import type { TFn } from '../../../core/i18n';
 /**
  * Public types for the Quick-watch widget (task T2.9; spec plan/04 §4.2 "Quick"
  * tab + "live tuning/quick-graph of arbitrary numeric fields", plan/05
@@ -14,7 +15,7 @@
  */
 
 /** The i18n translate function (matches `core/i18n` `t` and `PanelApi.t`). */
-export type TFn = (key: string, vars?: Record<string, string | number>) => string;
+export type { TFn };
 
 /**
  * One watchable / watched numeric field path, split into its MAVLink message

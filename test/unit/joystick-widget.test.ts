@@ -20,8 +20,7 @@ import {
   type ManualControlConfig,
   type ManualControlService,
 } from '../../src/mavlink/microservices/manual';
-
-const settle = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
+import { settle } from '../helpers';
 
 type Sent = { name: string; fields: Record<string, unknown> };
 

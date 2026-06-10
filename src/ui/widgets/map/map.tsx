@@ -25,9 +25,10 @@ import type { UnitSystem } from '../../../contracts';
 import './messages';
 import type { LatLon, MapView, RasterMapEngine } from './engine';
 import { groundResolution, niceScale, type ScaleBar } from './scale';
+import type { TFn } from '../../../core/i18n';
 
 /** The i18n translate function (matches `core/i18n` `t`). */
-export type TFn = (key: string, vars?: Record<string, string | number>) => string;
+export type { TFn };
 
 /** {@link MapWidget} props. */
 export interface MapWidgetProps {

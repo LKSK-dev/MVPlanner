@@ -13,6 +13,7 @@
  */
 import { onCleanup, type Component } from 'solid-js';
 import { nextSplitRatio } from './resize';
+import { beginPointerDrag } from '../../util/pointer-drag';
 import './split.css';
 
 /** Default minimum first-pane ratio (`fr`). */
@@ -69,25 +70,17 @@ export const ResizableSplit: Component<ResizableSplitProps> = (props) => {
     const start = horizontal ? e.clientY : e.clientX;
     const startRatio = props.ratio();
     const total = totalPx();
-    const pointerId = e.pointerId;
-    handle.setPointerCapture?.(pointerId);
 
-    const move = (ev: PointerEvent): void => {
-      const delta = (horizontal ? ev.clientY : ev.clientX) - start;
-      props.onRatio(nextSplitRatio(startRatio, delta, total, min(), max()));
-    };
-    const up = (): void => {
-      handle.releasePointerCapture?.(pointerId);
-      window.removeEventListener('pointermove', move);
-      window.removeEventListener('pointerup', up);
-      window.removeEventListener('pointercancel', up);
-      endActiveDrag = undefined;
-    };
     endActiveDrag?.();
-    endActiveDrag = up;
-    window.addEventListener('pointermove', move);
-    window.addEventListener('pointerup', up);
-    window.addEventListener('pointercancel', up);
+    endActiveDrag = beginPointerDrag(e, {
+      onMove: (ev) => {
+        const delta = (horizontal ? ev.clientY : ev.clientX) - start;
+        props.onRatio(nextSplitRatio(startRatio, delta, total, min(), max()));
+      },
+      onEnd: () => {
+        endActiveDrag = undefined;
+      },
+    });
   };
 
   const onKeyDown = (e: KeyboardEvent): void => {

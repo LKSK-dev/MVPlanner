@@ -15,13 +15,12 @@ import {
   MAV_CMD_DO_MOTOR_TEST,
   MOTOR_TEST_ORDER_SEQUENCE,
 } from '../../src/ui/screens/setup/motors';
+import { settle } from '../helpers';
 
 interface SentCommand {
   readonly cmd: number;
   readonly params: number[];
 }
-
-const settle = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
 
 class MockCommand implements Pick<CommandClient, 'send'> {
   readonly sent: SentCommand[] = [];

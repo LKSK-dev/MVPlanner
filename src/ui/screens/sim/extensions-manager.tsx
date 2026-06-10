@@ -14,10 +14,10 @@ import type { PanelApi, PanelDef, Permission } from '../../../contracts';
 import { isHighRiskPermission } from '../../../ext/permissions';
 import type { ExtStatus } from '../../../ext/host';
 import type { ExtensionsController } from './controller';
+import type { TFn } from '../../../core/i18n';
 import './messages';
 
-/** i18n translate fn (matches the shell's `t`). */
-export type TFn = (k: string, vars?: Record<string, string | number>) => string;
+export type { TFn };
 
 /** Stable panel id for the extensions manager. */
 export const EXTENSIONS_MANAGER_PANEL_ID = 'ext.manager';

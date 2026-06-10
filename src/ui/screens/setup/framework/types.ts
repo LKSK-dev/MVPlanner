@@ -10,9 +10,9 @@
  * registry — they bring all calibration/param logic; the framework never does.
  */
 import type { Accessor, JSX } from 'solid-js';
+import type { TFn } from '../../../../core/i18n';
 
-/** The i18n translate function (matches `core/i18n` `t` and `PanelApi.t`). */
-export type TFn = (key: string, vars?: Record<string, string | number>) => string;
+export type { TFn };
 
 /**
  * A step's persistent (settled) status — what a step reports or derives. The

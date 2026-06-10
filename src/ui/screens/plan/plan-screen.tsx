@@ -33,7 +33,7 @@ import {
   type Accessor,
   type Component,
 } from 'solid-js';
-import { t as defaultT } from '../../../core/i18n';
+import { t as defaultT, type TFn } from '../../../core/i18n';
 import type { AppState, Mission, Store, VehicleState } from '../../../contracts';
 import {
   MapWidget,
@@ -85,8 +85,7 @@ import './survey/survey.css';
 import './terrain/terrain.css';
 import './plan.css';
 
-/** The i18n translate function (matches `core/i18n` `t` and `PanelApi.t`). */
-export type TFn = (key: string, vars?: Record<string, string | number>) => string;
+export type { TFn };
 
 /** Path-sampling spacing (metres) for the terrain profile. */
 const PROFILE_SPACING_M = 30;

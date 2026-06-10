@@ -12,7 +12,7 @@
  * value is injected so the panel unit-tests without a map or mission service.
  */
 import { Index, Show, createSignal, type Component } from 'solid-js';
-import { t as defaultT } from '../../../../core/i18n';
+import { t as defaultT, type TFn } from '../../../../core/i18n';
 import {
   addRallyPoint,
   createRally,
@@ -25,8 +25,7 @@ import {
 import './messages';
 import './rally.css';
 
-/** The i18n translate function (matches `core/i18n` `t` and `PanelApi.t`). */
-export type TFn = (key: string, vars?: Record<string, string | number>) => string;
+export type { TFn };
 
 /** {@link RallyPanel} props. */
 export interface RallyPanelProps {

@@ -15,8 +15,7 @@ import {
   type LinkDestination,
   type NetGrantRow,
 } from '../../src/ui/screens/config/settings';
-
-const settle = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
+import { settle } from '../helpers';
 
 afterEach(cleanup);
 

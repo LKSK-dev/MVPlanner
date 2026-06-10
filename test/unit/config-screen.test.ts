@@ -1,6 +1,6 @@
 /**
  * Config screen assembly tests (M3 keystone; spec plan/04 §4.5, plan/05 §5.4
- * Config). Mounts {@link ConfigScreen} over mocks and asserts the three tabs
+ * Config). Mounts {@link ConfigScreen} over mocks and asserts the two tabs
  * render + switch, the workbench Save/Compare route through a mock {@link FileIo},
  * and (shell integration) navigating to Config mounts the real screen over the
  * placeholder.
@@ -30,8 +30,7 @@ import {
   type ShellContextValue,
 } from '../../src/ui/shell';
 import type { Capabilities } from '../../src/core/capabilities';
-
-const settle = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
+import { settle } from '../helpers';
 
 const REAL = MAV_PARAM_TYPE.REAL32;
 

@@ -28,6 +28,7 @@ import { closeWidget, setWidgetTab } from './layout-actions';
 import {
   ACTIVE_SCREEN,
   activeWorkspace,
+  allPanels,
   countPanels,
   readShellLayout,
   setSplitSizes,
@@ -39,6 +40,7 @@ import {
   type TabNode,
 } from './workspace';
 import { t } from '../../core/i18n';
+import { beginPointerDrag } from '../util/pointer-drag';
 
 /** Maximized widget instance id for the active workspace (transient, not persisted). */
 const [maximizedId, setMaximizedId] = createSignal<string | undefined>(undefined);
@@ -263,38 +265,29 @@ const DockSplitView: Component<{ node: SplitNode }> = (props) => {
     if (total <= 0) return;
     const startSizes = [...props.node.sizes];
     const start = horizontal ? e.clientX : e.clientY;
-    const pointerId = e.pointerId;
-    const gutter = e.currentTarget as HTMLElement;
-    gutter.setPointerCapture(pointerId);
 
-    const move = (ev: PointerEvent): void => {
-      const deltaFrac = ((horizontal ? ev.clientX : ev.clientY) - start) / total;
-      const a = (startSizes[index] ?? 0) + deltaFrac;
-      const b = (startSizes[index + 1] ?? 0) - deltaFrac;
-      const next = [...startSizes];
-      next[index] = a;
-      next[index + 1] = b;
-      store.patch((s) => {
-        const shell = readShellLayout(s.layout, t('workspace.default'));
-        const ws = activeWorkspace(shell);
-        const root = setSplitSizes(ws.root, props.node.id, next);
-        writeShellLayout(s.layout, {
-          ...shell,
-          workspaces: { ...shell.workspaces, [ws.id]: { ...ws, root } },
+    activeDragUp = beginPointerDrag(e, {
+      onMove: (ev) => {
+        const deltaFrac = ((horizontal ? ev.clientX : ev.clientY) - start) / total;
+        const a = (startSizes[index] ?? 0) + deltaFrac;
+        const b = (startSizes[index + 1] ?? 0) - deltaFrac;
+        const next = [...startSizes];
+        next[index] = a;
+        next[index + 1] = b;
+        store.patch((s) => {
+          const shell = readShellLayout(s.layout, t('workspace.default'));
+          const ws = activeWorkspace(shell);
+          const root = setSplitSizes(ws.root, props.node.id, next);
+          writeShellLayout(s.layout, {
+            ...shell,
+            workspaces: { ...shell.workspaces, [ws.id]: { ...ws, root } },
+          });
         });
-      });
-    };
-    const up = (): void => {
-      activeDragUp = undefined;
-      gutter.releasePointerCapture?.(pointerId);
-      window.removeEventListener('pointermove', move);
-      window.removeEventListener('pointerup', up);
-      window.removeEventListener('pointercancel', up);
-    };
-    activeDragUp = up;
-    window.addEventListener('pointermove', move);
-    window.addEventListener('pointerup', up);
-    window.addEventListener('pointercancel', up);
+      },
+      onEnd: () => {
+        activeDragUp = undefined;
+      },
+    });
   };
 
   /** Persist a sizes change for this split. */
@@ -385,13 +378,13 @@ export const DockManager: Component = () => {
   const maximizedPanel = createMemo<PanelNode | undefined>(() => {
     const id = maximizedId();
     if (id === undefined) return undefined;
-    return allPanelsOf(root()).find((p) => p.id === id);
+    return allPanels(root()).find((p) => p.id === id);
   });
   // Drop a stale maximize when its panel leaves the active tree (workspace
   // switch or external close) so the next workspace renders normally.
   createEffect(() => {
     const id = maximizedId();
-    if (id !== undefined && !allPanelsOf(root()).some((p) => p.id === id)) {
+    if (id !== undefined && !allPanels(root()).some((p) => p.id === id)) {
       setMaximizedId(undefined);
     }
   });
@@ -403,11 +396,3 @@ export const DockManager: Component = () => {
     </div>
   );
 };
-
-/** Local panel-collector (avoids importing the reducer just for this). */
-function allPanelsOf(node: DockNode): PanelNode[] {
-  if (node.type === 'panel') return [node];
-  const out: PanelNode[] = [];
-  for (const child of node.children) out.push(...allPanelsOf(child));
-  return out;
-}

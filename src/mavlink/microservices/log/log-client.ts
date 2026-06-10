@@ -29,6 +29,7 @@ import type {
   LogClient as LogClientApi,
   LogEntry,
 } from '../../../contracts';
+import { numField as num } from '../fields';
 import {
   LOG_DATA,
   LOG_DATA_COUNT_ALL,
@@ -148,14 +149,6 @@ interface DownloadOp extends BaseOp {
   readonly onProgress?: (done: number, total: number) => void;
   readonly resolve: (blob: Blob) => void;
   readonly reject: (err: LogError) => void;
-}
-
-/** Read a scalar field as a number (coercing bigint); `undefined` otherwise. */
-function num(fields: Record<string, FieldValue>, key: string): number | undefined {
-  const v = fields[key];
-  if (typeof v === 'number') return v;
-  if (typeof v === 'bigint') return Number(v);
-  return undefined;
 }
 
 /** Read a `uint8_t[]` field as a byte array. */

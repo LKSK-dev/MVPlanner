@@ -16,9 +16,7 @@ import {
   setLocale,
   t,
 } from '../../src/core/i18n';
-
-/** Macrotask turn so Solid's effect scheduler flushes. */
-const settle = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
+import { settle } from '../helpers';
 
 // The locale signal + registry are module singletons; keep tests independent.
 afterEach(() => {

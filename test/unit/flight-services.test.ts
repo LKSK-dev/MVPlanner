@@ -11,8 +11,7 @@ import type { AppState, DecodedMessage, Store } from '../../src/contracts';
 import type { AppStorage } from '../../src/data/storage';
 import { createAppStore } from '../../src/core/store';
 import { createFlightServices, type FlightHost } from '../../src/ui/screens/flight';
-
-const settle = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
+import { settle } from '../helpers';
 
 interface MessageTap {
   readonly names: ReadonlySet<string>;
