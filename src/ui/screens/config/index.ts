@@ -24,12 +24,3 @@ export { CONFIG_MESSAGES, registerConfigMessages } from './messages';
 // Re-export the sub-surfaces for one import site (each is a side-effecting barrel).
 export { ParamWorkbench, createParamWorkbenchPanel, PARAM_WORKBENCH_PANEL_ID } from './params';
 export { TuningPanel, createTuningPanel, TUNING_PANEL_ID } from './tuning';
-export {
-  NetworkSection,
-  createEgressLog,
-  type NetworkSectionDeps,
-  type LinkDestination,
-  type NetGrantRow,
-  type EgressLog,
-  type EgressEntry,
-} from './settings';

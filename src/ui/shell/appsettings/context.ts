@@ -8,8 +8,8 @@ import type { AppState, ConfirmFn, FileIo, Store } from '../../../contracts';
 import type { ShellRegistry } from '../registry';
 import type { KeybindRegistry } from '../../../core/keybinds';
 import type { RecentEntry, RecentsStore } from '../../../core/recents';
-import type { StorageManagerDeps } from '../../screens/config/settings/storage-manager';
-import type { NetworkSectionDeps } from '../../screens/config/settings/network';
+import type { StorageManagerDeps } from './storage-manager';
+import type { NetworkSectionDeps } from './network';
 import type { ExtensionsController } from '../../screens/sim';
 import type { TFn } from '../../../core/i18n';
 

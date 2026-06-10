@@ -67,7 +67,7 @@ stays free of copy.
 
 ## i18n
 
-`register.ts` contributes the `gauges.*` English namespace via the public
+`messages.ts` contributes the `gauges.*` English namespace via the public
 `registerMessages` seam (imported for side effect by `index.ts`). Values use
 `core/i18n` `formatNumber`/`formatDecimal`/`formatInteger`. Each reading carries
 a `data-status` cue **and** a leading text marker for warn/error, so status is

@@ -10,13 +10,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createComponent } from 'solid-js';
 import { cleanup, fireEvent, render } from '@solidjs/testing-library';
-import type { AppState, BlobMeta, BlobStore, FileIo, Store, UiRegistry } from '../../src/contracts';
+import type { AppState, BlobMeta, BlobStore, FileIo, Store } from '../../src/contracts';
 import type { KeybindRegistry } from '../../src/core/keybinds';
 import type { RecentsStore } from '../../src/core/recents';
 import { createAppStore } from '../../src/core/store';
 import { serializeSettings } from '../../src/core/settings-bundle';
 import { APP_VERSION } from '../../src/version';
-import type { StorageManagerDeps } from '../../src/ui/screens/config/settings/storage-manager';
+import type { StorageManagerDeps } from '../../src/ui/shell/appsettings/storage-manager';
 import type { AppSettingsSectionDeps, ConfirmFn } from '../../src/ui/shell/appsettings/context';
 import { GeneralSection } from '../../src/ui/shell/appsettings/sections/general';
 import { AboutSection } from '../../src/ui/shell/appsettings/sections/about';

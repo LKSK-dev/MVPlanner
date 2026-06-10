@@ -14,7 +14,7 @@ import {
   createEgressLog,
   type LinkDestination,
   type NetGrantRow,
-} from '../../src/ui/screens/config/settings';
+} from '../../src/ui/shell/appsettings/network';
 import { settle } from '../helpers';
 
 afterEach(cleanup);

@@ -11,6 +11,7 @@
  * injected {@link import('./controller').PlaybackController} seam.
  */
 
+import { formatDurationSeconds } from '../../../../core/units';
 import type { PlaybackProgress } from './controller';
 
 /** Microseconds per second (tlog times are tracked in µs). */
@@ -126,14 +127,5 @@ export function withProgress(state: TimelineState, progress: PlaybackProgress): 
  * current-time / total-time readout. Negative or non-finite inputs render `0:00`.
  */
 export function formatTimecode(us: number): string {
-  const totalSeconds = Number.isFinite(us) ? Math.max(0, Math.floor(us / US_PER_SECOND)) : 0;
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-  const ss = String(seconds).padStart(2, '0');
-  if (hours > 0) {
-    const mm = String(minutes).padStart(2, '0');
-    return `${hours}:${mm}:${ss}`;
-  }
-  return `${minutes}:${ss}`;
+  return formatDurationSeconds(us / US_PER_SECOND);
 }

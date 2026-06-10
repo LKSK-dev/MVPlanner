@@ -16,7 +16,7 @@ with no real host.
 | `run.ts`          | `runAction(deps, id, args)` — the confirm→command→audit flow                 |
 | `actions-bar.tsx` | `ActionsBar` Solid view (buttons + mode picker + prompts)                    |
 | `audit-panel.tsx` | `AuditPanel` Solid viewer (list + JSON/text export + clear)                  |
-| `register.ts`     | `actions.*` + `audit.*` i18n strings                                         |
+| `messages.ts`     | `actions.*` + `audit.*` i18n strings                                         |
 
 ## Action list (spec §4.2)
 

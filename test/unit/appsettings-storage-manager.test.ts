@@ -15,7 +15,7 @@ import {
   loadStorageReport,
   serializeSettings,
   type StorageManagerDeps,
-} from '../../src/ui/screens/config/settings';
+} from '../../src/ui/shell/appsettings/storage-manager';
 
 /** In-memory {@link BlobStore} backed by a per-namespace meta map. */
 function fakeBlobs(data: Record<string, BlobMeta[]>): BlobStore {

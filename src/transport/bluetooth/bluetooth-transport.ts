@@ -12,6 +12,7 @@
  */
 
 import type { ConnState, LinkStats, Transport } from '../../contracts';
+import { errorMessage } from '../../core/errors';
 import {
   DEFAULT_BLE_MTU,
   type BluetoothDeviceFilterLike,
@@ -391,10 +392,4 @@ async function writeCharacteristic(
     return;
   }
   throw new Error('bluetooth transport: TX characteristic is not writable');
-}
-
-/** Best-effort human-readable message for an unknown thrown value. */
-function errorMessage(err: unknown): string {
-  if (err instanceof Error) return err.message;
-  return String(err);
 }

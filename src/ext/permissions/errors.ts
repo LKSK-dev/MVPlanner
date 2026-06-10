@@ -7,6 +7,7 @@
  * error. The broker never lets a handler error crash the host; it surfaces as a
  * rejected `invoke` promise (marshalled back across the worker boundary).
  */
+import { errorMessage } from '../../core/errors';
 
 /** Reason a brokered call was refused (distinct from a handler throwing). */
 export type ExtPermissionDenial =
@@ -30,6 +31,5 @@ export class ExtPermissionError extends Error {
 
 /** Best-effort message extraction for an unknown thrown value. */
 export function toErrorMessage(err: unknown): string {
-  if (err instanceof Error) return err.message;
-  return typeof err === 'string' ? err : String(err);
+  return errorMessage(err);
 }

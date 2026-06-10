@@ -13,7 +13,7 @@
  *
  * @see ./README.md for the view type, prop API, severity mapping and testing.
  */
-import './register';
+import './i18n';
 
 export { MessagesConsole } from './messages';
 export { statusMessageFromDecoded, parseStatusText } from './parse';
@@ -29,7 +29,7 @@ export {
   ASSERTIVE_MAX_SEVERITY,
   type SeverityTier,
 } from './severity';
-export { STATUSTEXT_MESSAGES, registerStatusTextMessages } from './register';
+export { STATUSTEXT_MESSAGES, registerStatusTextMessages } from './i18n';
 export {
   DEFAULT_MAX_RENDER,
   type StatusMessage,

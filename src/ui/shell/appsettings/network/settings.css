@@ -1,9 +1,8 @@
 /**
- * App Settings screen layout (task T3.7; spec plan/05 §5.4 Settings, §5.8 a11y).
- *
- * A simple, scrollable stack of labelled sections (general / map / telemetry /
- * preview / storage). Tokens come from `core/theme`; controls inherit the shared
- * surface/border/text tokens so every theme renders correctly.
+ * Shared `mvp-settings__*` styles (task T3.7; spec plan/05 §5.4 Settings, §5.8
+ * a11y), now consumed only by the Network egress-transparency section
+ * (`network-section.tsx`). Tokens come from `core/theme`; controls inherit the
+ * shared surface/border/text tokens so every theme renders correctly.
  */
 
 .mvp-settings {

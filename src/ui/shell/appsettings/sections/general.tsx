@@ -10,18 +10,14 @@
  * Every dependency arrives via {@link AppSettingsSectionDeps} so the section
  * unit-tests over a fresh `createAppStore()` with fakes: the storage handles,
  * the file picker and the safety-confirm seam are all injected. The audio /
- * confirm / telemetry writers and the busy/run storage pattern mirror the
- * legacy Settings screen (`ui/screens/config/settings/settings-screen.tsx`).
+ * confirm / telemetry writers and the busy/run storage pattern were carried
+ * over from the (since removed) legacy Settings screen.
  */
 import { Show, createMemo, createSignal, onCleanup, onMount, type Component } from 'solid-js';
 import { serializeSettings, parseSettingsBundle } from '../../../../core/settings-bundle';
 import { formatBytes } from '../../../../core/units';
-import {
-  loadStorageReport,
-  type StorageManagerDeps,
-  type StorageReport,
-} from '../../../screens/config/settings/storage-manager';
-import { NetworkSection } from '../../../screens/config/settings/network';
+import { loadStorageReport, type StorageManagerDeps, type StorageReport } from '../storage-manager';
+import { NetworkSection } from '../network';
 import type { AppSettingsSectionDeps } from '../context';
 
 /** Placeholder telemetry rate surfaced when the field is left blank. */

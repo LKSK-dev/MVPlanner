@@ -16,13 +16,13 @@
  *
  * @see ./README.md for the action list, gating/confirm design and testing.
  */
-import './register';
+import './messages';
 
 export { ActionsBar, type ActionsBarProps, type PromptFn } from './actions-bar';
 export { AuditPanel, type AuditPanelProps, type AuditExportFormat } from './audit-panel';
 export { runAction, gateContextFor } from './run';
 export { ACTIONS, ACTION_LIST, modeNamesFor, type ActionDescriptor } from './catalog';
-export { ACTIONS_MESSAGES, AUDIT_MESSAGES, registerActionsMessages } from './register';
+export { ACTIONS_MESSAGES, AUDIT_MESSAGES, registerActionsMessages } from './messages';
 export {
   IN_AIR_ALT_M,
   type ActionId,

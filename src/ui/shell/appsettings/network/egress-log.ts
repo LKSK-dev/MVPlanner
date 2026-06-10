@@ -2,15 +2,15 @@
  * Egress log (task T8.12; spec plan/07 §7.7, plan/08 §8.3 egress transparency).
  *
  * A small, bounded, DOM-free ring that records every network egress the app
- * actually performs. It is the sink the {@link import('../../../../../ext/permissions').PermissionBroker}
+ * actually performs. It is the sink the {@link import('../../../../ext/permissions').PermissionBroker}
  * `recordEgress` writes to (extension `net:<host>` calls), and it backs the
- * live list in Settings → Network. The store keeps a privacy-preserving record
+ * live list in App Settings → General → Network. The store keeps a privacy-preserving record
  * — host + URL + which extension — and never phones anything home.
  *
  * Subscribe/snapshot is a plain listener pattern (no Solid dependency) so it can
  * be created at the app root and consumed by the reactive Network section.
  */
-import type { EgressRecord } from '../../../../../ext/permissions';
+import type { EgressRecord } from '../../../../ext/permissions';
 
 /** One recorded egress event. */
 export interface EgressEntry {

@@ -12,7 +12,7 @@ import type { BlobMeta, BlobStore } from '../../src/contracts';
 import { createAppStore } from '../../src/core/store';
 import { MapsSection } from '../../src/ui/shell/appsettings/sections/maps';
 import type { AppSettingsSectionDeps } from '../../src/ui/shell/appsettings/context';
-import type { StorageManagerDeps } from '../../src/ui/screens/config/settings/storage-manager';
+import type { StorageManagerDeps } from '../../src/ui/shell/appsettings/storage-manager';
 import { settle } from '../helpers';
 
 afterEach(cleanup);

@@ -2,8 +2,8 @@
 
 The tabbed Config screen composing the two committed sub-panels. Spec:
 plan/04 §4.5, plan/05 §5.4 Config. (App settings migrated to the App Settings
-pane, `ui/shell/appsettings`; `./settings` now only hosts its injectable
-models — Storage Manager, preview, Network section.)
+pane, `ui/shell/appsettings`, which also hosts its injectable models — the
+Storage Manager and the Network section.)
 
 ## Tabs
 
@@ -29,10 +29,10 @@ storage foundation into `createConfigScreenPanel` and installs the panel via
 - **Param file Save/Load** (`ConfigScreen`) wires the workbench `onSave`/`onLoad`
   to `data/paramfile` (`saveParamFile`/`loadParamFile`); the sub-panels never
   import `data/paramfile`.
-- **Storage Manager** (`register.tsx`) assembles `StorageManagerDeps` from the
-  storage foundation: tile-cache clear, `navigator.storage` estimate, factory
-  reset (`storage.close()` + `indexedDB.deleteDatabase(DB_NAME)`) and a `saveAs`
-  export.
+- **Storage Manager** (`register.tsx`) assembles `StorageManagerDeps` (from
+  `ui/shell/appsettings`) over the storage foundation: tile-cache clear,
+  `navigator.storage` estimate, factory reset (`storage.close()` +
+  `indexedDB.deleteDatabase(DB_NAME)`) and a `saveAs` export.
 
 ## Tests
 

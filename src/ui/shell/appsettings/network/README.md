@@ -1,8 +1,9 @@
-# Settings → Network — egress transparency (T8.12)
+# App Settings → Network — egress transparency (T8.12)
 
 Spec: plan/07 §7.7, plan/08 §8.3.
 
-A read-only section (rendered inside the Settings screen) that lists **every**
+A read-only section (rendered inside the App Settings pane's General section)
+that lists **every**
 network destination the app can reach — there is no analytics and nothing phones
 home (stated prominently).
 
@@ -22,9 +23,10 @@ home (stated prominently).
 
 ## Wiring
 
-`App.buildNetworkDeps(...)` composes the deps and threads them to the Config
-screen → Settings panel (`network` prop, additive + optional). Omit `network` and
-the section is not rendered (existing Settings tests are unaffected).
+`App.buildNetworkDeps(...)` composes the deps and threads them to the App
+Settings pane's General section (`network` in `AppSettingsSectionDeps`, additive
+
+- optional). Omit `network` and the section is not rendered.
 
 ## Testing
 

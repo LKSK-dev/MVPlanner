@@ -41,17 +41,17 @@ import {
   createRasterMapEngine,
   createTileCache,
   type RasterMapEngine,
-} from '../../../ui/widgets/map';
-import { createTrackLayer, type LatLon } from '../../../ui/widgets/map/layers';
+} from '../../widgets/map';
+import { createTrackLayer, type LatLon } from '../../widgets/map/layers';
 import {
   Plotter,
   colorForSeries,
   plottedValue,
   type PlotterSeriesInput,
-} from '../../../ui/widgets/plotter';
-import { Inspector, type InspectorSource } from '../../../ui/widgets/inspector';
-import { MessageSender, type MsgSenderSend } from '../../../ui/widgets/msg-sender';
-import { ResizableSplit } from '../../../ui/widgets/split';
+} from '../../widgets/plotter';
+import { Inspector, type InspectorSource } from '../../widgets/inspector';
+import { MessageSender, type MsgSenderSend } from '../../widgets/msg-sender';
+import { ResizableSplit } from '../../widgets/split';
 import {
   PlaybackControls,
   openTlog,
@@ -75,9 +75,9 @@ import {
 } from './track';
 import './messages';
 
-import '../../../ui/widgets/map/map.css';
-import '../../../ui/widgets/inspector/inspector.css';
-import '../../../ui/widgets/msg-sender/msg-sender.css';
+import '../../widgets/map/map.css';
+import '../../widgets/inspector/inspector.css';
+import '../../widgets/msg-sender/msg-sender.css';
 import './logs.css';
 
 export type { TFn };

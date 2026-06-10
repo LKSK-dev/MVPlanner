@@ -4,9 +4,8 @@
  *
  * Loads the app's REGISTERED English catalog — i.e. every key contributed via
  * `registerMessages` at import time — by eagerly importing all per-module
- * `messages.ts` registration modules plus the three sibling `register.ts`
- * modules that register the `gauges.*` / `statustext.*` / `actions.*`+`audit.*`
- * namespaces. It then asserts:
+ * `messages.ts` registration modules plus the statustext widget's `i18n.ts`
+ * (its registration module is not named `messages.ts`). It then asserts:
  *
  * - the namespaces actually in use are all present and non-empty;
  * - `t()` resolves every registered key to its template (never the bare key);
@@ -25,10 +24,9 @@ import { DEFAULT_LOCALE, getMessages, messageKeys, setLocale, t } from '../../sr
 // does not pull a full component tree.
 const messageModules = import.meta.glob('../../src/**/messages.ts', { eager: true });
 
-// Three namespaces register from a sibling `register.ts` (no `messages.ts`).
-import '../../src/ui/widgets/gauges/register';
-import '../../src/ui/widgets/messages/register';
-import '../../src/ui/screens/flight/actions/register';
+// The statustext namespace registers from `i18n.ts` (named to avoid a
+// `messages/messages.ts` path), which the glob above does not match.
+import '../../src/ui/widgets/messages/i18n';
 
 /** Namespaces that MUST be registered for the shell + the six screens to work. */
 const REQUIRED_NAMESPACES: readonly string[] = [
@@ -42,7 +40,7 @@ const REQUIRED_NAMESPACES: readonly string[] = [
   'palette',
   'cmd',
   'confirm',
-  // inspector (central).
+  // inspector (registered at import by ui/widgets/inspector/messages.ts).
   'inspector',
   // widgets (registered at import).
   'hud',

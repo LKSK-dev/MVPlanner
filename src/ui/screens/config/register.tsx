@@ -27,7 +27,7 @@ import { screenPanelId, type ShellRegistry } from '../../shell';
 import { createTileCache } from '../../widgets/map';
 import type { ParamMetaResolver, TFn } from '../../widgets/paramgrid';
 import { type AppStorage, DB_NAME } from '../../../data/storage';
-import { browserStorageEstimate, type StorageManagerDeps } from './settings';
+import { browserStorageEstimate, type StorageManagerDeps } from '../../shell/appsettings';
 import { ConfigScreen } from './config-screen';
 import './messages';
 
@@ -68,13 +68,11 @@ function deleteDatabase(name: string): Promise<void> {
 }
 
 /**
- * Build the Storage Manager handles for the Settings tab from the storage
- * foundation: a tile-cache clear (over the `blobs` namespace), a usage estimate
- * (when the browser supports it), a factory reset (close + delete the database)
- * and a `saveAs` export.
+ * Build {@link StorageManagerDeps} from the storage foundation (consumed by the
+ * App Settings pane): a tile-cache clear (over the `blobs` namespace), a usage
+ * estimate (when the browser supports it), a factory reset (close + delete the
+ * database) and a `saveAs` export.
  */
-/** Build {@link StorageManagerDeps} from the storage foundation (shared by the
- * Config screen and the App Settings pane). */
 export function buildStorageManager(storage: AppStorage): StorageManagerDeps {
   const tileCache = createTileCache({ blobs: storage.blobs, fetch: platformFetch });
   const estimate = browserStorageEstimate();

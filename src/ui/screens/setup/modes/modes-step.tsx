@@ -6,6 +6,7 @@
  */
 import { For, Show, createMemo, createSignal, onCleanup, type Accessor, type JSX } from 'solid-js';
 import type { ParamClient, VehicleClass } from '../../../../contracts';
+import { errorMessage } from '../../../../core/errors';
 import { t } from '../../../../core/i18n';
 import type { SetupStep, SetupStepApi, SettledStatus } from '../framework';
 import {
@@ -41,10 +42,6 @@ interface ModesStepPanelProps {
 function readMapping(deps: ModesStepDeps, revision: Accessor<number>): FlightModeMapping {
   revision();
   return deriveFlightModeMapping(deps.getVehicleClass(), (name) => deps.params.get(name)?.value);
-}
-
-function errorMessage(err: unknown): string {
-  return err instanceof Error ? err.message : String(err);
 }
 
 function modeSelectValue(position: FlightModePositionSelection): string {

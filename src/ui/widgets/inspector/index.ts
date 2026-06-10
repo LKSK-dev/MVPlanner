@@ -10,7 +10,10 @@
  *
  * @see ./README.md for the data contract, owned files, and how to test.
  */
+import './messages';
+
 export { Inspector, type InspectorProps } from './inspector';
+export { INSPECTOR_MESSAGES } from './messages';
 export {
   registerInspector,
   createInspectorPanel,

@@ -19,7 +19,7 @@ import type {
   Store,
 } from '../../src/contracts';
 import type { ParamMeta, ParamMetaResolver } from '../../src/ui/widgets/paramgrid';
-import type { StorageManagerDeps } from '../../src/ui/screens/config/settings';
+import type { StorageManagerDeps } from '../../src/ui/shell/appsettings/storage-manager';
 import { createAppStore } from '../../src/core/store';
 import { MAV_PARAM_TYPE } from '../../src/mavlink/microservices/param';
 import { ConfigScreen, createConfigScreenPanel } from '../../src/ui/screens/config';

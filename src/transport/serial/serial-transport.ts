@@ -18,6 +18,7 @@
  */
 
 import type { ConnState, LinkStats, Transport } from '../../contracts';
+import { errorMessage } from '../../core/errors';
 import { DEFAULT_BAUD_RATE, type SerialPortLike, type SerialProviderLike } from './types';
 
 /** Injectable dependencies for {@link SerialTransport} (testability seam). */
@@ -300,12 +301,4 @@ function isAbortError(err: unknown): boolean {
   return (
     typeof err === 'object' && err !== null && (err as { name?: unknown }).name === 'AbortError'
   );
-}
-
-/** Best-effort human-readable message for an unknown thrown value. */
-function errorMessage(err: unknown): string {
-  if (err instanceof Error) {
-    return err.message;
-  }
-  return String(err);
 }

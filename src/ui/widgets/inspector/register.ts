@@ -17,6 +17,7 @@
  */
 import { createComponent } from 'solid-js';
 import { render } from 'solid-js/web';
+import './messages';
 import type { CommandDef, PanelApi, PanelDef, UiRegistry } from '../../../contracts';
 import { Inspector } from './inspector';
 import type { InspectorSource, TFn } from './types';

@@ -14,6 +14,7 @@ import {
   type JSX,
 } from 'solid-js';
 import type { ParamClient, VehicleClass } from '../../../../contracts';
+import { errorMessage } from '../../../../core/errors';
 import { t } from '../../../../core/i18n';
 import type { SetupStep, SetupStepApi, SettledStatus } from '../framework';
 import {
@@ -44,10 +45,6 @@ interface FrameStepPanelProps {
 function readSelection(deps: FrameStepDeps, revision: Accessor<number>): FrameSelection {
   revision();
   return deriveFrameSelection(deps.getVehicleClass(), (name) => deps.params.get(name)?.value);
-}
-
-function errorMessage(err: unknown): string {
-  return err instanceof Error ? err.message : String(err);
 }
 
 function valueText(api: SetupStepApi, param: FrameParamSelection): string {

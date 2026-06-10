@@ -1,5 +1,5 @@
 /**
- * Storage Manager model for the Settings screen (task T3.7; spec plan/07 §7.3).
+ * Storage Manager model for the App Settings pane (task T3.7; spec plan/07 §7.3).
  * Pure + DOM-free and fully dependency-injected so it unit-tests without
  * IndexedDB: it reports storage usage (via `navigator.storage.estimate` when
  * available) plus per-namespace blob sizes queried from the storage foundation's
@@ -10,7 +10,7 @@
  * foundation, the tile cache and FileIo) is assembled by the app shell and
  * passed in as {@link StorageManagerDeps}; tests pass fakes.
  */
-import type { AppSettings, BlobStore } from '../../../../contracts';
+import type { AppSettings, BlobStore } from '../../../contracts';
 
 /** The subset of `StorageEstimate` the manager surfaces. */
 export interface StorageEstimateLike {

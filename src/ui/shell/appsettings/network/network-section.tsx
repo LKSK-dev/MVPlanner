@@ -11,17 +11,17 @@
  *    with a clear-log control.
  *
  * Every data source is injected so the section unit-tests without a live
- * connection / extension system. Mounted as a section inside the Settings
- * screen.
+ * connection / extension system. Mounted inside the App Settings pane's
+ * General section.
  */
 import { For, Show, createMemo, createSignal, onCleanup, onMount, type Accessor } from 'solid-js';
 import type { JSX } from 'solid-js';
-import type { AppState, Store } from '../../../../../contracts';
-import type { TFn } from '../../../../../core/i18n';
+import type { AppState, Store } from '../../../../contracts';
+import type { TFn } from '../../../../core/i18n';
 import type { EgressEntry, EgressLog } from './egress-log';
 // The shared `mvp-settings__*` styles (previously loaded transitively via the
 // removed legacy SettingsScreen; this section is now their only consumer).
-import '../settings.css';
+import './settings.css';
 
 export type { TFn };
 

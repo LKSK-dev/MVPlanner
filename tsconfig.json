@@ -19,9 +19,7 @@
     "skipLibCheck": true,
     "noEmit": true,
     "resolveJsonModule": true,
-    "forceConsistentCasingInFileNames": true,
-
-    "paths": { "@/*": ["./src/*"] }
+    "forceConsistentCasingInFileNames": true
   },
   "include": ["src", "test"],
   "exclude": ["node_modules", "dist", ".npm-cache", "test/integration-sitl", "test/perf"]

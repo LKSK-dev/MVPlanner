@@ -16,6 +16,7 @@ import {
   type Component,
 } from 'solid-js';
 import { createParamMetaStore } from '../../../../mavlink/param-meta';
+import { errorMessage } from '../../../../core/errors';
 import { t } from '../../../../core/i18n';
 import type { ParamClient, VehicleClass } from '../../../../contracts';
 import type { SetupStep, TFn } from '../framework';
@@ -63,10 +64,6 @@ function errorWith(prev: ErrorMap, name: FailsafeParamName, message: string | un
   if (message === undefined) next.delete(name);
   else next.set(name, message);
   return next;
-}
-
-function errorMessage(err: unknown): string {
-  return err instanceof Error ? err.message : String(err);
 }
 
 function inputStep(field: FailsafeField): number | 'any' {

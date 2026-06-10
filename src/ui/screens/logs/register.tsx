@@ -17,8 +17,8 @@ import type { AppState, BlobStore, FileIo, PanelApi, PanelDef, Store } from '../
 import type { RecentsStore } from '../../../core/recents';
 import type { TFn } from '../../../core/i18n';
 import { screenPanelId } from '../../shell';
-import type { InspectorSource } from '../../../ui/widgets/inspector';
-import type { MsgSenderSend } from '../../../ui/widgets/msg-sender';
+import type { InspectorSource } from '../../widgets/inspector';
+import type { MsgSenderSend } from '../../widgets/msg-sender';
 import { LogsScreen } from './logs-screen';
 import './messages';
 

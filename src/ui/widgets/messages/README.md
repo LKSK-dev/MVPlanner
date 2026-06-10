@@ -77,7 +77,7 @@ calls `onClear`, so it works even when the caller's buffer is read-only.
 
 ## i18n
 
-`register.ts` contributes the `statustext.*` English namespace via the public
+`i18n.ts` contributes the `statustext.*` English namespace via the public
 `registerMessages` seam (imported for side effect by `index.ts`) — no central
 catalog edit.
 

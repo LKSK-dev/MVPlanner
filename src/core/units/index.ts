@@ -48,6 +48,7 @@ export {
 } from './preferences';
 export {
   formatBytes,
+  formatDurationSeconds,
   formatAltitude,
   formatDistance,
   formatSpeed,

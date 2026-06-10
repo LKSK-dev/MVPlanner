@@ -15,30 +15,26 @@ import { registerAbout } from './ui/shell/about';
 import { ConnectionProvider } from './ui/shell/connection';
 import { MavlinkHost } from './mavlink/host';
 import type { MavlinkHostLike } from './transport/manager';
-import { registerInspector } from './ui/widgets/inspector/register';
-import type { InspectorSource } from './ui/widgets/inspector/types';
+import { registerInspector, type InspectorSource } from './ui/widgets/inspector';
 import {
   createFlightServices,
   createFlightScreenPanel,
   wireAudioAlerts,
   type FlightHost,
 } from './ui/screens/flight';
-import {
-  createConfigScreenPanel,
-  buildStorageManager,
-  createEgressLog,
-  type EgressLog,
-  type LinkDestination,
-  type NetGrantRow,
-  type NetworkSectionDeps,
-} from './ui/screens/config';
+import { createConfigScreenPanel, buildStorageManager } from './ui/screens/config';
 import {
   AppSettingsContext,
   AppSettingsPane,
   buildAppSettingsSections,
   createAppSettingsControl,
+  createEgressLog,
   createLiveKeybinds,
   type AppSettingsSectionDeps,
+  type EgressLog,
+  type LinkDestination,
+  type NetGrantRow,
+  type NetworkSectionDeps,
 } from './ui/shell/appsettings';
 import { createRecentsStore, type RecentEntry, type RecentKind } from './core/recents';
 import {

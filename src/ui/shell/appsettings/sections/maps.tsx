@@ -16,10 +16,7 @@ import { For, Show, createMemo, createSignal, onMount, type Component } from 'so
 import type { AppState } from '../../../../contracts';
 import { formatBytes } from '../../../../core/units';
 import { BASEMAP_PRESETS, CUSTOM_PRESET_ID, presetIdForSettings } from '../../../widgets/map';
-import {
-  loadStorageReport,
-  type StorageReport,
-} from '../../../screens/config/settings/storage-manager';
+import { loadStorageReport, type StorageReport } from '../storage-manager';
 import type { AppSettingsSectionDeps } from '../context';
 
 /**

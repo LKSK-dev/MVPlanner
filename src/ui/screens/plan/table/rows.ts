@@ -12,7 +12,7 @@ import {
   mavFrameToAltFrame,
   type MissionModel,
 } from '../../../../geo/mission';
-import { formatDistance } from '../../../../core/units';
+import { formatDistance, formatDurationSeconds } from '../../../../core/units';
 import type { WaypointRow, WaypointTotals } from './types';
 
 /**
@@ -43,14 +43,10 @@ export function toRows(model: MissionModel): readonly WaypointRow[] {
 /**
  * Format a duration (seconds) as `m:ss`, or `h:mm:ss` past an hour.
  * Locale-independent (clock-style), matching common GCS time readouts.
+ * Rounds to the nearest whole second before formatting.
  */
 export function formatDurationS(totalSeconds: number): string {
-  const s = Number.isFinite(totalSeconds) ? Math.max(0, Math.round(totalSeconds)) : 0;
-  const hours = Math.floor(s / 3600);
-  const minutes = Math.floor((s % 3600) / 60);
-  const seconds = s % 60;
-  const pad = (n: number): string => String(n).padStart(2, '0');
-  return hours > 0 ? `${hours}:${pad(minutes)}:${pad(seconds)}` : `${minutes}:${pad(seconds)}`;
+  return formatDurationSeconds(Math.round(totalSeconds));
 }
 
 /** Options for {@link missionTotals}. */

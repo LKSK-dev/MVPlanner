@@ -11,7 +11,7 @@
  *
  * @see ./README.md for the gauge list, prop API and selection mechanism.
  */
-import './register';
+import './messages';
 
 export { InstrumentPanel, type InstrumentPanelProps } from './panel';
 export {
@@ -37,7 +37,7 @@ export {
   NavGauge,
 } from './value-cards';
 export { metricUnits, unitsFromResolved, type UnitHook, type UnitFormat } from './units';
-export { GAUGE_MESSAGES, registerGaugeMessages } from './register';
+export { GAUGE_MESSAGES, registerGaugeMessages } from './messages';
 export {
   airspeedReadings,
   batteryReadings,
