@@ -212,3 +212,22 @@ export function formatPercent(pct: number, opts?: FormatOptions): string {
 export function formatAngle(deg: number, opts?: FormatOptions): string {
   return render(deg, 'deg', opts);
 }
+
+// ---------------------------------------------------------------------------
+// Byte sizes (refactor: canonical implementation — replaced 4 duplicated copies)
+// ---------------------------------------------------------------------------
+
+/** Binary byte-size unit ladder for {@link formatBytes}. */
+const BYTE_UNITS: readonly string[] = ['KiB', 'MiB', 'GiB', 'TiB'];
+
+/** Format a byte count as a compact binary human-readable size (`1.5 MiB`). */
+export function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  let value = bytes / 1024;
+  let i = 0;
+  while (value >= 1024 && i < BYTE_UNITS.length - 1) {
+    value /= 1024;
+    i += 1;
+  }
+  return `${value.toFixed(1)} ${BYTE_UNITS[i] ?? 'TiB'}`;
+}

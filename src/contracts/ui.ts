@@ -60,6 +60,12 @@ export interface CommandDef {
   run(): void | Promise<void>;
 }
 
+/**
+ * Canonical safety-confirm function type (the shape of `UiRegistry.confirm`).
+ * Import this instead of re-declaring per-module `ConfirmFn` aliases (1.8.0).
+ */
+export type ConfirmFn = (opts: ConfirmOptions) => Promise<boolean>;
+
 export interface ConfirmOptions {
   title: string;
   body: string;

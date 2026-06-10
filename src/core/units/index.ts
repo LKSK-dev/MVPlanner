@@ -47,6 +47,7 @@ export {
   type UnitFormatter,
 } from './preferences';
 export {
+  formatBytes,
   formatAltitude,
   formatDistance,
   formatSpeed,

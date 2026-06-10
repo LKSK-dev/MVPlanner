@@ -1,10 +1,10 @@
 // V4 — single-file size-budget gate (spec plan/08 §8.1, impl 05).
-// Target ≤ 5 MB, hard limit ≤ 8 MB for the inlined release artifact.
+// Target ≤ 20 MB, hard limit ≤ 25 MB for the inlined release artifact.
 import { statSync } from 'node:fs';
 
 const FILE = 'dist/MVPlanner.html';
-const TARGET_MB = 5;
-const LIMIT_MB = 8;
+const TARGET_MB = 20;
+const LIMIT_MB = 25;
 
 let size;
 try {

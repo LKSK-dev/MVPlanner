@@ -54,6 +54,23 @@ export {
  * a blank. Reads the active-locale signal, so Solid consumers re-render when the
  * language changes. Backward-compatible with the T0.1 shim signature.
  */
+/**
+ * Canonical translate-function type (the shape of {@link t} and `PanelApi.t`).
+ * Import this instead of re-declaring per-module `TFn` aliases (refactor: this
+ * replaced 34 duplicated local definitions).
+ */
+export type TFn = (key: string, vars?: Record<string, string | number>) => string;
+
+/** Best-effort human language name for a locale code (falls back to the code). */
+export function localeLabel(code: string): string {
+  try {
+    const display = new Intl.DisplayNames([code], { type: 'language' });
+    return display.of(code) ?? code;
+  } catch {
+    return code;
+  }
+}
+
 export function t(key: string, vars?: MessageVars): string {
   const active = catalogFor(getLocale());
   // English fallback reads the registry catalog (seeded with EN_MESSAGES) so
