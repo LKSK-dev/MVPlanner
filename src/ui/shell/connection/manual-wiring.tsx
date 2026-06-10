@@ -206,6 +206,9 @@ export function wireManualControl(deps: ManualWiringDeps): () => void {
         title: deps.t('joystick.panel.label'),
         closeLabel: deps.t('joystick.disable'),
         className: 'mvp-floating-panel--joystick',
+        onClose: () => {
+          win = undefined;
+        },
         mount: (body) =>
           render(
             () => createComponent(Joystick, { service, gamepad, t: deps.t, ...panelOpts }),

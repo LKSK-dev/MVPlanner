@@ -47,9 +47,19 @@ function compareCore(a: SemVer, b: SemVer): number {
   return a.patch - b.patch;
 }
 
+/**
+ * Drop a `-prerelease` suffix from a range operand (e.g. `1.0.0-beta` ->
+ * `1.0.0`): ranges are matched on the version core only (file-level policy),
+ * so prerelease tags in range tokens are ignored rather than rejected.
+ */
+function stripPrerelease(input: string): string {
+  const dash = input.indexOf('-');
+  return dash === -1 ? input : input.slice(0, dash);
+}
+
 /** Parse a possibly-partial numeric version (missing/x parts -> 0), with a count. */
 function parseLoose(input: string): { major: number; minor: number; patch: number; count: number } {
-  const segs = input.split('.');
+  const segs = stripPrerelease(input).split('.');
   const nums: [number, number, number] = [0, 0, 0];
   let count = 0;
   for (let i = 0; i < 3; i++) {
@@ -107,7 +117,7 @@ const toInt = (seg: string, token: string): number => {
 
 /** Bare / x-range token (`1`, `1.2`, `1.x`, `1.2.3`) -> comparators. */
 function xRangeComparators(token: string): Comparator[] {
-  const segs = token.split('.');
+  const segs = stripPrerelease(token).split('.');
   if (isWild(segs[0])) return [];
   const major = toInt(segs[0] as string, token);
   if (isWild(segs[1])) {

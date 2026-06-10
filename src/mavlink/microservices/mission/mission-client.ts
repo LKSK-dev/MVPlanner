@@ -124,6 +124,20 @@ function num(fields: Record<string, FieldValue>, key: string): number | undefine
   return undefined;
 }
 
+/** Whether an incoming frame is MAVLink v1, where mission_type extension data is absent. */
+function isMavlinkV1(msg: DecodedMessage): boolean {
+  return (msg.raw[0] ?? 0) === 0xfe;
+}
+
+/** Whether mission_type may be a missing/zero-filled extension field for `msg`. */
+function canRelaxMissionType(msg: DecodedMessage, missionType: number | undefined): boolean {
+  return (
+    isMavlinkV1(msg) ||
+    missionType === undefined ||
+    ((msg.raw[0] ?? 0) === 0xfd && missionType === 0)
+  );
+}
+
 /** Build a frozen {@link MissionItem} from a decoded `MISSION_ITEM_INT`. */
 function itemFromMessage(fields: Record<string, FieldValue>): MissionItem {
   return {
@@ -491,21 +505,24 @@ export class MissionClient implements MissionClientApi {
     }
   }
 
-  /** Find the in-flight op (download/upload) matching a message's type+source. */
+  /** Find the in-flight download matching a message's source and mission type. */
   private matchDownload(msg: DecodedMessage): DownloadOp | undefined {
-    const mt = num(msg.fields, 'mission_type') ?? 0;
-    for (const op of this.downloads) {
-      if (!op.settled && op.missionType === mt && op.target.sysid === msg.sysid) return op;
-    }
-    return undefined;
+    const mt = num(msg.fields, 'mission_type');
+    const candidates = [...this.downloads].filter(
+      (op) => !op.settled && op.target.sysid === msg.sysid,
+    );
+    if (canRelaxMissionType(msg, mt)) return candidates.length === 1 ? candidates[0] : undefined;
+    return candidates.find((op) => op.missionType === mt);
   }
 
+  /** Find the in-flight upload matching a message's source and mission type. */
   private matchUpload(msg: DecodedMessage): UploadOp | undefined {
-    const mt = num(msg.fields, 'mission_type') ?? 0;
-    for (const op of this.uploads) {
-      if (!op.settled && op.missionType === mt && op.target.sysid === msg.sysid) return op;
-    }
-    return undefined;
+    const mt = num(msg.fields, 'mission_type');
+    const candidates = [...this.uploads].filter(
+      (op) => !op.settled && op.target.sysid === msg.sysid,
+    );
+    if (canRelaxMissionType(msg, mt)) return candidates.length === 1 ? candidates[0] : undefined;
+    return candidates.find((op) => op.missionType === mt);
   }
 
   // --- download state machine --------------------------------------------

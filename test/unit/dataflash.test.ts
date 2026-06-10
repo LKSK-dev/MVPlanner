@@ -49,6 +49,25 @@ describe('DataFlashDecoder', () => {
     expect(decoded.map((record) => record.name)).toEqual(['TST1', 'TST1', 'GPS']);
   });
 
+  it('reports true record offsets after a garbage prefix resync', () => {
+    const log = concatBytes(
+      new Uint8Array([0x11, 0x22]),
+      fmtPacket(202, 'OFFS', 'f', 'Value'),
+      recordPacket(
+        202,
+        (view) => {
+          view.setFloat32(0, 42.5, true);
+        },
+        4,
+      ),
+    );
+
+    const decoded = decodeWithChunks(splitEvery(log, 17));
+    expect(decoded).toHaveLength(1);
+    expect(decoded[0]?.offset).toBe(91);
+    expect(decoded[0]?.fields.Value).toBeCloseTo(42.5);
+  });
+
   it('enumerates types and lazily iterates records of one type', async () => {
     const log = buildFixture();
     const types = await enumerateDataFlashTypes([log]);

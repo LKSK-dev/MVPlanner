@@ -76,7 +76,12 @@ class MockHost {
     };
   };
 
-  private deliver(name: string, msgId: number, fields: Record<string, FieldValue>): void {
+  private deliver(
+    name: string,
+    msgId: number,
+    fields: Record<string, FieldValue>,
+    raw = new Uint8Array(),
+  ): void {
     this.cb?.({
       sysid: typeof fields.__sysid === 'number' ? fields.__sysid : 1,
       compid: 1,
@@ -87,7 +92,7 @@ class MockHost {
       crcOk: true,
       signed: false,
       rxTimeUs: 0,
-      raw: new Uint8Array(),
+      raw,
     });
   }
 
@@ -142,14 +147,19 @@ class MockHost {
     });
   }
 
-  emitAck(result: number, missionType = 0, sysid = 1): void {
-    this.deliver('MISSION_ACK', 47, {
-      target_system: 255,
-      target_component: 0,
-      type: result,
-      mission_type: missionType,
-      __sysid: sysid,
-    });
+  emitAck(result: number, missionType = 0, sysid = 1, raw = new Uint8Array()): void {
+    this.deliver(
+      'MISSION_ACK',
+      47,
+      {
+        target_system: 255,
+        target_component: 0,
+        type: result,
+        mission_type: missionType,
+        __sysid: sysid,
+      },
+      raw,
+    );
   }
 
   emitCurrent(seq: number): void {
@@ -430,6 +440,17 @@ describe('MissionClient — mission types', () => {
       expect(mission.items).toEqual(items);
     },
   );
+
+  it('matches a MAVLink v1 fence upload ACK with zero-filled mission_type', async () => {
+    const { host, client } = setup();
+    const items = [makeItem(0)];
+    const pr = client.upload({ type: 'fence', items });
+
+    host.emitRequestInt(0, MT.fence);
+    host.emitAck(ACCEPTED, MT.mission, 1, new Uint8Array([0xfe]));
+
+    await expect(pr).resolves.toBeUndefined();
+  });
 
   it('ignores a COUNT for a different mission_type', async () => {
     const { host, client } = setup();

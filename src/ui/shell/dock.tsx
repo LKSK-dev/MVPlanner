@@ -178,6 +178,9 @@ const DockTabView: Component<{ node: TabNode }> = (props) => {
                 ? (props.node.active + 1) % n
                 : (props.node.active - 1 + n) % n;
             setWidgetTab(store, props.node.id, next);
+            // Roving tabindex: move DOM focus to the newly-active tab button.
+            const tabs = e.currentTarget.querySelectorAll<HTMLElement>('[role="tab"]');
+            tabs[next]?.focus();
           }}
         >
           <For each={props.node.children}>
@@ -233,6 +236,10 @@ const TabLabel: Component<{ node: PanelNode; active: boolean; onSelect: () => vo
 const DockSplitView: Component<{ node: SplitNode }> = (props) => {
   const { store } = useShell();
 
+  /** Cleanup for an in-flight gutter drag (so unmount mid-drag never leaks). */
+  let activeDragUp: (() => void) | undefined;
+  onCleanup(() => activeDragUp?.());
+
   const onGutterDown = (index: number, e: PointerEvent): void => {
     e.preventDefault();
     const container = (e.currentTarget as HTMLElement).parentElement;
@@ -265,12 +272,16 @@ const DockSplitView: Component<{ node: SplitNode }> = (props) => {
       });
     };
     const up = (): void => {
+      activeDragUp = undefined;
       gutter.releasePointerCapture?.(pointerId);
       window.removeEventListener('pointermove', move);
       window.removeEventListener('pointerup', up);
+      window.removeEventListener('pointercancel', up);
     };
+    activeDragUp = up;
     window.addEventListener('pointermove', move);
     window.addEventListener('pointerup', up);
+    window.addEventListener('pointercancel', up);
   };
 
   /** Persist a sizes change for this split. */
@@ -362,6 +373,14 @@ export const DockManager: Component = () => {
     const id = maximizedId();
     if (id === undefined) return undefined;
     return allPanelsOf(root()).find((p) => p.id === id);
+  });
+  // Drop a stale maximize when its panel leaves the active tree (workspace
+  // switch or external close) so the next workspace renders normally.
+  createEffect(() => {
+    const id = maximizedId();
+    if (id !== undefined && !allPanelsOf(root()).some((p) => p.id === id)) {
+      setMaximizedId(undefined);
+    }
   });
   return (
     <div class="mvp-dock">

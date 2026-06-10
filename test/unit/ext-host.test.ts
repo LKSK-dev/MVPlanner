@@ -22,6 +22,8 @@ import {
   type ContextFactory,
   type ExtContextInput,
   type ExtModule,
+  type ExtensionRuntime,
+  type LoadedExtension,
 } from '../../src/ext/host';
 
 /** In-memory {@link KvStore} keyed by `ns\0key`. */
@@ -127,6 +129,10 @@ describe('semver range matcher', () => {
 
   it('ignores prerelease so a pre-release host API behaves like its release', () => {
     expect(satisfiesRange('1.0.0-pre', '^1.0')).toBe(true);
+    // Prerelease tags in RANGE tokens are stripped (core-only policy), not rejected.
+    expect(satisfiesRange('1.0.0', '^1.0.0-beta')).toBe(true);
+    expect(satisfiesRange('1.0.0', '1.0.0-beta')).toBe(true);
+    expect(satisfiesRange('2.0.0', '^1.0.0-beta')).toBe(false);
     expect(isApiVersionCompatible('^1.0', '1.0.0-pre')).toBe(true);
     expect(isApiVersionCompatible('^2.0', '1.0.0-pre')).toBe(false);
   });
@@ -394,5 +400,37 @@ describe('error isolation', () => {
     await host.install({ manifest, code: '// no module here' });
     await host.fireActivationEvent('onStartup');
     expect(host.get('com.example.hello')?.status).toBe('error');
+  });
+});
+
+describe('concurrent activation memoization', () => {
+  it('two concurrent activates share ONE in-flight activation (runtime.load once)', async () => {
+    const load = vi.fn(
+      (): Promise<LoadedExtension> =>
+        Promise.resolve({
+          // Span a macrotask so the second activate overlaps the first.
+          activate: (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0)),
+          deactivate: (): Promise<void> => Promise.resolve(),
+          dispose: (): Promise<void> => Promise.resolve(),
+        }),
+    );
+    const runtime: ExtensionRuntime = { load };
+    const host = new ExtensionHost({
+      storage: fakeKv(),
+      runtime,
+      createContext: fakeContextFactory(),
+      now: () => 1_000,
+    });
+    const manifest = baseManifest();
+    await host.install({ manifest, module: makeModule(manifest) });
+
+    const [a, b] = await Promise.all([
+      host.activate('com.example.hello'),
+      host.fireActivationEvent('onStartup'),
+    ]);
+    expect(load).toHaveBeenCalledTimes(1);
+    expect(a.status).toBe('active');
+    // The event-driven activation awaited the same activation and saw it succeed.
+    expect(b.map((s) => s.status)).toEqual(['active']);
   });
 });

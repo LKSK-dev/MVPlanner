@@ -169,6 +169,11 @@ export const KeybindsSection: Component<{ deps: AppSettingsSectionDeps }> = (pro
                 onKeyDown={(event) => {
                   if (capturing() === row.commandId) onCaptureKeyDown(event, row.commandId);
                 }}
+                onBlur={() => {
+                  // Focus left mid-capture: lower the lock so global shortcuts
+                  // never stay disabled.
+                  if (capturing() === row.commandId) cancelCapture();
+                }}
               >
                 {chordLabel(row)}
               </button>

@@ -12,13 +12,13 @@ import {
 } from '../../src/data/export';
 
 /** Concatenate timestamped MAVLink frames into a tlog byte stream. */
-function buildTlog(entries: readonly { ticks: bigint; frame: Uint8Array }[]): Uint8Array {
+function buildTlog(entries: readonly { timestampUs: bigint; frame: Uint8Array }[]): Uint8Array {
   const total = entries.reduce((sum, entry) => sum + 8 + entry.frame.byteLength, 0);
   const out = new Uint8Array(total);
   const view = new DataView(out.buffer, out.byteOffset, out.byteLength);
   let offset = 0;
   for (const entry of entries) {
-    view.setBigUint64(offset, entry.ticks, false);
+    view.setBigUint64(offset, entry.timestampUs, false);
     offset += 8;
     out.set(entry.frame, offset);
     offset += entry.frame.byteLength;
@@ -50,8 +50,8 @@ function syntheticTlog(): Uint8Array {
   };
 
   return buildTlog([
-    { ticks: 100000n, frame: codec.encode(systemTime, { version: 2, seq: 10 }) },
-    { ticks: 120000n, frame: codec.encode(heartbeat, { version: 2, seq: 11 }) },
+    { timestampUs: 100000n, frame: codec.encode(systemTime, { version: 2, seq: 10 }) },
+    { timestampUs: 102000n, frame: codec.encode(heartbeat, { version: 2, seq: 11 }) },
   ]);
 }
 
@@ -123,7 +123,7 @@ describe('tlog CSV conversion', () => {
       'time_us,time_ticks,sysid,compid,seq,time_unix_usec,time_boot_ms\n' +
         '0,100000,1,1,10,123456789,42\n',
     );
-    expect(heartbeat?.csv).toContain('2000,120000,1,1,11,3,2,3,81,4,3\n');
+    expect(heartbeat?.csv).toContain('2000,102000,1,1,11,3,2,3,81,4,3\n');
   });
 
   it('exports a flattened selected-field CSV', () => {
@@ -138,7 +138,7 @@ describe('tlog CSV conversion', () => {
     expect(csv).toBe(
       'time_us,time_ticks,message,SYSTEM_TIME.time_boot_ms,status\n' +
         '0,100000,SYSTEM_TIME,42,\n' +
-        '2000,120000,HEARTBEAT,,4\n',
+        '2000,102000,HEARTBEAT,,4\n',
     );
   });
 });

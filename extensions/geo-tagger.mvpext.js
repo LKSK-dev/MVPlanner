@@ -4,7 +4,9 @@
  * Tutorial points:
  * - combine MAVLink event telemetry with the active vehicle GPS snapshot;
  * - write namespaced extension data through `ctx.storage`;
- * - keep async event work fire-and-forget but error-visible through `ctx.log`.
+ * - keep async event work fire-and-forget but error-visible through `ctx.log`;
+ * - serialize read-modify-write storage updates through a promise chain so
+ *   concurrent triggers never lose tags.
  *
  * @typedef {import('../src/contracts').ExtContext} ExtContext
  */
@@ -27,29 +29,37 @@ const toNumber = (value) => {
   return Number.isFinite(number) ? number : undefined;
 };
 
+/**
+ * Serializes the `camera-tags` read-modify-write: concurrent CAMERA_TRIGGER
+ * handlers append through this chain, so no update is lost to a racing read.
+ */
+let queue = Promise.resolve();
+
 /** @param {ExtContext} ctx */
 export function activate(ctx) {
   const off = ctx.mavlink.on('CAMERA_TRIGGER', (message) => {
-    void (async () => {
-      const vehicle = ctx.vehicles.active();
-      const position = vehicle.position;
-      if (!position) {
-        ctx.log.warn('Geo-tagger skipped camera trigger without vehicle GPS', message.fields);
-        return;
-      }
-      const seq = toNumber(message.fields.seq) ?? toNumber(message.fields.sequence) ?? 0;
-      const event = {
-        seq,
-        rxTimeUs: message.rxTimeUs,
-        lat: position.lat,
-        lon: position.lon,
-        altM: position.altRelM,
-      };
-      const events = (await ctx.storage.get('camera-tags')) ?? [];
-      events.push(event);
-      await ctx.storage.set('camera-tags', events.slice(-500));
-      ctx.log.info('Geo-tagged camera trigger', event);
-    })().catch((error) => ctx.log.error('Geo-tagger failed', error));
+    queue = queue
+      .then(async () => {
+        const vehicle = ctx.vehicles.active();
+        const position = vehicle.position;
+        if (!position) {
+          ctx.log.warn('Geo-tagger skipped camera trigger without vehicle GPS', message.fields);
+          return;
+        }
+        const seq = toNumber(message.fields.seq) ?? toNumber(message.fields.sequence) ?? 0;
+        const event = {
+          seq,
+          rxTimeUs: message.rxTimeUs,
+          lat: position.lat,
+          lon: position.lon,
+          altM: position.altRelM,
+        };
+        const events = (await ctx.storage.get('camera-tags')) ?? [];
+        events.push(event);
+        await ctx.storage.set('camera-tags', events.slice(-500));
+        ctx.log.info('Geo-tagged camera trigger', event);
+      })
+      .catch((error) => ctx.log.error('Geo-tagger failed', error));
   });
   ctx.onDispose(off);
 }

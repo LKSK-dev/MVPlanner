@@ -28,6 +28,11 @@ export interface FloatingPanelOptions {
   readonly className?: string;
   /** Render the body content; returns a disposer for the rendered root. */
   readonly mount: (body: HTMLElement) => () => void;
+  /**
+   * Invoked exactly once when the panel closes — via ✕, Escape or
+   * {@link FloatingPanelHandle.close} — so callers can clear their handle.
+   */
+  readonly onClose?: () => void;
 }
 
 /**
@@ -75,6 +80,7 @@ export function openFloatingPanel(opts: FloatingPanelOptions): FloatingPanelHand
     disposeRender();
     host.remove();
     previouslyFocused?.focus?.();
+    opts.onClose?.();
   };
 
   const onKeyDown = (e: KeyboardEvent): void => {

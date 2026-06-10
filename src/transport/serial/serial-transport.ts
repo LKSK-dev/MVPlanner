@@ -54,6 +54,8 @@ export class SerialTransport implements Transport {
 
   #state: ConnState = { kind: 'closed' };
   #port: SerialPortLike | null = null;
+  #opening = false;
+  #closeEpoch = 0;
   #rxAbort: AbortController | undefined;
   #txAbort: AbortController | undefined;
   #rxPipe: Promise<void> | undefined;
@@ -94,7 +96,7 @@ export class SerialTransport implements Transport {
    *   {@link DEFAULT_BAUD_RATE} (115200) when omitted.
    */
   async open(config: unknown): Promise<void> {
-    if (this.#port) {
+    if (this.#opening || this.#port) {
       throw new Error('serial transport is already open');
     }
     const baudRate = resolveBaudRate(config);
@@ -104,23 +106,52 @@ export class SerialTransport implements Transport {
       this.#setState({ kind: 'error', message });
       throw new Error(message);
     }
-    this.#setState({ kind: 'opening' });
+    this.#opening = true;
+    const closeEpoch = this.#closeEpoch;
+    let port: SerialPortLike | null = null;
+    let portOpened = false;
     try {
-      const port = await this.#requestPort(provider);
+      this.#setState({ kind: 'opening' });
+      port = await this.#requestPort(provider);
+      this.#throwIfClosedDuringOpen(closeEpoch);
       await port.open({ baudRate });
-      this.#startPumping(port);
+      portOpened = true;
+      if (this.#closeEpoch !== closeEpoch) {
+        await port.close();
+        portOpened = false;
+        throw new Error('closed during open');
+      }
+      try {
+        this.#startPumping(port);
+      } catch (err) {
+        await port.close();
+        portOpened = false;
+        throw err;
+      }
       this.#port = port;
       port.addEventListener?.('disconnect', this.#handleDisconnect);
       this.#setState({ kind: 'open' });
     } catch (err) {
+      if (portOpened) {
+        try {
+          await port?.close();
+        } catch {
+          // Preserve the original open failure; close during cleanup is best-effort.
+        }
+      }
       const message = errorMessage(err);
-      this.#setState({ kind: 'error', message });
+      this.#setState(
+        message === 'closed during open' ? { kind: 'closed' } : { kind: 'error', message },
+      );
       throw err instanceof Error ? err : new Error(message);
+    } finally {
+      this.#opening = false;
     }
   }
 
   /** Stop pumping, release the port and its streams, and report `closed`. */
   async close(): Promise<void> {
+    this.#closeEpoch += 1;
     const port = this.#port;
     if (!port) {
       if (this.#state.kind !== 'closed') {
@@ -162,6 +193,11 @@ export class SerialTransport implements Transport {
       rateHz: 0,
       signed: false,
     };
+  }
+
+  /** Throw if user close interleaved with async `open()` setup. */
+  #throwIfClosedDuringOpen(closeEpoch: number): void {
+    if (this.#closeEpoch !== closeEpoch) throw new Error('closed during open');
   }
 
   /** Wire the open port's streams through the counting transforms. */

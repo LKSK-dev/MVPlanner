@@ -3,11 +3,16 @@
  *
  * A tlog is a flat byte stream of consecutive entries. Each entry is:
  *
- *   [ u64 big-endian timestamp in 100 ns ticks ] [ raw MAVLink frame bytes ]
+ *   [ u64 big-endian timestamp in microseconds since Unix epoch ] [ raw MAVLink frame bytes ]
  *
  * appended in receive order (Mission Planner / pymavlink compatible). To split
  * entries we must know each frame's exact byte length, which we derive from the
  * MAVLink magic + length byte rather than by re-running the codec.
+ *
+ * Compatibility note: MVPlanner builds before this parser fix recorded the
+ * timestamp as 100 ns ticks. Those legacy self-recorded files are not
+ * auto-detected; they will replay with 10× larger intervals because the parser
+ * now follows the Mission Planner / pymavlink microsecond convention.
  *
  * Frame sizing (canonical MAVLink framing; the §7.4 task formula's trailing
  * "+2" is the 2-byte CRC already folded into the overhead constants below):
@@ -33,12 +38,9 @@ const V2_SIGNATURE_BYTES = 13;
 /** v2 INCOMPAT_FLAG that marks a signed frame. */
 const MAVLINK_IFLAG_SIGNED = 0x01;
 
-/** 100 ns ticks per microsecond (tlog timestamps are in 100 ns units). */
-const TICKS_PER_MICROSECOND = 10n;
-
 /** One parsed tlog entry: a timestamp plus the raw MAVLink frame it prefixed. */
 export interface TlogFrame {
-  /** Raw timestamp as stored in the tlog (100 ns ticks). */
+  /** Raw timestamp as stored in the tlog (microseconds since Unix epoch). */
   readonly timeTicks: bigint;
   /**
    * Playback time of this frame in microseconds, relative to the first frame
@@ -113,8 +115,8 @@ export function parseTlog(input: ArrayBuffer | Uint8Array): TlogFrame[] {
     if (frameStart + frameLen > bytes.byteLength) break; // truncated body → stop.
 
     if (firstTicks === undefined) firstTicks = ticks;
-    const deltaTicks = ticks - firstTicks;
-    const timeUs = deltaTicks > 0n ? Number(deltaTicks / TICKS_PER_MICROSECOND) : 0;
+    const deltaUs = ticks - firstTicks;
+    const timeUs = deltaUs > 0n ? Number(deltaUs) : 0;
 
     frames.push({
       timeTicks: ticks,

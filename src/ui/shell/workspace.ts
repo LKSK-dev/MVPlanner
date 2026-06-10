@@ -213,11 +213,16 @@ export function findPanel(root: DockNode, id: string): PanelNode | undefined {
 export function removePanel(root: DockNode, id: string): DockNode | undefined {
   if (root.type === 'panel') return root.id === id ? undefined : root;
   if (root.type === 'tabs') {
+    const removedIndex = root.children.findIndex((c) => c.id === id);
+    if (removedIndex < 0) return root;
     const kids = root.children.filter((c) => c.id !== id);
-    if (kids.length === root.children.length) return root;
     if (kids.length === 0) return undefined;
     if (kids.length === 1) return kids[0];
-    return { ...root, children: kids, active: Math.min(root.active, kids.length - 1) };
+    // Shift the active index when an earlier tab is removed so the same tab
+    // stays visible; clamp for the removed-last-while-active case.
+    const shifted = root.active - (removedIndex < root.active ? 1 : 0);
+    const active = Math.max(0, Math.min(shifted, kids.length - 1));
+    return { ...root, children: kids, active };
   }
   const kept: DockNode[] = [];
   const keptSizes: number[] = [];

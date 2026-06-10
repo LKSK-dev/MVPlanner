@@ -24,6 +24,11 @@
  * 7 MAVLink params (`param1..4`, then `lat`, `lon`, `alt`); these map to a
  * {@link import('../../contracts').MissionItem} whose `x`/`y` are the integer
  * `×1e7` form of `lat`/`lon` and whose `z` is `alt`.
+ *
+ * QGC `.plan` SimpleItems do not carry MAVLink mission `seq` or `current`
+ * directly. Parsing therefore assigns `seq` from item order and `current = 0`;
+ * serializing uses `seq` only to produce QGC's `doJumpId`. Round-tripping
+ * through `.plan` is intentionally lossy for those two MAVLink fields.
  */
 import type { Mission, MissionItem } from '../../contracts';
 import { degToE7, e7ToDeg } from './coords';

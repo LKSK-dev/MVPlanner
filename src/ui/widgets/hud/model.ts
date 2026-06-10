@@ -14,9 +14,12 @@
  *    component mirrors into a visually-hidden live region (spec §5.8 — a canvas
  *    needs a text equivalent).
  *
- * Units are metric here (m, m/s); locale/imperial conversion is T3.8's concern.
+ * Speed/altitude/climb readouts go through an optional {@link UnitHook}
+ * (default {@link metricUnits}), so the HUD honours the selected unit system
+ * beside the unit-aware gauges; everything else stays SI.
  */
 import type { VehicleState } from '../../../contracts';
+import { metricUnits, type UnitFormat, type UnitHook } from '../gauges';
 
 /** Placeholder shown for an unavailable value. */
 export const HUD_DASH = '\u2014';
@@ -225,21 +228,44 @@ export function headingTapeTicks(
 // Value formatting (locale-agnostic)
 // ---------------------------------------------------------------------------
 
-/** Format metres to 1 decimal with a `m` suffix, or a dash when missing. */
-export function fmtMeters(m: number | undefined): string {
-  return m === undefined ? HUD_DASH : `${m.toFixed(1)} m`;
+/**
+ * Unit-symbol text per `gauges.unit.*` i18n key. The model is pure/DOM-free and
+ * deliberately does not pull the i18n runtime; these SI/imperial symbols are
+ * locale-invariant, so a static map keeps the HUD strings testable offline.
+ */
+const UNIT_SYMBOLS: Readonly<Record<string, string>> = {
+  'gauges.unit.ms': 'm/s',
+  'gauges.unit.m': 'm',
+  'gauges.unit.km': 'km',
+  'gauges.unit.ft': 'ft',
+  'gauges.unit.mi': 'mi',
+  'gauges.unit.nm': 'nm',
+  'gauges.unit.kmh': 'km/h',
+  'gauges.unit.kt': 'kt',
+  'gauges.unit.mph': 'mph',
+  'gauges.unit.ftmin': 'ft/min',
+};
+
+/** Render a {@link UnitFormat} as `value symbol` text. */
+function unitText(f: UnitFormat): string {
+  return `${f.value} ${UNIT_SYMBOLS[f.unitKey] ?? f.unitKey}`;
 }
 
-/** Format a speed (m/s) to 1 decimal, or a dash when missing. */
-export function fmtSpeed(ms: number | undefined): string {
-  return ms === undefined ? HUD_DASH : `${ms.toFixed(1)} m/s`;
+/** Format an altitude (m) via `units`, or a dash when missing. */
+export function fmtMeters(m: number | undefined, units: UnitHook = metricUnits): string {
+  return m === undefined ? HUD_DASH : unitText(units.altitude(m));
 }
 
-/** Format a climb rate (m/s) with an explicit sign, or a dash when missing. */
-export function fmtClimb(ms: number | undefined): string {
+/** Format a speed (m/s) via `units`, or a dash when missing. */
+export function fmtSpeed(ms: number | undefined, units: UnitHook = metricUnits): string {
+  return ms === undefined ? HUD_DASH : unitText(units.speed(ms));
+}
+
+/** Format a climb rate (m/s) with an explicit sign via `units`, or a dash. */
+export function fmtClimb(ms: number | undefined, units: UnitHook = metricUnits): string {
   if (ms === undefined) return HUD_DASH;
   const sign = ms >= 0 ? '+' : '';
-  return `${sign}${ms.toFixed(1)} m/s`;
+  return `${sign}${unitText(units.climb(ms))}`;
 }
 
 /** Format a throttle percentage, or a dash when missing. */
@@ -322,6 +348,7 @@ export function fmtClock(nowMs: number): string {
 export function hudA11ySummary(
   vehicle: VehicleState | undefined,
   labels: HudLabels = DEFAULT_HUD_LABELS,
+  units: UnitHook = metricUnits,
 ): string {
   if (vehicle === undefined) return labels.noVehicle;
   const armedWord = vehicle.armed ? labels.armed : labels.disarmed;
@@ -329,11 +356,19 @@ export function hudA11ySummary(
   const parts = [
     `${labels.mode} ${vehicle.mode}`,
     armedWord,
-    `${labels.a11yAltitude} ${fmtMeters(vehicle.position?.altRelM)}`,
-    `${labels.a11ySpeed} ${fmtSpeed(speedMs)}`,
+    `${labels.a11yAltitude} ${fmtMeters(vehicle.position?.altRelM, units)}`,
+    `${labels.a11ySpeed} ${fmtSpeed(speedMs, units)}`,
     `${labels.a11yBattery} ${fmtBattery(vehicle.battery?.voltageV, vehicle.battery?.remainingPct)}`,
   ];
   return parts.join(', ');
+}
+
+/**
+ * Cheap fingerprint of a {@link UnitHook}'s display units, appended to the
+ * frame signature so a live units change repaints the HUD readouts.
+ */
+export function unitsSignature(units: UnitHook): string {
+  return `${units.speed(0).unitKey}|${units.altitude(0).unitKey}|${units.climb(0).unitKey}`;
 }
 
 /**
@@ -383,13 +418,14 @@ export function buildHudModel(
   statusText: string | undefined,
   nowMs: number,
   labels: HudLabels = DEFAULT_HUD_LABELS,
+  units: UnitHook = metricUnits,
 ): HudModel {
   const readouts: HudReadouts = {
-    airspeed: fmtSpeed(vehicle?.velocity?.airMs),
-    groundspeed: fmtSpeed(vehicle?.velocity?.groundMs),
-    altRel: fmtMeters(vehicle?.position?.altRelM),
-    altAmsl: fmtMeters(vehicle?.position?.altAmslM),
-    climb: fmtClimb(vehicle?.velocity?.climbMs),
+    airspeed: fmtSpeed(vehicle?.velocity?.airMs, units),
+    groundspeed: fmtSpeed(vehicle?.velocity?.groundMs, units),
+    altRel: fmtMeters(vehicle?.position?.altRelM, units),
+    altAmsl: fmtMeters(vehicle?.position?.altAmslM, units),
+    climb: fmtClimb(vehicle?.velocity?.climbMs, units),
     // Throttle output % from `VFR_HUD.throttle`, surfaced on `VehicleState`
     // (T2.4 enrichment); a dash when the field is absent.
     throttle: fmtThrottle(vehicle?.throttlePct),

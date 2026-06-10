@@ -66,6 +66,9 @@ export function createSandboxRuntime(deps: SandboxRuntimeDeps): ExtensionRuntime
         if (terminated) return;
         terminated = true;
         watchdog?.stop();
+        // Reject all in-flight host->guest RPCs (e.g. a hanging GUEST_ACTIVATE)
+        // BEFORE killing the guest, so callers like `host.activate` settle.
+        rpc.dispose();
         try {
           spawned.terminate();
         } catch {

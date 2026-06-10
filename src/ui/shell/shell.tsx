@@ -100,7 +100,9 @@ export const Shell: Component<{ ctx: ShellContextValue }> = (props) => {
       id: 'palette.open',
       title: t('cmd.openPalette'),
       shortcut: 'mod+k',
-      run: openPalette,
+      run: () => {
+        setPaletteOpen((open) => !open);
+      },
     }),
     registry.registerCommand({
       id: 'workspace.save',
@@ -131,6 +133,9 @@ export const Shell: Component<{ ctx: ShellContextValue }> = (props) => {
     return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || node.isContentEditable;
   };
   const onKeyDown = (e: KeyboardEvent): void => {
+    // Component-local handlers (gutter arrows, tablists, palette, Escape) own
+    // anything they already consumed — never double-fire a bound command.
+    if (e.defaultPrevented) return;
     // While the user is rebinding a key in App Settings -> Keybinds, do not let
     // the dispatcher consume the captured chord.
     if (props.ctx.keybindCapturing?.() === true) return;
@@ -144,7 +149,10 @@ export const Shell: Component<{ ctx: ShellContextValue }> = (props) => {
     }
     const chord = chordFromEvent(e);
     if (chord === undefined) return;
-    if (isTypingTarget(e.target) && chord !== 'mod+k') return;
+    // The palette chord is the one shortcut that still fires while typing;
+    // resolve it live so a rebound palette chord keeps working.
+    const paletteChord = keybinds.chordFor('palette.open') ?? 'mod+k';
+    if (isTypingTarget(e.target) && chord !== paletteChord) return;
     const id = keybinds.resolve(chord);
     if (id === undefined) return;
     const cmd = registry.commands().find((c) => c.id === id);

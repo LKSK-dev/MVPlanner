@@ -71,6 +71,15 @@ function providerFor(port: SerialPortLike): SerialProviderLike {
   return { requestPort: async () => port };
 }
 
+/** Build a manually resolved promise for race-condition tests. */
+function deferred<T>(): { promise: Promise<T>; resolve: (value: T) => void } {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((innerResolve) => {
+    resolve = innerResolve;
+  });
+  return { promise, resolve };
+}
+
 /** Poll until `pred` holds, or fail after ~100ms. */
 async function until(pred: () => boolean, label: string): Promise<void> {
   for (let i = 0; i < 100; i++) {
@@ -121,6 +130,20 @@ describe('SerialTransport lifecycle', () => {
     const t = new SerialTransport({ provider: providerFor(port) });
     await t.open({});
     await expect(t.open({})).rejects.toThrow(/already open/);
+    await t.close();
+  });
+
+  it('rejects a concurrent second open before the first port is acquired', async () => {
+    const port = new FakeSerialPort();
+    const portRequest = deferred<SerialPortLike>();
+    const provider: SerialProviderLike = { requestPort: () => portRequest.promise };
+    const t = new SerialTransport({ provider });
+
+    const firstOpen = t.open({});
+    await expect(t.open({})).rejects.toThrow(/already open/);
+
+    portRequest.resolve(port);
+    await firstOpen;
     await t.close();
   });
 });

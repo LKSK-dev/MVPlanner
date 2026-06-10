@@ -11,7 +11,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import type { ExtContext, ExtManifest, KvStore } from '../../src/contracts';
 import { createAuditLog } from '../../src/core/audit';
-import type { ExtLoadRecord, ExtModule } from '../../src/ext/host';
+import { ExtensionHost, type ExtLoadRecord, type ExtModule } from '../../src/ext/host';
 import {
   PermissionBroker,
   createGrantStore,
@@ -260,5 +260,44 @@ describe('SandboxWatchdog', () => {
     expect(terminated).toEqual(['a:watchdog-timeout']);
 
     await loaded.dispose();
+  });
+
+  it('watchdog termination settles a hanging host.activate as errored', async () => {
+    const { broker } = makeBroker();
+    let fire: (() => void) | undefined;
+    const runtime = createSandboxRuntime({
+      broker,
+      // The guest never answers GUEST_ACTIVATE (a spinning/hung activate).
+      spawn: createInProcessSpawner({
+        evaluate: () => ({ activate: (): Promise<void> => new Promise(() => undefined) }),
+      }),
+      watchdog: {
+        timeoutMs: 50,
+        setTimer: (fn): unknown => {
+          fire = fn;
+          return 1;
+        },
+        clearTimer: (): void => undefined,
+      },
+    });
+    const host = new ExtensionHost({
+      storage: fakeKv(),
+      runtime,
+      createContext: () => NO_CTX,
+    });
+    await host.install({ manifest, code: '' });
+
+    const pending = host.activate('a');
+    // The watchdog arms only after GUEST_INIT round-trips; wait for it.
+    await vi.waitFor(() => {
+      expect(fire).toBeDefined();
+    });
+    fire?.();
+
+    // terminate() disposes the RPC, rejecting the in-flight GUEST_ACTIVATE,
+    // so the host's activation settles (errored) instead of hanging forever.
+    const state = await pending;
+    expect(state.status).toBe('error');
+    expect(state.error).toMatch(/disposed/i);
   });
 });

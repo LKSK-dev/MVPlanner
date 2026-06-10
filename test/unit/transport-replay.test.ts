@@ -32,13 +32,13 @@ function makeV2(payloadLen: number, signed: boolean, seed: number): Uint8Array {
 }
 
 /** Concatenate timestamped frames into a tlog byte stream. */
-function buildTlog(entries: { ticks: bigint; frame: Uint8Array }[]): Uint8Array {
+function buildTlog(entries: { timestampUs: bigint; frame: Uint8Array }[]): Uint8Array {
   const total = entries.reduce((n, e) => n + 8 + e.frame.length, 0);
   const out = new Uint8Array(total);
   const view = new DataView(out.buffer);
   let p = 0;
   for (const e of entries) {
-    view.setBigUint64(p, e.ticks, false);
+    view.setBigUint64(p, e.timestampUs, false);
     p += 8;
     out.set(e.frame, p);
     p += e.frame.length;
@@ -52,9 +52,9 @@ function fixture(): { tlog: Uint8Array; f0: Uint8Array; f1: Uint8Array; f2: Uint
   const f1 = makeV2(5, false, 100); // timeUs 2000
   const f2 = makeV2(4, true, 200); // timeUs 5000
   const tlog = buildTlog([
-    { ticks: 0n, frame: f0 },
-    { ticks: 20000n, frame: f1 }, // 20000 ticks = 2000 us
-    { ticks: 50000n, frame: f2 }, // 50000 ticks = 5000 us
+    { timestampUs: 0n, frame: f0 },
+    { timestampUs: 2000n, frame: f1 },
+    { timestampUs: 5000n, frame: f2 },
   ]);
   return { tlog, f0, f1, f2 };
 }
@@ -114,7 +114,7 @@ describe('parseTlog', () => {
     expect(frames[1]?.timeUs).toBe(2000);
     expect(frames[2]?.timeUs).toBe(5000);
     expect(frames[0]?.timeTicks).toBe(0n);
-    expect(frames[1]?.timeTicks).toBe(20000n);
+    expect(frames[1]?.timeTicks).toBe(2000n);
     expect(frames[0]?.bytes).toEqual(f0);
     expect(frames[1]?.bytes).toEqual(f1);
     expect(frames[2]?.bytes).toEqual(f2);
@@ -130,7 +130,7 @@ describe('parseTlog', () => {
     const { tlog, f2 } = fixture();
     // Append a timestamp + a partial v2 frame (header says more bytes than present).
     const partial = makeV2(8, false, 5).subarray(0, 6);
-    const extra = buildTlog([{ ticks: 99999n, frame: f2 }]).subarray(0, 8 + 6);
+    const extra = buildTlog([{ timestampUs: 99999n, frame: f2 }]).subarray(0, 8 + 6);
     extra.set(partial, 8);
     const joined = new Uint8Array(tlog.length + extra.length);
     joined.set(tlog, 0);
@@ -142,7 +142,7 @@ describe('parseTlog', () => {
   it('throws on an unknown MAVLink magic mid-stream', () => {
     const bad = makeV1(2, 0);
     bad[0] = 0x12; // not 0xFE/0xFD
-    const tlog = buildTlog([{ ticks: 0n, frame: bad }]);
+    const tlog = buildTlog([{ timestampUs: 0n, frame: bad }]);
     expect(() => parseTlog(tlog)).toThrow(TlogParseError);
   });
 });

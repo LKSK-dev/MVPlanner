@@ -68,6 +68,9 @@ export const AppSettingsPane: Component<AppSettingsPaneProps> = (props) => {
     const next = e.key === 'ArrowDown' ? (i + 1) % ids.length : (i - 1 + ids.length) % ids.length;
     const id = ids[next];
     if (id !== undefined) control.setSection(id);
+    // Roving tabindex: move DOM focus to the newly-active rail tab.
+    const rail = e.currentTarget as HTMLElement | null;
+    rail?.querySelectorAll<HTMLElement>('[role="tab"]')[next]?.focus();
   };
 
   return (

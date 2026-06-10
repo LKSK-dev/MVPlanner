@@ -67,6 +67,7 @@ export class BluetoothTransport implements Transport {
   #server: BluetoothRemoteGATTServerLike | null = null;
   #rxChar: BluetoothRemoteGATTCharacteristicLike | null = null;
   #txChar: BluetoothRemoteGATTCharacteristicLike | null = null;
+  #openEpoch = 0;
   #mtu = DEFAULT_BLE_MTU;
 
   constructor(deps: BluetoothTransportDeps = {}) {
@@ -112,22 +113,29 @@ export class BluetoothTransport implements Transport {
     }
 
     this.#setState({ kind: 'opening' });
+    const openEpoch = this.#openEpoch;
     let device: BluetoothDeviceLike | null = null;
     let server: BluetoothRemoteGATTServerLike | null = null;
     let rxChar: BluetoothRemoteGATTCharacteristicLike | null = null;
 
     try {
       device = await this.#requestDevice(provider, requestOptionsFor(cfg));
+      this.#throwIfClosedDuringOpen(openEpoch, device, server, rxChar);
       const gatt = device.gatt;
       if (!gatt) {
         throw new Error('bluetooth transport: selected device does not expose a GATT server');
       }
 
       server = await gatt.connect();
+      this.#throwIfClosedDuringOpen(openEpoch, device, server, rxChar);
       const service = await server.getPrimaryService(cfg.serviceUuid);
+      this.#throwIfClosedDuringOpen(openEpoch, device, server, rxChar);
       rxChar = await service.getCharacteristic(cfg.rxCharUuid);
+      this.#throwIfClosedDuringOpen(openEpoch, device, server, rxChar);
       const txChar = await service.getCharacteristic(cfg.txCharUuid);
+      this.#throwIfClosedDuringOpen(openEpoch, device, server, rxChar);
       const notifiedRxChar = await rxChar.startNotifications();
+      this.#throwIfClosedDuringOpen(openEpoch, device, server, notifiedRxChar);
 
       device.addEventListener?.('gattserverdisconnected', this.#handleGattDisconnect);
       notifiedRxChar.addEventListener('characteristicvaluechanged', this.#handleNotification);
@@ -144,13 +152,16 @@ export class BluetoothTransport implements Transport {
       server?.disconnect();
       this.#resetConnection();
       const message = errorMessage(err);
-      this.#setState({ kind: 'error', message });
+      this.#setState(
+        message === 'closed during open' ? { kind: 'closed' } : { kind: 'error', message },
+      );
       throw err instanceof Error ? err : new Error(message);
     }
   }
 
   /** Stop notifications, disconnect GATT, and report `closed`. */
   async close(): Promise<void> {
+    this.#openEpoch += 1;
     const rxChar = this.#rxChar;
     const device = this.#device;
     const server = this.#server;
@@ -233,6 +244,21 @@ export class BluetoothTransport implements Transport {
       this.#setState({ kind: 'error', message });
       throw err instanceof Error ? err : new Error(message);
     }
+  }
+
+  /** Throw and clean up if user close interleaved with async `open()` setup. */
+  #throwIfClosedDuringOpen(
+    openEpoch: number,
+    device: BluetoothDeviceLike | null,
+    server: BluetoothRemoteGATTServerLike | null,
+    rxChar: BluetoothRemoteGATTCharacteristicLike | null,
+  ): void {
+    if (this.#openEpoch === openEpoch) return;
+    rxChar?.removeEventListener('characteristicvaluechanged', this.#handleNotification);
+    device?.removeEventListener?.('gattserverdisconnected', this.#handleGattDisconnect);
+    server?.disconnect();
+    this.#resetConnection();
+    throw new Error('closed during open');
   }
 
   /** Drop per-connection state so the instance can be opened again. */

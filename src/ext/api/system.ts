@@ -200,10 +200,12 @@ export function createExtensionSystem(deps: ExtensionSystemDeps): ExtensionSyste
     broker,
     grants,
     restore: () => host.restore(),
-    install(source): Promise<ExtState> {
-      const manifest = source.manifest ?? source.module?.manifest;
-      if (manifest !== undefined) trustedById.set(manifest.id, source.trusted ?? false);
-      return host.install(source);
+    async install(source): Promise<ExtState> {
+      // Record trust only AFTER the host validates + installs, so a failed
+      // install can never leave a stale trusted entry for that id.
+      const state = await host.install(source);
+      trustedById.set(state.id, source.trusted ?? false);
+      return state;
     },
     async setGrants(id, permissions): Promise<void> {
       await grants.set(id, permissions);
@@ -217,7 +219,14 @@ export function createExtensionSystem(deps: ExtensionSystemDeps): ExtensionSyste
       grantSnapshot.delete(id);
       trustedById.delete(id);
     },
-    reload: (id, source) => host.reload(id, source),
+    reload: (id, source): Promise<ExtState> => {
+      // New source means new code: drop any session trust BEFORE the reload so
+      // the re-activation runs the replacement in the fail-safe sandbox path.
+      if (source?.code !== undefined || source?.module !== undefined) {
+        trustedById.set(id, false);
+      }
+      return host.reload(id, source);
+    },
     async activate(id): Promise<ExtState> {
       await refresh(id);
       return host.activate(id);

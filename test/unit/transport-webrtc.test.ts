@@ -248,6 +248,20 @@ describe('WebRtcTransport', () => {
     writer.releaseLock();
   });
 
+  it('close during open rejects the pending open promise', async () => {
+    const { transport, signaling, states } = setup();
+    const pendingOpen = transport.open({ signaling, iceGatheringTimeoutMs: 0 });
+    const rejection = expect(pendingOpen).rejects.toThrow('closed by user');
+    const peer = createdPeers[createdPeers.length - 1]!;
+
+    await transport.close();
+
+    expect(peer.channel.closed).toBe(true);
+    expect(peer.closed).toBe(true);
+    expect(states[states.length - 1]).toEqual({ kind: 'closed' });
+    await rejection;
+  });
+
   it('close tears down channel, peer, signaling and emits closed', async () => {
     const { transport, signaling, states } = setup();
     const peer = await openTransport(transport, signaling);
@@ -261,6 +275,16 @@ describe('WebRtcTransport', () => {
     expect(states[states.length - 1]).toEqual({ kind: 'closed' });
     expect((await reader.read()).done).toBe(true);
     reader.releaseLock();
+  });
+
+  it('rejects reopen after close because the readable is single-use', async () => {
+    const { transport, signaling } = setup();
+    await openTransport(transport, signaling);
+    await transport.close();
+
+    await expect(transport.open({ signaling, iceGatheringTimeoutMs: 0 })).rejects.toThrow(
+      'transport already consumed; create a new instance',
+    );
   });
 
   it('emits reconnecting when the peer reports a transient disconnect', async () => {

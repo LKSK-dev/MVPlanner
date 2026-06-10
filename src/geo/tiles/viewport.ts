@@ -13,6 +13,7 @@ import {
   lonLatToTile,
   lonLatToWorld,
   wrapTileX,
+  worldSize,
   worldToLonLat,
 } from './mercator';
 import type { Bbox } from '../../contracts';
@@ -27,7 +28,14 @@ import type { MapView, TileCoord, Viewport } from './types';
 export function projectToScreen(lat: number, lon: number, vp: Viewport): [number, number] {
   const [wx, wy] = lonLatToWorld(lon, lat, vp.zoom);
   const [cx, cy] = lonLatToWorld(vp.lon, vp.lat, vp.zoom);
-  return [wx - cx + vp.width / 2, wy - cy + vp.height / 2];
+  const size = worldSize(vp.zoom);
+  const dx = wrapWorldDelta(wx - cx, size);
+  return [dx + vp.width / 2, wy - cy + vp.height / 2];
+}
+
+/** Wrap a horizontal world-pixel delta into the nearest antimeridian image. */
+function wrapWorldDelta(dx: number, size: number): number {
+  return ((((dx + size / 2) % size) + size) % size) - size / 2;
 }
 
 /**
@@ -88,10 +96,11 @@ export function visibleTiles(vp: Viewport, tileZoom: number): TileCoord[] {
   const maxTY = Math.floor((cy + halfH) / TILE_SIZE);
   const n = 2 ** tileZoom;
   const out: TileCoord[] = [];
+  const columnCount = Math.min(maxTX - minTX + 1, n);
   for (let ty = minTY; ty <= maxTY; ty++) {
     if (ty < 0 || ty >= n) continue;
-    for (let tx = minTX; tx <= maxTX; tx++) {
-      out.push({ z: tileZoom, x: wrapTileX(tx, n), y: ty });
+    for (let i = 0; i < columnCount; i++) {
+      out.push({ z: tileZoom, x: wrapTileX(minTX + i, n), y: ty });
     }
   }
   return out;

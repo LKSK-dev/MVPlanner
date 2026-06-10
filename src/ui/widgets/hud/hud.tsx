@@ -22,8 +22,15 @@
  */
 import { createMemo, onCleanup, onMount, type Component } from 'solid-js';
 import { t as defaultT } from '../../../core/i18n';
+import { metricUnits, type UnitHook } from '../gauges';
 import { readHudColors } from './colors';
-import { buildHudModel, hudA11ySummary, hudSignature, type HudColors } from './model';
+import {
+  buildHudModel,
+  hudA11ySummary,
+  hudSignature,
+  unitsSignature,
+  type HudColors,
+} from './model';
 import { buildHudLabels } from './messages';
 import { drawHud } from './render';
 import type { StatusTextAccessor, TFn, VehicleAccessor } from './types';
@@ -38,6 +45,11 @@ export interface HudProps {
   vehicle: VehicleAccessor;
   /** Optional reactive STATUSTEXT ticker line. */
   statusText?: StatusTextAccessor;
+  /**
+   * Unit-conversion hook for the speed/altitude/climb readouts (default
+   * {@link metricUnits}); the Flight screen passes its store-derived hook.
+   */
+  units?: UnitHook;
   /** Optional palette override; defaults to reading `--mvp-*` CSS tokens. */
   colors?: () => HudColors;
   /** Clock for the time readout (default `Date.now`). */
@@ -64,7 +76,8 @@ export const Hud: Component<HudProps> = (props) => {
 
   // Reactive textual summary for screen readers (independent of the canvas
   // loop, so it updates on every vehicle/status/locale change).
-  const a11ySummary = createMemo(() => hudA11ySummary(props.vehicle(), labels()));
+  const unitsFn = (): UnitHook => props.units ?? metricUnits;
+  const a11ySummary = createMemo(() => hudA11ySummary(props.vehicle(), labels(), unitsFn()));
 
   let container!: HTMLDivElement;
   let canvas!: HTMLCanvasElement;
@@ -104,13 +117,14 @@ export const Hud: Component<HudProps> = (props) => {
       const now = nowFn();
       const vehicle = props.vehicle();
       const status = props.statusText?.();
-      const sig = hudSignature(vehicle, status, Math.floor(now / 1000));
+      const units = unitsFn();
+      const sig = `${hudSignature(vehicle, status, Math.floor(now / 1000))}|${unitsSignature(units)}`;
       const sizeChanged = canvas.width !== lastW || canvas.height !== lastH;
       if (sig !== lastSig || sizeChanged) {
         lastSig = sig;
         lastW = canvas.width;
         lastH = canvas.height;
-        const model = buildHudModel(vehicle, status, now, labels());
+        const model = buildHudModel(vehicle, status, now, labels(), units);
         const palette = props.colors?.() ?? readHudColors(container);
         drawHud(ctx, model, palette, labels(), canvas.width, canvas.height);
       }

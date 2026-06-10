@@ -7,7 +7,11 @@
  * agree. Reads commands lazily, so commands registered after boot are included.
  */
 import type { AppState, CommandDef, Store } from '../../../contracts';
-import { createKeybindRegistry, type KeybindRegistry } from '../../../core/keybinds';
+import {
+  createKeybindRegistry,
+  normalizeChord,
+  type KeybindRegistry,
+} from '../../../core/keybinds';
 
 /** Result of {@link createLiveKeybinds}. */
 export interface LiveKeybinds {
@@ -19,14 +23,31 @@ export interface LiveKeybinds {
 
 /**
  * Create the live keybind facade. `getCommands` returns the current command
- * list (e.g. the shell registry's reactive accessor); overrides are seeded from
- * `store.settings.keybinds` and mutated in-memory until `persist()` writes them.
+ * list (e.g. the shell registry's reactive accessor). Overrides are read LIVE
+ * from `store.settings.keybinds` on every build — a settings-bundle import
+ * takes effect immediately — layering only the transient unsaved edits (a
+ * dirty diff) on top; `persist()` writes the merge and clears the diff.
  */
 export function createLiveKeybinds(
   getCommands: () => readonly CommandDef[],
   store: Store<AppState>,
 ): LiveKeybinds {
-  let overrides: Record<string, string> = { ...(store.get().settings.keybinds ?? {}) };
+  /** Unsaved edits: chord = pending override, `undefined` = pending removal. */
+  const dirty = new Map<string, string | undefined>();
+  /** When true, the persisted overrides are ignored (pending "reset all"). */
+  let clearedAll = false;
+
+  /** Persisted overrides + dirty diff, computed fresh on every read. */
+  const effectiveOverrides = (): Record<string, string> => {
+    const base: Record<string, string> = clearedAll
+      ? {}
+      : { ...(store.get().settings.keybinds ?? {}) };
+    for (const [id, chord] of dirty) {
+      if (chord === undefined) delete base[id];
+      else base[id] = chord;
+    }
+    return base;
+  };
 
   const build = (): KeybindRegistry =>
     createKeybindRegistry({
@@ -35,7 +56,7 @@ export function createLiveKeybinds(
         title: c.title,
         ...(c.shortcut !== undefined ? { shortcut: c.shortcut } : {}),
       })),
-      overrides,
+      overrides: effectiveOverrides(),
     });
 
   const registry: KeybindRegistry = {
@@ -44,25 +65,29 @@ export function createLiveKeybinds(
     list: () => build().list(),
     conflict: (chord, exceptId) => build().conflict(chord, exceptId),
     setOverride: (id, chord) => {
-      const r = build();
-      if (!r.setOverride(id, chord)) return false;
-      overrides = r.serialize();
+      const norm = normalizeChord(chord);
+      if (norm === undefined) return false;
+      dirty.set(id, norm);
       return true;
     },
     clearOverride: (id) => {
-      const next = { ...overrides };
-      delete next[id];
-      overrides = next;
+      dirty.set(id, undefined);
     },
     clearAll: () => {
-      overrides = {};
+      clearedAll = true;
+      dirty.clear();
     },
-    serialize: () => ({ ...overrides }),
+    serialize: () => effectiveOverrides(),
   };
 
   const persist = (): void => {
+    const merged = effectiveOverrides();
     store.patch((d) => {
-      d.settings.keybinds = { ...overrides };
+      d.settings.keybinds = merged;
+      // Clear the diff only once the (coalesced) patch lands, so reads between
+      // persist() and the store flush still see the merged view.
+      dirty.clear();
+      clearedAll = false;
     });
   };
 

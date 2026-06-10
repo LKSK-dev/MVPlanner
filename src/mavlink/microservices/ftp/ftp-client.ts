@@ -103,6 +103,10 @@ export interface FtpClientDeps {
 /** One in-flight transaction awaiting its correlated server response. */
 interface Pending {
   readonly expectedSeq: number;
+  readonly requestOpcode: number;
+  readonly session: number;
+  readonly burst: boolean;
+  highestSeq: number;
   readonly resolve?: (p: FtpPayload) => void;
   readonly onReply?: (p: FtpPayload) => void;
 }
@@ -131,6 +135,19 @@ const DECODER = new TextDecoder();
 
 const CHAR_FILE = 'F'.charCodeAt(0);
 const CHAR_DIR = 'D'.charCodeAt(0);
+const SEQ_HALF_RANGE = 0x8000;
+
+/** Return whether `candidate` is at or after `base` in the MAVLink FTP u16 seq space. */
+function seqAtOrAfter(base: number, candidate: number): boolean {
+  const delta = (candidate - base) & 0xffff;
+  return delta < SEQ_HALF_RANGE;
+}
+
+/** Return whether `candidate` is ahead of `base` in the MAVLink FTP u16 seq space. */
+function seqAfter(base: number, candidate: number): boolean {
+  const delta = (candidate - base) & 0xffff;
+  return delta > 0 && delta < SEQ_HALF_RANGE;
+}
 
 /** Read a `FieldValue` as a `number[]` (the codec shape for u8 arrays). */
 function asByteArray(value: FieldValue | undefined): number[] | undefined {
@@ -529,7 +546,14 @@ export class FtpClient implements FtpClientApi {
         resolve(p);
       };
 
-      this.pending = { expectedSeq, resolve: succeed };
+      this.pending = {
+        expectedSeq,
+        requestOpcode: req.opcode,
+        session: req.session,
+        burst: false,
+        highestSeq: expectedSeq,
+        resolve: succeed,
+      };
 
       const attempt = (): void => {
         attempts++;
@@ -606,7 +630,11 @@ export class FtpClient implements FtpClientApi {
         cancelTimer?.();
         if (onAbort !== undefined && signal !== undefined)
           signal.removeEventListener('abort', onAbort);
-        if (this.pending?.expectedSeq === expectedSeq) this.pending = undefined;
+        const pending = this.pending;
+        if (pending?.expectedSeq === expectedSeq) {
+          this.advanceSeqPast(pending.highestSeq);
+          this.pending = undefined;
+        }
       };
       const fail = (err: FtpError): void => {
         cleanup();
@@ -659,6 +687,10 @@ export class FtpClient implements FtpClientApi {
 
       this.pending = {
         expectedSeq,
+        requestOpcode: req.opcode,
+        session: req.session,
+        burst: true,
+        highestSeq: expectedSeq,
         onReply: (payload: FtpPayload): void => {
           if (payload.opcode === FtpOpcode.Nak) {
             succeed({ frames, nak: payload.data[0] ?? FtpNak.Fail, complete: true });
@@ -682,6 +714,12 @@ export class FtpClient implements FtpClientApi {
     });
   }
 
+  /** Move the next client request sequence beyond an observed server sequence. */
+  private advanceSeqPast(serverSeq: number): void {
+    if (this.seq === serverSeq || seqAfter(this.seq, serverSeq))
+      this.seq = (serverSeq + 1) & 0xffff;
+  }
+
   /** Best-effort `TerminateSession` — swallows errors (cleanup, not a result). */
   private async terminate(session: number): Promise<void> {
     try {
@@ -699,11 +737,15 @@ export class FtpClient implements FtpClientApi {
     const pending = this.pending;
     if (pending === undefined) return;
     const payload = decodePayload(raw);
-    if (payload.seq !== pending.expectedSeq) return;
-    if (pending.onReply !== undefined) {
-      pending.onReply(payload);
+    if (payload.reqOpcode !== pending.requestOpcode) return;
+    if (pending.burst) {
+      if (payload.session !== pending.session) return;
+      if (!seqAtOrAfter(pending.expectedSeq, payload.seq)) return;
+      if (seqAfter(pending.highestSeq, payload.seq)) pending.highestSeq = payload.seq;
+      pending.onReply?.(payload);
       return;
     }
+    if (payload.seq !== pending.expectedSeq) return;
     pending.resolve?.(payload);
   }
 }

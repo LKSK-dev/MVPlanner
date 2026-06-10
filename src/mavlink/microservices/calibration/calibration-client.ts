@@ -154,6 +154,15 @@ function rcChannels(fields: Record<string, FieldValue>): number[] {
   return channels;
 }
 
+/** In-flight radio capture state; disposed clients settle and unsubscribe these taps. */
+interface RadioOp {
+  settled: boolean;
+  unsubscribe?: () => void;
+  abortCleanup?: () => void;
+  readonly resolve: () => void;
+  readonly reject: (err: CalibrationError) => void;
+}
+
 /** A one-shot externally rejectable guard used to race abort/failure with awaits. */
 function makeRejectGuard(): {
   readonly promise: Promise<never>;
@@ -176,6 +185,7 @@ export class CalibrationClient implements CalibrationClientApi {
   private readonly getTarget: CalibrationTargetAccessor;
   private readonly clock: CalibrationClock;
   private readonly compassTimeoutMs: number;
+  private readonly radioOps = new Set<RadioOp>();
   private disposed = false;
 
   constructor(deps: CalibrationClientDeps) {
@@ -340,29 +350,43 @@ export class CalibrationClient implements CalibrationClientApi {
   radio(onChannels: (ch: number[]) => void, signal?: AbortSignal): Promise<void> {
     this.throwIfDisposed();
     const target = this.requireTarget();
-    return new Promise<void>((resolve) => {
-      const cleanup: { unsubscribe?: () => void } = {};
-      const settle = (): void => {
-        cleanup.unsubscribe?.();
-        signal?.removeEventListener('abort', settle);
-        resolve();
+    return new Promise<void>((resolve, reject) => {
+      const op: RadioOp = { settled: false, resolve, reject };
+      const settle = (done: () => void): void => {
+        if (op.settled) return;
+        op.settled = true;
+        op.unsubscribe?.();
+        op.abortCleanup?.();
+        this.radioOps.delete(op);
+        done();
       };
       if (signal?.aborted === true) {
         resolve();
         return;
       }
-      signal?.addEventListener('abort', settle, { once: true });
-      cleanup.unsubscribe = this.onMessageTap(['RC_CHANNELS'], (msg) => {
+      if (signal !== undefined) {
+        const onAbort = (): void => settle(() => resolve());
+        signal.addEventListener('abort', onAbort, { once: true });
+        op.abortCleanup = () => signal.removeEventListener('abort', onAbort);
+      }
+      op.unsubscribe = this.onMessageTap(['RC_CHANNELS'], (msg) => {
         if (!fromTarget(msg, target)) return;
         const channels = rcChannels(msg.fields);
         if (channels.length > 0) onChannels(channels);
       });
+      this.radioOps.add(op);
     });
   }
 
-  /** Tear down this client; in-flight waits should be owned/aborted by callers. */
+  /** Tear down this client and reject any in-flight radio capture. */
   dispose(): void {
+    if (this.disposed) return;
     this.disposed = true;
+    for (const op of [...this.radioOps]) {
+      this.settleRadio(op, () =>
+        op.reject(new CalibrationError('calibration client disposed', 'disposed')),
+      );
+    }
   }
 
   private throwIfDisposed(): void {
@@ -374,6 +398,15 @@ export class CalibrationClient implements CalibrationClientApi {
     if (target === undefined)
       throw new CalibrationError('no active calibration target', 'no-target');
     return target;
+  }
+
+  private settleRadio(op: RadioOp, done: () => void): void {
+    if (op.settled) return;
+    op.settled = true;
+    op.unsubscribe?.();
+    op.abortCleanup?.();
+    this.radioOps.delete(op);
+    done();
   }
 
   private async raceGuard<T>(p: Promise<T>, guard: Promise<never>): Promise<T> {

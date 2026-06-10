@@ -6,32 +6,36 @@
  *
  * Each tlog entry is:
  *
- *   [ u64 BIG-ENDIAN timestamp in 100 ns ticks ] [ raw MAVLink frame bytes ]
+ *   [ u64 BIG-ENDIAN timestamp in microseconds since Unix epoch ] [ raw MAVLink frame bytes ]
  *
- * The timestamp is derived from a frame's receive time in MICROSECONDS:
- * `ticks = microseconds * 10` (Mission Planner / pymavlink convention). This is
- * exactly the inverse of `parseTlog`, which reads the big-endian u64 and divides
- * by 10 to recover microseconds.
+ * Mission Planner and pymavlink store the timestamp as raw microseconds. The
+ * encoder therefore writes the receive timestamp directly after truncating it
+ * to an integer and clamping invalid clocks to zero.
  */
 
 /** Bytes of the per-entry big-endian u64 timestamp prefix. */
 export const TIMESTAMP_BYTES = 8;
 
-/** 100 ns ticks per microsecond (tlog timestamps are in 100 ns units). */
-const TICKS_PER_MICROSECOND = 10n;
-
 /** MIME type used for exported tlog blobs. */
 export const TLOG_MIME = 'application/octet-stream';
 
 /**
- * Convert a receive time in microseconds to a tlog timestamp in 100 ns ticks.
+ * Convert a receive time in microseconds to a tlog timestamp in microseconds.
  * Non-finite or negative inputs clamp to `0n` so a corrupt clock can never
  * produce an unparseable (or wildly out-of-range) entry.
  */
-export function microsToTlogTicks(rxTimeUs: number): bigint {
+export function microsToTlogTimestamp(rxTimeUs: number): bigint {
   if (!Number.isFinite(rxTimeUs) || rxTimeUs <= 0) return 0n;
-  return BigInt(Math.trunc(rxTimeUs)) * TICKS_PER_MICROSECOND;
+  return BigInt(Math.trunc(rxTimeUs));
 }
+
+/**
+ * Compatibility alias for callers that imported the old helper name. The tlog
+ * timestamp value is microseconds, not a scaled tick unit.
+ *
+ * @deprecated Use {@link microsToTlogTimestamp}.
+ */
+export const microsToTlogTicks = microsToTlogTimestamp;
 
 /**
  * Encode one tlog entry: the 8-byte big-endian timestamp prefix immediately
@@ -41,7 +45,7 @@ export function microsToTlogTicks(rxTimeUs: number): bigint {
 export function encodeTlogEntry(rxTimeUs: number, raw: Uint8Array): Uint8Array {
   const out = new Uint8Array(TIMESTAMP_BYTES + raw.byteLength);
   const view = new DataView(out.buffer);
-  view.setBigUint64(0, microsToTlogTicks(rxTimeUs), false); // false = big-endian
+  view.setBigUint64(0, microsToTlogTimestamp(rxTimeUs), false); // false = big-endian
   out.set(raw, TIMESTAMP_BYTES);
   return out;
 }

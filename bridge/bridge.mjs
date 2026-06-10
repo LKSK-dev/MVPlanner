@@ -129,13 +129,19 @@ function bridgeUdpRemote(ws, target, log) {
     if (!isBinary && typeof data === 'string') return;
     sock.send(/** @type {Buffer} */ (data), target.port, target.host);
   });
+  let sockClosed = false;
+  const closeSock = () => {
+    if (sockClosed) return;
+    sockClosed = true;
+    sock.close();
+  };
   sock.on('error', (err) => {
     log(`udp error: ${err.message}`);
-    sock.close();
+    closeSock();
     if (ws.readyState === ws.OPEN) ws.close();
   });
-  ws.on('close', () => sock.close());
-  ws.on('error', () => sock.close());
+  ws.on('close', closeSock);
+  ws.on('error', closeSock);
   log(`udp remote ready -> ${target.host}:${target.port}`);
 }
 

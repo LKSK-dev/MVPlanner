@@ -104,6 +104,39 @@ describe('removePanel', () => {
     const out = removePanel(withTab, 'C') as SplitNode;
     expect(out.children[1]).toEqual(makePanel('hud', 'B'));
   });
+
+  describe('tabs active-index shifting', () => {
+    function tabsABCD(): TabNode {
+      return {
+        type: 'tabs',
+        id: 't',
+        active: 2,
+        children: [
+          makePanel('a', 'A'),
+          makePanel('b', 'B'),
+          makePanel('c', 'C'),
+          makePanel('d', 'D'),
+        ],
+      };
+    }
+    it('keeps the same tab visible when an earlier tab is removed', () => {
+      const out = removePanel(tabsABCD(), 'A') as TabNode;
+      expect(out.children.map((c) => c.id)).toEqual(['B', 'C', 'D']);
+      expect(out.active).toBe(1); // still shows C
+      expect(out.children[out.active]?.id).toBe('C');
+    });
+    it('clamps when the active tab itself is removed', () => {
+      const out = removePanel(tabsABCD(), 'C') as TabNode;
+      expect(out.children.map((c) => c.id)).toEqual(['A', 'B', 'D']);
+      expect(out.active).toBe(2); // shows D (next neighbour)
+    });
+    it('does not shift when a later tab is removed', () => {
+      const out = removePanel(tabsABCD(), 'D') as TabNode;
+      expect(out.children.map((c) => c.id)).toEqual(['A', 'B', 'C']);
+      expect(out.active).toBe(2); // still shows C
+      expect(out.children[out.active]?.id).toBe('C');
+    });
+  });
 });
 
 describe('tab + split tweaks', () => {

@@ -170,6 +170,7 @@ export class WebSocketTransport implements Transport {
   #readableController: ReadableStreamDefaultController<Uint8Array> | undefined;
   #readableClosed = false;
   #closedByUser = false;
+  #pendingOpenReject: ((err: Error) => void) | undefined;
   #attempt = 0;
 
   #bytesIn = 0;
@@ -215,6 +216,9 @@ export class WebSocketTransport implements Transport {
     if (this.#state.kind !== 'closed') {
       return Promise.reject(new Error('websocket transport: already open'));
     }
+    if (this.#readableClosed) {
+      return Promise.reject(new Error('transport already consumed; create a new instance'));
+    }
     let cfg: WebSocketConfig;
     try {
       cfg = parseConfig(config);
@@ -226,13 +230,25 @@ export class WebSocketTransport implements Transport {
     this.#attempt = 0;
     this.#setState({ kind: 'opening' });
     return new Promise<void>((resolve, reject) => {
-      this.#startConnect(true, resolve, reject);
+      const settleReject = (err: Error): void => {
+        if (this.#pendingOpenReject === settleReject) this.#pendingOpenReject = undefined;
+        reject(err);
+      };
+      const settleResolve = (): void => {
+        if (this.#pendingOpenReject === settleReject) this.#pendingOpenReject = undefined;
+        resolve();
+      };
+      this.#pendingOpenReject = settleReject;
+      this.#startConnect(true, settleResolve, settleReject);
     });
   }
 
   /** Close the link, cancel any pending reconnect, and stop emitting state. */
   close(): Promise<void> {
     this.#closedByUser = true;
+    const pendingOpenReject = this.#pendingOpenReject;
+    this.#pendingOpenReject = undefined;
+    pendingOpenReject?.(new Error('closed by user'));
     this.#scheduler.cancel();
     const socket = this.#socket;
     this.#socket = undefined;

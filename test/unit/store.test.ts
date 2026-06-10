@@ -51,6 +51,43 @@ function makeFakeKv(): KvStore & { peek<T>(ns: string, key: string): T | undefin
   };
 }
 
+/** In-memory {@link KvStore} whose first settings write rejects without storing. */
+function makeFlakySettingsKv(): KvStore & {
+  attempts(): number;
+  peek<T>(ns: string, key: string): T | undefined;
+} {
+  const data = new Map<string, unknown>();
+  const k = (ns: string, key: string): string => `${ns}::${key}`;
+  let failSettingsWrites = 1;
+  let settingsAttempts = 0;
+  return {
+    get<T>(ns: string, key: string): Promise<T | undefined> {
+      return Promise.resolve(data.get(k(ns, key)) as T | undefined);
+    },
+    set<T>(ns: string, key: string, v: T): Promise<void> {
+      if (ns === 'app' && key === 'settings') {
+        settingsAttempts += 1;
+        if (failSettingsWrites > 0) {
+          failSettingsWrites -= 1;
+          return Promise.reject(new Error('first settings write failed'));
+        }
+      }
+      data.set(k(ns, key), v);
+      return Promise.resolve();
+    },
+    del(ns: string, key: string): Promise<void> {
+      data.delete(k(ns, key));
+      return Promise.resolve();
+    },
+    attempts(): number {
+      return settingsAttempts;
+    },
+    peek<T>(ns: string, key: string): T | undefined {
+      return data.get(k(ns, key)) as T | undefined;
+    },
+  };
+}
+
 const DEFAULT_STATE: AppState = {
   connection: { kind: 'closed' },
   vehicles: {},
@@ -261,6 +298,55 @@ describe('createAppStore — persistence', () => {
       expect(savedSettings?.theme).toBe('light');
       expect(savedLayout?.activeScreen).toBe('plan');
     });
+  });
+
+  it('retries a failed persistence write on the next store flush', async () => {
+    const kv = makeFlakySettingsKv();
+    const queueMicrotaskSpy = vi.spyOn(globalThis, 'queueMicrotask').mockImplementation((cb) => {
+      try {
+        cb();
+      } catch {
+        // Swallow the intentionally surfaced persistence error in this test.
+      }
+    });
+
+    try {
+      const store = createAppStore(undefined, kv);
+      store.patch((d) => {
+        d.settings.theme = 'light';
+      });
+
+      await vi.waitFor(() => {
+        expect(kv.attempts()).toBe(1);
+      });
+      expect(kv.peek<AppSettings>('app', 'settings')).toBeUndefined();
+
+      store.patch((d) => {
+        d.connection = { kind: 'open' };
+      });
+
+      await vi.waitFor(() => {
+        expect(kv.attempts()).toBe(2);
+        expect(kv.peek<AppSettings>('app', 'settings')?.theme).toBe('light');
+      });
+    } finally {
+      queueMicrotaskSpy.mockRestore();
+    }
+  });
+
+  it('flushes pending persistence immediately on pagehide', async () => {
+    const kv = makeFakeKv();
+    const store = createAppStore(undefined, kv);
+
+    store.patch((d) => {
+      d.settings.theme = 'field';
+    });
+    await settle();
+    expect(kv.peek<AppSettings>('app', 'settings')).toBeUndefined();
+
+    window.dispatchEvent(new Event('pagehide'));
+
+    expect(kv.peek<AppSettings>('app', 'settings')?.theme).toBe('field');
   });
 
   it('never persists the map API key in plaintext (audit P0.2)', async () => {

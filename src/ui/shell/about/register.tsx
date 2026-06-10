@@ -43,6 +43,9 @@ export function registerAbout(registry: UiRegistry, t: AboutT): () => void {
         title: t('about.title'),
         closeLabel: t('about.close'),
         className: 'mvp-floating-panel--about',
+        onClose: () => {
+          floating = undefined;
+        },
         mount: (body) => render(() => createComponent(AboutPanel, { t }), body),
       });
     },

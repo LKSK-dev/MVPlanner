@@ -108,6 +108,10 @@ interface Managed {
   loaded?: LoadedExtension;
   dispose?: DisposeRegistry;
   stopWatchdog?: () => void;
+  /** In-flight activation, memoized so overlapping activations share one runtime load. */
+  activating?: Promise<boolean>;
+  /** In-flight teardown, memoized so overlapping teardowns run exactly once. */
+  tearingDown?: Promise<void>;
 }
 
 const INDEX_KEY = 'index';
@@ -278,7 +282,9 @@ export class ExtensionHost {
    */
   async fireActivationEvent(event: ActivationEvent): Promise<ExtState[]> {
     const activated: ExtState[] = [];
-    for (const m of this.#managed.values()) {
+    // Snapshot: activations await across turns, so the live Map must not be
+    // iterated while install/uninstall may mutate it.
+    for (const m of [...this.#managed.values()]) {
       if (!m.enabled) continue;
       if (m.status === 'active' || m.status === 'error') continue;
       if (m.activationEvents.includes(event)) {
@@ -311,8 +317,20 @@ export class ExtensionHost {
 
   // --- internals -----------------------------------------------------------
 
-  /** Activate `m`; returns whether it reached the `'active'` status. */
-  async #activate(m: Managed): Promise<boolean> {
+  /**
+   * Activate `m`; returns whether it reached the `'active'` status. Overlapping
+   * calls (e.g. concurrent `activate` + `fireActivationEvent`) await the single
+   * in-flight activation instead of loading the runtime twice.
+   */
+  #activate(m: Managed): Promise<boolean> {
+    m.activating ??= this.#doActivate(m).finally((): void => {
+      delete m.activating;
+    });
+    return m.activating;
+  }
+
+  /** The actual activation; only ever one in flight per extension. */
+  async #doActivate(m: Managed): Promise<boolean> {
     if (!m.enabled) return false;
     if (m.status === 'active') return true;
     const record: ExtLoadRecord = {
@@ -358,7 +376,16 @@ export class ExtensionHost {
     }
   }
 
-  async #teardown(m: Managed, target: ExtStatus): Promise<void> {
+  /** Tear down `m`; overlapping calls await the single in-flight teardown. */
+  #teardown(m: Managed, target: ExtStatus): Promise<void> {
+    m.tearingDown ??= this.#doTeardown(m, target).finally((): void => {
+      delete m.tearingDown;
+    });
+    return m.tearingDown;
+  }
+
+  /** The actual teardown; only ever one in flight per extension. */
+  async #doTeardown(m: Managed, target: ExtStatus): Promise<void> {
     const loaded = m.loaded;
     const dispose = m.dispose;
     const stop = m.stopWatchdog;

@@ -114,15 +114,19 @@ class MockHost {
       sysid?: number;
       compid?: number;
       burstComplete?: number;
+      seq?: number;
+      reqOpcode?: number;
     } = {},
   ): void {
+    const request = this.sent.find((s) => s.seq === requestSeq);
     const payload = encodePayload({
-      seq: (requestSeq + 1) & 0xffff,
-      session: opts.session ?? 0,
+      seq: opts.seq ?? (requestSeq + 1) & 0xffff,
+      session: opts.session ?? request?.session ?? 0,
       opcode,
       offset: opts.offset ?? 0,
       data: opts.data ?? new Uint8Array(0),
     });
+    payload[5] = opts.reqOpcode ?? request?.opcode ?? 0;
     payload[6] = opts.burstComplete ?? 0;
     this.cb?.({
       sysid: opts.sysid ?? TARGET.system,
@@ -282,6 +286,75 @@ describe('FtpClient.read', () => {
     host.ackLast({ session: 7 });
 
     await expect(pr).resolves.toEqual(new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]));
+  });
+
+  it('accepts incrementing burst-read sequences and advances past the highest reply', async () => {
+    const { host, client } = setup({ chunkSize: 4 });
+    const pr = client.read('incrementing.bin');
+
+    await tick();
+    host.ackLast({ session: 9, data: new Uint8Array([8, 0, 0, 0]) });
+
+    await tick();
+    expect(host.last).toMatchObject({ opcode: FtpOpcode.BurstReadFile, session: 9, offset: 0 });
+    const burstSeq = host.last.seq;
+    host.reply(burstSeq, FtpOpcode.Ack, {
+      session: 9,
+      offset: 0,
+      data: new Uint8Array([1, 2, 3, 4]),
+      seq: (burstSeq + 1) & 0xffff,
+    });
+    host.reply(burstSeq, FtpOpcode.Ack, {
+      session: 9,
+      offset: 4,
+      data: new Uint8Array([5, 6, 7, 8]),
+      seq: (burstSeq + 2) & 0xffff,
+      burstComplete: 1,
+    });
+
+    await tick();
+    expect(host.last).toMatchObject({ opcode: FtpOpcode.TerminateSession, session: 9 });
+    expect(host.last.seq).toBe((burstSeq + 3) & 0xffff);
+    host.ackLast({ session: 9 });
+
+    await expect(pr).resolves.toEqual(new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]));
+  });
+
+  it('ignores a stale burst reply that shares the next transaction sequence', async () => {
+    const { host, client } = setup({ chunkSize: 4 });
+    const first = client.read('first.bin');
+
+    await tick();
+    host.ackLast({ session: 10, data: new Uint8Array([4, 0, 0, 0]) });
+    await tick();
+    host.reply(host.last.seq, FtpOpcode.Ack, {
+      session: 10,
+      offset: 0,
+      data: new Uint8Array([1, 2, 3, 4]),
+      burstComplete: 1,
+    });
+    await tick();
+    host.ackLast({ session: 10 });
+    await expect(first).resolves.toEqual(new Uint8Array([1, 2, 3, 4]));
+
+    const second = client.read('second.bin');
+    await tick();
+    const openSeq = host.last.seq;
+    host.reply(openSeq, FtpOpcode.Ack, {
+      session: 10,
+      reqOpcode: FtpOpcode.BurstReadFile,
+      seq: (openSeq + 1) & 0xffff,
+      data: new Uint8Array([9, 9, 9, 9]),
+    });
+    await tick();
+    expect(host.last.seq).toBe(openSeq);
+
+    host.ackLast({ session: 11, data: new Uint8Array([0, 0, 0, 0]) });
+    await tick();
+    host.nakLast(FtpNak.EndOfFile, { session: 11 });
+    await tick();
+    host.ackLast({ session: 11 });
+    await expect(second).resolves.toEqual(new Uint8Array([]));
   });
 
   it('re-requests a burst-read gap before appending', async () => {

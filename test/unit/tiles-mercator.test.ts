@@ -90,6 +90,14 @@ describe('viewport math', () => {
     expect(ll.lon).toBeCloseTo(-122.4194, 6);
   });
 
+  it('projects across the antimeridian using the nearest wrapped world', () => {
+    const anti: Viewport = { lat: 0, lon: 179.9, zoom: 4, width: 512, height: 512 };
+    const [sx, sy] = projectToScreen(0, -179.9, anti);
+    expect(sx).toBeGreaterThan(256);
+    expect(sx).toBeLessThan(260);
+    expect(sy).toBeCloseTo(256, 6);
+  });
+
   it('picks a clamped integer tile zoom', () => {
     expect(tileZoomFor(4.2, 0, 19)).toBe(4);
     expect(tileZoomFor(4.6, 0, 19)).toBe(5);
@@ -114,6 +122,14 @@ describe('viewport math', () => {
     const polar: Viewport = { lat: 85, lon: 0, zoom: 1, width: 1024, height: 1024 };
     const tiles = visibleTiles(polar, 1);
     expect(tiles.every((t) => t.y >= 0 && t.y < 2)).toBe(true);
+  });
+
+  it('does not emit duplicate wrapped columns when the viewport spans more than one world', () => {
+    const wide: Viewport = { lat: 0, lon: 0, zoom: 0, width: 1024, height: 256 };
+    const tiles = visibleTiles(wide, 0);
+    const keys = new Set(tiles.map((t) => `${t.z}/${t.x}/${t.y}`));
+    expect(keys.size).toBe(tiles.length);
+    expect(tiles).toEqual([{ z: 0, x: 0, y: 0 }]);
   });
 
   it('places a tile rectangle at the canvas centre when it is the centre tile', () => {

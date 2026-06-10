@@ -200,7 +200,7 @@ function telemetryMessagesForCycle(cycle: number, timeBootMs: number): readonly 
 function tlogEntry(timeUs: bigint, frame: Uint8Array): Uint8Array<ArrayBuffer> {
   const out = new Uint8Array(8 + frame.byteLength);
   const view = new DataView(out.buffer);
-  view.setBigUint64(0, timeUs * 10n, false);
+  view.setBigUint64(0, timeUs, false);
   out.set(frame, 8);
   return out;
 }

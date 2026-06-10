@@ -43,7 +43,7 @@ import {
   type RasterMapEngine,
 } from '../../widgets/map';
 import { createMapTools, measureFormatters, type MapTools, type MapToolsOptions } from '../../widgets/map/tools';
-import { unitFormatterFor } from '../../../core/units';
+import { resolveUnits, unitFormatterFor } from '../../../core/units';
 import {
   commandHasPosition,
   haversineMeters,
@@ -264,12 +264,16 @@ export const PlanScreen: Component<PlanScreenProps> = (props) => {
     getMode: () => toolMode(),
   });
 
-  // Reactive unit formatter from the app store (when supplied) so the Measure
-  // readout honours the selected units live; without a store it stays metric.
+  // Reactive settings selector (when a store is supplied): `store.select`
+  // tracks updates, so the Measure readout honours the selected units live;
+  // without a store everything stays metric.
+  const settingsSel = planStore !== undefined ? planStore.select((s) => s.settings) : undefined;
   const unitFmt =
-    planStore !== undefined
-      ? createMemo(() => unitFormatterFor(planStore.get().settings))
-      : undefined;
+    settingsSel !== undefined ? createMemo(() => unitFormatterFor(settingsSel())) : undefined;
+  // Map scale-bar unit system ('metric' | 'imperial'); metric without a store.
+  const mapUnits = createMemo(() =>
+    settingsSel !== undefined ? resolveUnits(settingsSel()).system : 'metric',
+  );
   const toolsOptions: MapToolsOptions = {
     t,
     ...(unitFmt !== undefined
@@ -535,7 +539,7 @@ export const PlanScreen: Component<PlanScreenProps> = (props) => {
         <ToolRail mode={toolMode} onMode={setToolMode} onImport={openFile} t={t} />
 
         <div class="mvp-plan__map" ref={mapContainer} aria-label={t('plan.screen.map.label')}>
-          <MapWidget engine={engine} t={t} />
+          <MapWidget engine={engine} t={t} units={mapUnits()} />
           <p class="mvp-plan__hint" data-testid="plan-hint">
             {t(hintKey())}
           </p>

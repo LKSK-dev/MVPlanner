@@ -291,6 +291,8 @@ export class WebRtcTransport implements Transport {
   #readableController: ReadableStreamDefaultController<Uint8Array> | undefined;
   #readableClosed = false;
   #closedByUser = false;
+  #closeEpoch = 0;
+  #pendingChannelOpenReject: ((err: Error) => void) | undefined;
   #reconnectAttempt = 0;
 
   #bytesIn = 0;
@@ -325,6 +327,9 @@ export class WebRtcTransport implements Transport {
     if (this.#state.kind !== 'closed') {
       throw new Error('webrtc transport: already open');
     }
+    if (this.#readableClosed) {
+      throw new Error('transport already consumed; create a new instance');
+    }
     const factory = this.#peerConnectionFactory;
     if (factory === undefined) {
       throw new Error('webrtc transport: RTCPeerConnection is not supported in this environment');
@@ -338,6 +343,7 @@ export class WebRtcTransport implements Transport {
     }
 
     this.#closedByUser = false;
+    const closeEpoch = this.#closeEpoch;
     this.#reconnectAttempt = 0;
     this.#setState({ kind: 'opening' });
 
@@ -360,24 +366,32 @@ export class WebRtcTransport implements Transport {
       this.#channel = channel;
       channel.binaryType = 'arraybuffer';
       channelOpened = this.#wireChannel(channel);
+      channelOpened.catch(() => undefined);
 
       const offer = await peer.createOffer();
+      this.#throwIfClosedDuringOpen(closeEpoch);
       await peer.setLocalDescription(offer);
+      this.#throwIfClosedDuringOpen(closeEpoch);
       await waitForIceGatheringComplete(
         peer,
         cfg.iceGatheringTimeoutMs ?? DEFAULT_ICE_GATHERING_TIMEOUT_MS,
       );
+      this.#throwIfClosedDuringOpen(closeEpoch);
       const answer = await cfg.signaling.exchangeOffer({
         offer: peer.localDescription ?? offer,
         iceCandidates,
       });
+      this.#throwIfClosedDuringOpen(closeEpoch);
       await peer.setRemoteDescription(answer.answer);
+      this.#throwIfClosedDuringOpen(closeEpoch);
       const remoteCandidates = answer.iceCandidates ?? [];
       for (const candidate of remoteCandidates) {
         await peer.addIceCandidate(candidate);
+        this.#throwIfClosedDuringOpen(closeEpoch);
       }
 
       await channelOpened;
+      this.#throwIfClosedDuringOpen(closeEpoch);
     } catch (err) {
       this.#teardownPeer();
       this.#setState({ kind: 'closed' });
@@ -388,6 +402,7 @@ export class WebRtcTransport implements Transport {
   /** Close the channel, peer connection, optional signaling client, and readable stream. */
   async close(): Promise<void> {
     this.#closedByUser = true;
+    this.#closeEpoch += 1;
     const signaling = this.#signaling;
     this.#teardownPeer();
     this.#closeReadable();
@@ -426,9 +441,21 @@ export class WebRtcTransport implements Transport {
   #wireChannel(channel: WebRtcDataChannelLike): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       let settled = false;
+      const rejectChannelOpen = (err: Error): void => {
+        if (settled) return;
+        settled = true;
+        if (this.#pendingChannelOpenReject === rejectChannelOpen) {
+          this.#pendingChannelOpenReject = undefined;
+        }
+        reject(err);
+      };
+      this.#pendingChannelOpenReject = rejectChannelOpen;
       channel.onopen = (): void => {
         if (settled) return;
         settled = true;
+        if (this.#pendingChannelOpenReject === rejectChannelOpen) {
+          this.#pendingChannelOpenReject = undefined;
+        }
         this.#reconnectAttempt = 0;
         this.#setState({ kind: 'open' });
         resolve();
@@ -439,10 +466,7 @@ export class WebRtcTransport implements Transport {
       channel.onerror = (): void => {
         const err = new Error('webrtc transport: data channel error');
         if (!this.#closedByUser) this.#setState({ kind: 'error', message: err.message });
-        if (!settled) {
-          settled = true;
-          reject(err);
-        }
+        rejectChannelOpen(err);
       };
       channel.onclose = (): void => {
         if (this.#closedByUser) {
@@ -450,8 +474,7 @@ export class WebRtcTransport implements Transport {
           return;
         }
         if (!settled) {
-          settled = true;
-          reject(new Error('webrtc transport: data channel closed before opening'));
+          rejectChannelOpen(new Error('webrtc transport: data channel closed before opening'));
           return;
         }
         this.#emitReconnecting();
@@ -516,8 +539,18 @@ export class WebRtcTransport implements Transport {
     this.#bytesOut += chunk.byteLength;
   }
 
+  /** Reject an in-flight open when a user close interleaves with async setup. */
+  #throwIfClosedDuringOpen(closeEpoch: number): void {
+    if (this.#closedByUser || this.#closeEpoch !== closeEpoch) {
+      throw new Error('closed by user');
+    }
+  }
+
   /** Detach and close channel/peer resources without closing the readable stream. */
   #teardownPeer(): void {
+    const pendingChannelOpenReject = this.#pendingChannelOpenReject;
+    this.#pendingChannelOpenReject = undefined;
+    pendingChannelOpenReject?.(new Error('closed by user'));
     const channel = this.#channel;
     this.#channel = undefined;
     if (channel !== undefined) {

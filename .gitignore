@@ -1,6 +1,9 @@
 # Planning & internal design docs (not shipped)
 /plan/
 
+# Internal audit reports (not shipped)
+/audit-reports/
+
 # Dependencies
 node_modules/
 .pnp/

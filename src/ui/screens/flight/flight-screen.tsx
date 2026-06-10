@@ -208,12 +208,17 @@ export const FlightScreen: Component<FlightScreenProps> = (props) => {
     engine.addLayer(createVehicleLayer(vehicleOverlay)),
     engine.addLayer(adsbLayer),
   ];
-  // Reactive unit formatter from the app store so the Measure readout honours
-  // the selected units live (e.g. feet/miles under an imperial preset).
-  const unitFmt = createMemo(() => unitFormatterFor(props.store.get().settings));
+  // Reactive settings selector: `store.select` tracks updates (store.get() is
+  // non-reactive and would freeze the units at mount).
+  const settingsSel = props.store.select((s) => s.settings);
+  // Reactive unit formatter so the Measure readout honours the selected units
+  // live (e.g. feet/miles under an imperial preset).
+  const unitFmt = createMemo(() => unitFormatterFor(settingsSel()));
   // Per-quantity unit hook for the instrument gauges/HUD so they honor the
   // selected unit system + per-quantity overrides (not hard-wired metric).
-  const gaugeUnits = createMemo(() => unitsFromResolved(resolveUnits(props.store.get().settings)));
+  const gaugeUnits = createMemo(() => unitsFromResolved(resolveUnits(settingsSel())));
+  // Map scale-bar unit system ('metric' | 'imperial') from the same settings.
+  const mapUnits = createMemo(() => resolveUnits(settingsSel()).system);
   const tools: MapTools = createMapTools(engine, {
     t,
     formatLength: (m) => measureFormatters(unitFmt()).formatLength(m),
@@ -337,7 +342,7 @@ export const FlightScreen: Component<FlightScreenProps> = (props) => {
     >
       <div class="mvp-flight__stage">
         <div class="mvp-flight__map" aria-label={t('flight.map.label')}>
-          <MapWidget engine={engine} t={t} />
+          <MapWidget engine={engine} t={t} units={mapUnits()} />
 
           <div class="mvp-flight__map-toolbar" role="toolbar" aria-label={t('flight.tool.label')}>
             <label class="mvp-flight__field">
@@ -415,6 +420,7 @@ export const FlightScreen: Component<FlightScreenProps> = (props) => {
           <Hud
             vehicle={activeVehicle}
             statusText={latestStatusText}
+            units={gaugeUnits()}
             t={t}
             {...(props.now !== undefined ? { now: props.now } : {})}
           />

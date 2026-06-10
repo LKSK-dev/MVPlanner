@@ -47,14 +47,14 @@ function v1Frame(payloadLen: number): Uint8Array {
   return f;
 }
 
-/** Assemble a tlog from `[ticks, frame]` entries (u64 BE ticks + raw frame). */
-function buildTlog(entries: ReadonlyArray<{ ticks: bigint; frame: Uint8Array }>): Uint8Array {
+/** Assemble a tlog from timestamped frame entries (u64 BE microseconds + raw frame). */
+function buildTlog(entries: ReadonlyArray<{ timestampUs: bigint; frame: Uint8Array }>): Uint8Array {
   const total = entries.reduce((n, e) => n + 8 + e.frame.length, 0);
   const out = new Uint8Array(total);
   const view = new DataView(out.buffer);
   let pos = 0;
   for (const e of entries) {
-    view.setBigUint64(pos, e.ticks, false);
+    view.setBigUint64(pos, e.timestampUs, false);
     pos += 8;
     out.set(e.frame, pos);
     pos += e.frame.length;
@@ -62,10 +62,10 @@ function buildTlog(entries: ReadonlyArray<{ ticks: bigint; frame: Uint8Array }>)
   return out;
 }
 
-/** A 5-second, two-frame tlog (ticks are 100 ns; 10 ticks = 1 µs). */
+/** A 5-second, two-frame tlog. */
 const TLOG_5S = buildTlog([
-  { ticks: 0n, frame: v1Frame(4) },
-  { ticks: 50_000_000n, frame: v1Frame(4) },
+  { timestampUs: 0n, frame: v1Frame(4) },
+  { timestampUs: 5_000_000n, frame: v1Frame(4) },
 ]);
 
 function makeTransport(): {

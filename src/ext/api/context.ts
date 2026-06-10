@@ -238,14 +238,20 @@ export function assembleExtContext(deps: AssembleExtContextDeps): ExtContext {
       ...(granted.has('mavlink:send')
         ? {
             send: (name, fields, o): void => {
-              void call('mavlink.send', [name, fields, o]);
+              // Frozen contract returns void; observe the rejection so a
+              // declined confirm / broker error never escapes unhandled.
+              void call('mavlink.send', [name, fields, o]).catch((err: unknown): void => {
+                log.error('mavlink.send failed', err);
+              });
             },
           }
         : {}),
       ...(granted.has('dialect')
         ? {
             loadDialect: (xmlOrJson): void => {
-              void call('mavlink.loadDialect', [xmlOrJson]);
+              void call('mavlink.loadDialect', [xmlOrJson]).catch((err: unknown): void => {
+                log.error('mavlink.loadDialect failed', err);
+              });
             },
           }
         : {}),

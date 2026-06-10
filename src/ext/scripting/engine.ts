@@ -141,13 +141,17 @@ export async function runScript(deps: RunScriptDeps): Promise<ScriptRunResult> {
 
   // Race the user promise against the timeout / abort guard.
   let timer: ReturnType<typeof setTimeout> | undefined;
+  let onAbort: (() => void) | undefined;
   const guard = new Promise<typeof TIMED_OUT>((resolve) => {
     const { signal } = deps;
     if (signal?.aborted) {
       resolve(TIMED_OUT);
       return;
     }
-    if (signal) signal.addEventListener('abort', () => resolve(TIMED_OUT), { once: true });
+    if (signal) {
+      onAbort = (): void => resolve(TIMED_OUT);
+      signal.addEventListener('abort', onAbort, { once: true });
+    }
     if (timeoutMs > 0) timer = setTimeout(() => resolve(TIMED_OUT), timeoutMs);
   });
 
@@ -188,5 +192,8 @@ export async function runScript(deps: RunScriptDeps): Promise<ScriptRunResult> {
     });
   } finally {
     if (timer !== undefined) clearTimeout(timer);
+    // Remove the named abort listener so long-lived signals don't accumulate
+    // one leaked listener per run.
+    if (onAbort !== undefined) deps.signal?.removeEventListener('abort', onAbort);
   }
 }

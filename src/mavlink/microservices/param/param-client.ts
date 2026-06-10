@@ -108,6 +108,11 @@ function num(fields: Record<string, FieldValue>, key: string): number | undefine
   return undefined;
 }
 
+/** Whether `msg` belongs to `target` for parameter protocol state/cache updates. */
+function fromTarget(msg: DecodedMessage, target: ParamTarget): boolean {
+  return msg.sysid === target.sysid && msg.compid === target.compid;
+}
+
 /** Trim a MAVLink `char[16]` `param_id` to its NUL-terminated string value. */
 function trimParamId(s: string): string {
   const clamped = s.length > PARAM_ID_LEN ? s.slice(0, PARAM_ID_LEN) : s;
@@ -328,6 +333,7 @@ export class ParamClient implements ParamClientApi {
 
   /** Request a single parameter by `index` via `PARAM_REQUEST_READ`. */
   private sendRequestRead(target: ParamTarget, index: number): void {
+    if (index > 0x7fff) return;
     this.emit('PARAM_REQUEST_READ', {
       target_system: target.sysid,
       target_component: target.compid,
@@ -382,16 +388,30 @@ export class ParamClient implements ParamClientApi {
     const index = num(msg.fields, 'param_index');
     const count = num(msg.fields, 'param_count');
 
-    const prev = this.cache.get(name);
     const param: Param = { name, value, type };
+    const matchingFetches = [...this.fetches].filter((op) => fromTarget(msg, op.target));
+    const activeTargets = [
+      ...[...this.fetches].map((op) => op.target),
+      ...[...this.sets.values()].map((op) => op.target),
+    ];
+    const pending = this.sets.get(name);
+    const pendingSet =
+      pending !== undefined && fromTarget(msg, pending.target) ? pending : undefined;
+    const currentTarget = this.getTarget();
+    const matchesAllowedTarget =
+      activeTargets.length > 0
+        ? activeTargets.some((target) => fromTarget(msg, target))
+        : currentTarget !== undefined && fromTarget(msg, currentTarget);
+    if (matchingFetches.length === 0 && pendingSet === undefined && !matchesAllowedTarget) return;
+
+    const prev = this.cache.get(name);
     this.cache.set(name, param);
 
     // Snapshot BEFORE recording: a value that completes a fetch removes that
     // fetch mid-handler, so we must not then treat it as a spontaneous change.
-    const consumedByFetch = this.fetches.size > 0;
-    for (const op of [...this.fetches]) this.recordFetch(op, param, index, count);
+    const consumedByFetch = matchingFetches.length > 0;
+    for (const op of matchingFetches) this.recordFetch(op, param, index, count);
 
-    const pendingSet = this.sets.get(name);
     if (pendingSet !== undefined && this.valuesMatch(pendingSet.value, value)) {
       this.settleSet(pendingSet, () => {
         pendingSet.resolve();

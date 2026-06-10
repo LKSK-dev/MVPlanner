@@ -247,6 +247,19 @@ describe('WebSocketTransport', () => {
     expect(created.length).toBe(before);
   });
 
+  it('close() during initial open rejects the pending open promise', async () => {
+    const { transport, states } = setup();
+    const pendingOpen = transport.open({ url: URL });
+    const rejection = expect(pendingOpen).rejects.toThrow('closed by user');
+    const ws = created[created.length - 1]!;
+
+    await transport.close();
+
+    expect(ws.closed).toBe(true);
+    expect(states[states.length - 1]).toEqual({ kind: 'closed' });
+    await rejection;
+  });
+
   it('close() while connected closes the underlying socket', async () => {
     const { transport, states } = setup();
     const ws = await openTransport(transport);
@@ -264,6 +277,16 @@ describe('WebSocketTransport', () => {
     // Double-close is a no-op and must not throw on the already-closed stream.
     await expect(transport.close()).resolves.toBeUndefined();
     reader.releaseLock();
+  });
+
+  it('rejects reopen after close because the readable is single-use', async () => {
+    const { transport } = setup();
+    await openTransport(transport);
+    await transport.close();
+
+    await expect(transport.open({ url: URL })).rejects.toThrow(
+      'transport already consumed; create a new instance',
+    );
   });
 
   it('rejects open() when the initial connect closes before opening', async () => {

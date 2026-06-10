@@ -90,26 +90,47 @@ export function createAppStore(initial?: Partial<AppState>, persist?: KvStore): 
     let persistTimer: ReturnType<typeof setTimeout> | undefined;
     let lastPersistKey = persistKey(initialState);
 
-    const schedulePersistIfChanged = (): void => {
+    const writePersistSnapshot = (snap: AppState): void => {
       if (!persist) return;
       const kv = persist;
+      const settings = snapshot(persistableSettings(snap.settings));
+      const layout = snapshot(snap.layout);
+      const writtenKey = JSON.stringify({ settings, layout });
+      void Promise.all([
+        kv.set<AppSettings>(PERSIST_NS, KEY_SETTINGS, settings),
+        kv.set<LayoutState>(PERSIST_NS, KEY_LAYOUT, layout),
+      ])
+        .then(() => {
+          lastPersistKey = writtenKey;
+        })
+        .catch(reportPersistError);
+    };
+
+    const persistNowIfChanged = (): void => {
+      if (!persist) return;
       const snap = unwrap(state);
       const key = persistKey(snap);
       if (key === lastPersistKey) return; // settings/layout unchanged
-      lastPersistKey = key;
+      writePersistSnapshot(snap);
+    };
+
+    const schedulePersistIfChanged = (): void => {
+      if (!persist) return;
+      const key = persistKey(unwrap(state));
+      if (key === lastPersistKey) return; // settings/layout unchanged
       if (persistTimer !== undefined) clearTimeout(persistTimer);
       persistTimer = setTimeout(() => {
         persistTimer = undefined;
-        const latest = unwrap(state);
-        void Promise.all([
-          kv.set<AppSettings>(
-            PERSIST_NS,
-            KEY_SETTINGS,
-            snapshot(persistableSettings(latest.settings)),
-          ),
-          kv.set<LayoutState>(PERSIST_NS, KEY_LAYOUT, snapshot(latest.layout)),
-        ]).catch(reportPersistError);
+        persistNowIfChanged();
       }, PERSIST_DEBOUNCE_MS);
+    };
+
+    const flushPersistNow = (): void => {
+      if (persistTimer !== undefined) {
+        clearTimeout(persistTimer);
+        persistTimer = undefined;
+      }
+      persistNowIfChanged();
     };
 
     // --- coalesced writes -------------------------------------------------
@@ -139,6 +160,19 @@ export function createAppStore(initial?: Partial<AppState>, persist?: KvStore): 
         queueMicrotask(flush);
       }
     };
+
+    if (persist && typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+      const flushOnPageExit = (): void => {
+        flush();
+        flushPersistNow();
+      };
+      window.addEventListener('pagehide', flushOnPageExit);
+      window.addEventListener('visibilitychange', () => {
+        if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+          flushOnPageExit();
+        }
+      });
+    }
 
     // --- reads ------------------------------------------------------------
     /** Non-reactive view of the current state; use {@link select} for reactivity. */

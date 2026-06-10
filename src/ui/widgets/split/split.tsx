@@ -11,7 +11,7 @@
  * The splitter measures its parent element to convert a pointer delta (CSS px)
  * into an fr ratio, so it adapts to whatever container it is dropped into.
  */
-import { type Component } from 'solid-js';
+import { onCleanup, type Component } from 'solid-js';
 import { nextSplitRatio } from './resize';
 import './split.css';
 
@@ -51,6 +51,10 @@ export const ResizableSplit: Component<ResizableSplitProps> = (props) => {
 
   let handle!: HTMLDivElement;
 
+  /** Tears down the window listeners of the in-flight drag (if any). */
+  let endActiveDrag: (() => void) | undefined;
+  onCleanup(() => endActiveDrag?.());
+
   /** Flexible extent (CSS px) of the parent along the split axis. */
   const totalPx = (): number => {
     const parent = handle.parentElement;
@@ -76,9 +80,14 @@ export const ResizableSplit: Component<ResizableSplitProps> = (props) => {
       handle.releasePointerCapture?.(pointerId);
       window.removeEventListener('pointermove', move);
       window.removeEventListener('pointerup', up);
+      window.removeEventListener('pointercancel', up);
+      endActiveDrag = undefined;
     };
+    endActiveDrag?.();
+    endActiveDrag = up;
     window.addEventListener('pointermove', move);
     window.addEventListener('pointerup', up);
+    window.addEventListener('pointercancel', up);
   };
 
   const onKeyDown = (e: KeyboardEvent): void => {

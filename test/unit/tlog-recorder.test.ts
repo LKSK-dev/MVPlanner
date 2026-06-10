@@ -1,7 +1,7 @@
 /**
  * tlog recorder tests (task T2.10; spec plan/07 §7.4, plan/02 §2.6).
  *
- * Covers the wire format (u64 BE 100 ns ticks), append order, start/stop +
+ * Covers the wire format (u64 BE microseconds), append order, start/stop +
  * frameCount/size/duration, chunked persistence into a real {@link BlobStore}
  * (fake-indexeddb), `export()` as a single blob, auto-start-on-connect, and — the
  * critical guarantee — the record→export→`parseTlog` ROUND-TRIP, asserting the
@@ -14,11 +14,11 @@ import { parseTlog } from '../../src/transport/replay';
 import {
   TlogRecorder,
   encodeTlogEntry,
-  microsToTlogTicks,
   type ConnStateLike,
   type RawFrameLike,
   type RawFrameSource,
 } from '../../src/data/tlog';
+import { microsToTlogTimestamp } from '../../src/data/tlog/encoder';
 
 let uid = 0;
 /** Unique DB name per call so tests do not share IndexedDB state. */
@@ -83,25 +83,25 @@ function makeV2(payloadLen: number, signed: boolean, seed: number): Uint8Array {
 }
 
 describe('tlog encoder', () => {
-  it('converts microseconds to 100 ns ticks (×10), clamping bad clocks to 0', () => {
-    expect(microsToTlogTicks(0)).toBe(0n);
-    expect(microsToTlogTicks(1)).toBe(10n);
-    expect(microsToTlogTicks(123_456)).toBe(1_234_560n);
-    expect(microsToTlogTicks(-5)).toBe(0n);
-    expect(microsToTlogTicks(Number.NaN)).toBe(0n);
-    expect(microsToTlogTicks(Number.POSITIVE_INFINITY)).toBe(0n);
+  it('converts microseconds to tlog timestamps, clamping bad clocks to 0', () => {
+    expect(microsToTlogTimestamp(0)).toBe(0n);
+    expect(microsToTlogTimestamp(1)).toBe(1n);
+    expect(microsToTlogTimestamp(123_456)).toBe(123_456n);
+    expect(microsToTlogTimestamp(-5)).toBe(0n);
+    expect(microsToTlogTimestamp(Number.NaN)).toBe(0n);
+    expect(microsToTlogTimestamp(Number.POSITIVE_INFINITY)).toBe(0n);
   });
 
   it('writes a big-endian u64 timestamp prefix followed by the raw frame', () => {
     const raw = makeV1(3, 7);
-    const entry = encodeTlogEntry(200, raw); // 200 us → 2000 ticks
+    const entry = encodeTlogEntry(200, raw);
     expect(entry.byteLength).toBe(8 + raw.byteLength);
 
     const view = new DataView(entry.buffer, entry.byteOffset, entry.byteLength);
-    expect(view.getBigUint64(0, false)).toBe(2000n); // big-endian
-    // High bytes are leading (BE): 2000 = 0x07D0.
-    expect(entry[6]).toBe(0x07);
-    expect(entry[7]).toBe(0xd0);
+    expect(view.getBigUint64(0, false)).toBe(200n); // big-endian
+    // High bytes are leading (BE): 200 = 0x00C8.
+    expect(entry[6]).toBe(0x00);
+    expect(entry[7]).toBe(0xc8);
     expect(entry.subarray(8)).toEqual(raw);
   });
 });
@@ -280,16 +280,16 @@ describe('TlogRecorder ↔ parseTlog round-trip', () => {
     expect(parsed).toHaveLength(inputs.length);
 
     const baseUs = inputs[0]!.rxTimeUs;
-    const baseTicks = microsToTlogTicks(baseUs);
+    const baseTimestamp = microsToTlogTimestamp(baseUs);
     for (let i = 0; i < inputs.length; i++) {
       const want = inputs[i]!;
       const got = parsed[i]!;
       // Exact frame bytes preserved in order.
       expect(got.bytes).toEqual(want.raw);
-      // Absolute ticks = rxTimeUs × 10.
-      expect(got.timeTicks).toBe(microsToTlogTicks(want.rxTimeUs));
+      // Absolute tlog timestamp is rxTimeUs.
+      expect(got.timeTicks).toBe(microsToTlogTimestamp(want.rxTimeUs));
       // parseTlog's relative timeUs == delta from the first frame.
-      const expectedRelUs = Number((microsToTlogTicks(want.rxTimeUs) - baseTicks) / 10n);
+      const expectedRelUs = Number(microsToTlogTimestamp(want.rxTimeUs) - baseTimestamp);
       expect(got.timeUs).toBe(expectedRelUs);
       expect(got.timeUs).toBe(want.rxTimeUs - baseUs);
     }

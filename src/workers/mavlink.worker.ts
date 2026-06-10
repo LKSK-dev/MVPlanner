@@ -71,10 +71,10 @@ rpc.handle<IngestBytesRequest, void>(RPC_INGEST_BYTES, (bytes) => {
   return Promise.resolve();
 });
 
-rpc.handle<SendMessageRequest, void>(RPC_SEND_MESSAGE, (req) => {
+rpc.handle<SendMessageRequest, void>(RPC_SEND_MESSAGE, async (req) => {
+  if (outgoingSend === null) throw new Error('MAVLink outgoing stream is not attached');
   const frame = session.encodeMessage(req.name, req.fields);
-  outgoingSend?.(frame);
-  return Promise.resolve();
+  outgoingSend(frame);
 });
 
 rpc.handle<void, void>(RPC_RESET, () => {

@@ -573,3 +573,39 @@ describe('FlightScreen — shell registration', () => {
     expect(container.querySelector('.mvp-screen__hint')).toBeNull();
   });
 });
+
+describe('FlightScreen — live units propagation (settings.units)', () => {
+  it('flipping settings.units to imperial updates the HUD/gauge unit strings live', async () => {
+    const h = makeHarness();
+    const c = mount(h);
+    h.store.patch((s) => {
+      s.vehicles[1] = makeVehicle({
+        position: { lat: 1, lon: 2, altRelM: 12, altAmslM: 112 },
+        velocity: { groundMs: 5, climbMs: 1 },
+      });
+      s.activeSysid = 1;
+    });
+    await settle();
+
+    // Metric baseline: the HUD a11y summary reads metres.
+    expect(c.querySelector('.mvp-hud__a11y')?.textContent).toContain('12.0 m');
+    // …and the gauge value-cards carry the metric unit symbol.
+    const gauges = (): string => c.querySelector('.mvp-gauges')?.textContent ?? '';
+    expect(gauges()).toContain(t('gauges.unit.m'));
+
+    // Flip the unit system in the store (the Settings screen path).
+    h.store.patch((s) => {
+      s.settings.units = 'imperial';
+    });
+    await settle();
+
+    // HUD a11y altitude switches to feet (12 m → 39.4 ft).
+    expect(c.querySelector('.mvp-hud__a11y')?.textContent).toContain('39.4 ft');
+    // Gauges show the imperial unit-symbol keys (ft, mph).
+    expect(gauges()).toContain(t('gauges.unit.ft'));
+    expect(gauges()).toContain(t('gauges.unit.mph'));
+    // The map scale bar follows the imperial system too (ft or mi).
+    const scale = c.querySelector('.mvp-map__scale-label')?.textContent ?? '';
+    expect(scale).toMatch(/\b(ft|mi)\b/);
+  });
+});

@@ -134,6 +134,21 @@ function setup(extra: Partial<ConstructorParameters<typeof ParamClient>[0]> = {}
 // ---------------------------------------------------------------------------
 
 describe('ParamClient — fetchAll (happy path)', () => {
+  it('ignores PARAM_VALUE messages from foreign systems', async () => {
+    const { host, client } = setup();
+    const changes: Param[] = [];
+    client.onChange((p) => changes.push(p));
+
+    const pr = client.fetchAll();
+    host.emitValue({ paramId: 'FOREIGN', value: 99, index: 0, count: 1, sysid: 2 });
+    expect(client.get('FOREIGN')).toBeUndefined();
+
+    host.emitValue({ paramId: 'LOCAL', value: 7, index: 0, count: 1 });
+    await expect(pr).resolves.toEqual([{ name: 'LOCAL', value: 7, type: 9 }]);
+    expect(client.get('FOREIGN')).toBeUndefined();
+    expect(changes).toHaveLength(0);
+  });
+
   it('requests the list and resolves the full set with progress, ordered by index', async () => {
     const { host, client } = setup();
     const progress: Array<[number, number]> = [];

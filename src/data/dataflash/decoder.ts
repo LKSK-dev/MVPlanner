@@ -79,7 +79,6 @@ export class DataFlashDecoder {
       }
 
       if (header > pos) {
-        this.streamOffset += header - pos;
         pos = header;
       }
 

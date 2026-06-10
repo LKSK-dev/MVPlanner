@@ -30,6 +30,7 @@ import {
   type Component,
 } from 'solid-js';
 import { t as defaultT } from '../../../core/i18n';
+import { resolveUnits } from '../../../core/units';
 import type { AppState, BlobStore, FileIo, Store } from '../../../contracts';
 import type { RecentsStore } from '../../../core/recents';
 import type { LogQueryIndex } from '../../../data/log-query';
@@ -284,6 +285,11 @@ export const LogsScreen: Component<LogsScreenProps> = (props) => {
       engine.setBasemap(basemapFromSettings(mapSource()));
     });
   }
+  // Reactive map scale-bar unit system; metric when no app store is supplied.
+  const logSettings = logStore !== undefined ? logStore.select((s) => s.settings) : undefined;
+  const mapUnits = createMemo(() =>
+    logSettings !== undefined ? resolveUnits(logSettings()).system : 'metric',
+  );
   const layerDisposers = [
     engine.addLayer(createTrackLayer(() => trackLatLon())),
     engine.addLayer(createTrackCursorLayer(() => cursorPosition())),
@@ -580,7 +586,7 @@ export const LogsScreen: Component<LogsScreenProps> = (props) => {
         />
 
         <div class="mvp-logs__map" aria-label={t('logs.map.label')}>
-          <MapWidget engine={engine} t={t} />
+          <MapWidget engine={engine} t={t} units={mapUnits()} />
         </div>
       </div>
 

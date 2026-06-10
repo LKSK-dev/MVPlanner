@@ -237,6 +237,26 @@ describe('CalibrationClient — compass', () => {
 });
 
 describe('CalibrationClient — radio', () => {
+  it('rejects a no-signal radio capture on dispose and removes the tap', async () => {
+    const { messages, client } = setup();
+    const received: number[][] = [];
+    const op = client.radio((channels) => received.push(channels));
+
+    messages.emit('RC_CHANNELS', {
+      chancount: 1,
+      chan1_raw: 1000,
+    });
+    expect(received).toEqual([[1000]]);
+
+    client.dispose();
+    await expect(op).rejects.toMatchObject({ reason: 'disposed' });
+    messages.emit('RC_CHANNELS', {
+      chancount: 1,
+      chan1_raw: 1200,
+    });
+    expect(received).toEqual([[1000]]);
+  });
+
   it('forwards RC_CHANNELS values until the signal aborts, then resolves', async () => {
     const { messages, client } = setup();
     const ac = new AbortController();
